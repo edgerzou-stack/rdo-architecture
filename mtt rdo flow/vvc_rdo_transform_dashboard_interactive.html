@@ -749,103 +749,103 @@
 </div>
 <p>整个rdo_dcost_flow模块内部如下图所示：</p>
 <div style="width: 100%; display: flex; justify-content: center; margin: 40px 0; overflow-x: auto;">
-<svg style="max-width: 1100px; width: 100%; font-family: 'Roboto Mono', monospace;" viewbox="0 0 1100 420" xmlns="http://www.w3.org/2000/svg">
+<svg height="auto" style="max-width: 1400px; font-family:'Roboto Mono', monospace; min-width: 1000px;" viewbox="0 0 1400 520" width="100%" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <marker id="arrow" markerheight="6" markerunits="userSpaceOnUse" markerwidth="8" orient="auto" refx="7" refy="3">
 <polygon fill="#64748b" points="0 0, 8 3, 0 6"></polygon>
 </marker>
 <filter id="shadow"><fedropshadow dx="0" dy="2" flood-opacity="0.08" stddeviation="2"></fedropshadow></filter>
 </defs>
-<rect fill="#f8fafc" height="420" rx="12" stroke="#e2e8f0" stroke-width="1" width="1100" x="0" y="0"></rect>
-<!-- ===== ROW 1: Forward DCT (y=40) ===== -->
+<rect fill="#f8fafc" height="520" rx="12" stroke="#e2e8f0" stroke-width="1" width="1400" x="0" y="0"></rect>
+<!-- ===== ROW 1: Forward DCT (y=50) ===== -->
 <!-- resd_din -->
-<rect fill="#f1f5f9" filter="url(#shadow)" height="42" rx="19" stroke="#cbd5e1" stroke-width="1.5" width="105" x="30" y="40"></rect>
-<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="82" y="67">resd_din</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="135" x2="227" y1="61" y2="61"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="80" x="140" y="39"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="180" y="52">11bit*TU_SIZE</text>
+<rect fill="#f1f5f9" filter="url(#shadow)" height="56" rx="28" stroke="#cbd5e1" stroke-width="1.5" width="140" x="40" y="50"></rect>
+<text fill="#334155" font-size="18" font-weight="600" text-anchor="middle" x="110" y="85">resd_din</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="180" x2="297" y1="78" y2="78"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="110" x="185" y="48"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="240" y="65">11bit*TU_SIZE</text>
 <!-- dct_trans1 -->
-<rect fill="#ef4444" filter="url(#shadow)" height="42" rx="6" stroke="#b91c1c" stroke-width="1.5" width="120" x="230" y="40"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="290" y="67">dct_trans1</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="350" x2="467" y1="61" y2="61"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="95" x="360" y="35"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="407" y="48">tr1_rslt</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="407" y="75">16bit*CALC_PPC</text>
+<rect fill="#ef4444" filter="url(#shadow)" height="56" rx="8" stroke="#b91c1c" stroke-width="1.5" width="160" x="300" y="50"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="380" y="85">dct_trans1</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="460" x2="597" y1="78" y2="78"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="470" y="48"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="530" y="65">tr1_rslt</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="530" y="98">16bit*CALC_PPC</text>
 <!-- dctbuf -->
-<rect fill="#ef4444" filter="url(#shadow)" height="42" rx="6" stroke="#b91c1c" stroke-width="1.5" width="100" x="470" y="40"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="520" y="67">dctbuf</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="570" x2="707" y1="61" y2="61"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="95" x="590" y="35"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="637" y="48">tr2_din</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="637" y="75">16bit*TU_SIZE</text>
+<rect fill="#ef4444" filter="url(#shadow)" height="56" rx="8" stroke="#b91c1c" stroke-width="1.5" width="160" x="600" y="50"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="680" y="85">dctbuf</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="760" x2="897" y1="78" y2="78"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="770" y="48"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="830" y="65">tr2_din</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="830" y="98">16bit*TU_SIZE</text>
 <!-- dct_trans2 -->
-<rect fill="#ef4444" filter="url(#shadow)" height="42" rx="6" stroke="#b91c1c" stroke-width="1.5" width="120" x="710" y="40"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="770" y="67">dct_trans2</text>
+<rect fill="#ef4444" filter="url(#shadow)" height="56" rx="8" stroke="#b91c1c" stroke-width="1.5" width="160" x="900" y="50"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="980" y="85">dct_trans2</text>
 <!-- Turn Down 1 -->
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="770" x2="770" y1="82" y2="157"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="70" x="780" y="100"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="815" y="113">tr2_rslt</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="815" y="132">16bit*CALC_PPC</text>
-<!-- ===== ROW 2: Quant/Dequant (y=160, Right to Left) ===== -->
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="980" x2="980" y1="106" y2="217"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="995" y="140"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="1055" y="157">tr2_rslt</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="1055" y="182">16bit*CALC_PPC</text>
+<!-- ===== ROW 2: Quant/Dequant (y=220, Right to Left) ===== -->
 <!-- std_quant -->
-<rect fill="#3b82f6" filter="url(#shadow)" height="42" rx="6" stroke="#1d4ed8" stroke-width="1.5" width="120" x="710" y="160"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="770" y="187">std_quant</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="710" x2="593" y1="181" y2="181"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="70" x="615" y="155"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="650" y="168">stdq_rslt</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="650" y="195">16bit*CALC_PPC</text>
+<rect fill="#3b82f6" filter="url(#shadow)" height="56" rx="8" stroke="#1d4ed8" stroke-width="1.5" width="160" x="900" y="220"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="980" y="255">std_quant</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="900" x2="763" y1="248" y2="248"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="770" y="218"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="830" y="235">stdq_rslt</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="830" y="268">16bit*CALC_PPC</text>
 <!-- dequant -->
-<rect fill="#8b5cf6" filter="url(#shadow)" height="42" rx="6" stroke="#6d28d9" stroke-width="1.5" width="120" x="470" y="160"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="530" y="187">dequant</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="470" x2="353" y1="181" y2="181"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="70" x="375" y="155"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="410" y="168">deq_rslt</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="410" y="195">16bit*CALC_PPC</text>
+<rect fill="#8b5cf6" filter="url(#shadow)" height="56" rx="8" stroke="#6d28d9" stroke-width="1.5" width="160" x="600" y="220"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="680" y="255">dequant</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="600" x2="463" y1="248" y2="248"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="470" y="218"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="530" y="235">deq_rslt</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="530" y="268">16bit*CALC_PPC</text>
 <!-- deqbuf -->
-<rect fill="#8b5cf6" filter="url(#shadow)" height="42" rx="6" stroke="#6d28d9" stroke-width="1.5" width="120" x="230" y="160"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="290" y="187">deqbuf</text>
+<rect fill="#8b5cf6" filter="url(#shadow)" height="56" rx="8" stroke="#6d28d9" stroke-width="1.5" width="160" x="300" y="220"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="380" y="255">deqbuf</text>
 <!-- Turn Down 2 -->
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="290" x2="290" y1="202" y2="277"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="70" x="300" y="220"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="335" y="233">itr2_din</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="335" y="252">16bit*TU_SIZE</text>
-<!-- ===== ROW 3: Inverse DCT (y=280, Left to Right) ===== -->
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="380" x2="380" y1="276" y2="387"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="395" y="310"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="455" y="327">itr2_din</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="455" y="352">16bit*TU_SIZE</text>
+<!-- ===== ROW 3: Inverse DCT (y=390, Left to Right) ===== -->
 <!-- idct_trans1 -->
-<rect fill="#10b981" filter="url(#shadow)" height="42" rx="6" stroke="#047857" stroke-width="1.5" width="120" x="230" y="280"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="290" y="307">idct_trans1</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="350" x2="467" y1="301" y2="301"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="95" x="360" y="275"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="407" y="288">itr1_rslt</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="407" y="315">16bit*CALC_PPC</text>
+<rect fill="#10b981" filter="url(#shadow)" height="56" rx="8" stroke="#047857" stroke-width="1.5" width="160" x="300" y="390"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="380" y="425">idct_trans1</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="460" x2="597" y1="418" y2="418"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="470" y="388"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="530" y="405">itr1_rslt</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="530" y="438">16bit*CALC_PPC</text>
 <!-- idctbuf -->
-<rect fill="#10b981" filter="url(#shadow)" height="42" rx="6" stroke="#047857" stroke-width="1.5" width="100" x="470" y="280"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="520" y="307">idctbuf</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="570" x2="707" y1="301" y2="301"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="95" x="590" y="275"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="637" y="288">itr2_din</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="637" y="315">16bit*TU_SIZE</text>
+<rect fill="#10b981" filter="url(#shadow)" height="56" rx="8" stroke="#047857" stroke-width="1.5" width="160" x="600" y="390"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="680" y="425">idctbuf</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="760" x2="897" y1="418" y2="418"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="770" y="388"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="830" y="405">itr2_din</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="830" y="438">16bit*TU_SIZE</text>
 <!-- idct_trans2 -->
-<rect fill="#10b981" filter="url(#shadow)" height="42" rx="6" stroke="#047857" stroke-width="1.5" width="120" x="710" y="280"></rect>
-<text fill="white" font-size="15" font-weight="600" text-anchor="middle" x="770" y="307">idct_trans2</text>
-<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="1.5" x1="830" x2="927" y1="301" y2="301"></line>
-<rect fill="white" fill-opacity="0.9" height="18" rx="3" stroke="#e2e8f0" stroke-width="0.5" width="80" x="840" y="275"></rect>
-<text fill="#334155" font-size="11" font-weight="600" text-anchor="middle" x="880" y="288">itr2_rslt</text>
-<text fill="#64748b" font-size="11" text-anchor="middle" x="880" y="315">16bit*CALC_PPC</text>
+<rect fill="#10b981" filter="url(#shadow)" height="56" rx="8" stroke="#047857" stroke-width="1.5" width="160" x="900" y="390"></rect>
+<text fill="white" font-size="20" font-weight="600" text-anchor="middle" x="980" y="425">idct_trans2</text>
+<line marker-end="url(#arrow)" stroke="#64748b" stroke-width="2" x1="1060" x2="1197" y1="418" y2="418"></line>
+<rect fill="white" fill-opacity="0.9" height="24" rx="4" stroke="#e2e8f0" stroke-width="0.5" width="120" x="1070" y="388"></rect>
+<text fill="#334155" font-size="14" font-weight="600" text-anchor="middle" x="1130" y="405">itr2_rslt</text>
+<text fill="#64748b" font-size="14" text-anchor="middle" x="1130" y="438">16bit*CALC_PPC</text>
 <!-- OUT -->
-<rect fill="#f1f5f9" filter="url(#shadow)" height="42" rx="19" stroke="#cbd5e1" stroke-width="1.5" width="105" x="930" y="280"></rect>
-<text fill="#334155" font-size="15" font-weight="600" text-anchor="middle" x="982" y="307">OUT</text>
+<rect fill="#f1f5f9" filter="url(#shadow)" height="56" rx="28" stroke="#cbd5e1" stroke-width="1.5" width="140" x="1200" y="390"></rect>
+<text fill="#334155" font-size="20" font-weight="600" text-anchor="middle" x="1270" y="425">OUT</text>
 <!-- Labels -->
-<text fill="#64748b" font-size="12" font-weight="600" x="30" y="20">Forward DCT Path →</text>
-<text fill="#64748b" font-size="12" font-weight="600" x="930" y="340">→ Inverse DCT Path</text>
+<text fill="#64748b" font-size="15" font-weight="600" x="40" y="25">Forward DCT Path →</text>
+<text fill="#64748b" font-size="15" font-weight="600" x="1200" y="475">→ Inverse DCT Path</text>
 <!-- Legend -->
-<rect fill="#ef4444" height="14" rx="2" width="14" x="30" y="380"></rect>
-<text fill="#475569" font-size="12" font-weight="600" x="55" y="392">Forward Transform</text>
-<rect fill="#3b82f6" height="14" rx="2" width="14" x="230" y="380"></rect>
-<text fill="#475569" font-size="12" font-weight="600" x="255" y="392">Quantization</text>
-<rect fill="#8b5cf6" height="14" rx="2" width="14" x="390" y="380"></rect>
-<text fill="#475569" font-size="12" font-weight="600" x="415" y="392">De-Quantization</text>
-<rect fill="#10b981" height="14" rx="2" width="14" x="560" y="380"></rect>
-<text fill="#475569" font-size="12" font-weight="600" x="585" y="392">Inverse Transform</text>
+<rect fill="#ef4444" height="16" rx="2" width="16" x="40" y="475"></rect>
+<text fill="#475569" font-size="15" font-weight="600" x="65" y="488">Forward Transform</text>
+<rect fill="#3b82f6" height="16" rx="2" width="16" x="260" y="475"></rect>
+<text fill="#475569" font-size="15" font-weight="600" x="285" y="488">Quantization</text>
+<rect fill="#8b5cf6" height="16" rx="2" width="16" x="420" y="475"></rect>
+<text fill="#475569" font-size="15" font-weight="600" x="445" y="488">De-Quantization</text>
+<rect fill="#10b981" height="16" rx="2" width="16" x="610" y="475"></rect>
+<text fill="#475569" font-size="15" font-weight="600" x="635" y="488">Inverse Transform</text>
 </svg>
 </div>
 <p class="critical-alert"><strong style="color: #dc2626; display: block; margin-bottom: 4px;">⚠️ [关键架构约束] </strong>残差resd的输入顺序要求<strong>强约束为按行输入，从上到下，且数据只送入一次</strong></p><p>TU8的1行残差保持2clk，TU16的1行残差保持4clk，TU32的1行残差保持4clk</p><p>模块的层级结构如下图所示：</p>
