@@ -50,6 +50,10 @@
         /* Syntax Highlight Overrides */
         .hljs-comment { color: #86efac !important; font-style: italic; }
         
+        /* Prevent SVG Shrinking */
+        .text-pane > div > svg { min-width: 1400px !important; height: auto !important; max-width: none !important; }
+        .mermaid svg { min-width: 1200px !important; height: auto !important; max-width: none !important; }
+        
         /* Document Images */
         .text-pane img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); margin: 20px 0; border: 1px solid #1e293b; }
         
@@ -749,7 +753,7 @@
 </div>
 <p>整个rdo_dcost_flow模块内部如下图所示：</p>
 <div style="width: 100%; display: flex; justify-content: center; margin: 40px 0; overflow-x: auto;">
-<svg height="auto" style="max-width: 1400px; font-family:'Roboto Mono', monospace; min-width: 1000px;" viewbox="0 0 1400 520" width="100%" xmlns="http://www.w3.org/2000/svg">
+<svg height="auto" style="max-width: 1400px; font-family:'Roboto Mono', monospace; min-width: 1400px;" viewbox="0 0 1400 520" width="100%" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <marker id="arrow" markerheight="6" markerunits="userSpaceOnUse" markerwidth="8" orient="auto" refx="7" refy="3">
 <polygon fill="#64748b" points="0 0, 8 3, 0 6"></polygon>
