@@ -51,9 +51,7 @@
         /* Syntax Highlight Overrides */
         .hljs-comment { color: #86efac !important; font-style: italic; }
         
-        /* Prevent SVG Shrinking */
-        .mermaid svg { min-width: 1200px !important; height: auto !important; max-width: none !important; }
-        
+
         /* Document Images */
         .text-pane img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); margin: 20px 0; border: 1px solid #1e293b; }
         
@@ -855,7 +853,7 @@
 <p class="critical-alert"><strong style="color: #dc2626; display: block; margin-bottom: 4px;">⚠️ [关键架构约束] </strong>残差resd的输入顺序要求<strong>强约束为按行输入，从上到下，且数据只送入一次</strong></p><p>TU8的1行残差保持2clk，TU16的1行残差保持4clk，TU32的1行残差保持4clk</p><p>模块的层级结构如下图所示：</p>
 <div class="mermaid-container" style="min-height: 500px; align-items: center; padding: 40px;">
 <div class="mermaid">
-        %%{init: {'theme': 'base', 'themeVariables': { 'fontFamily': 'Roboto Mono', 'fontSize': '16px' }, 'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150, 'curve': 'bumpX'}}}%%
+        %%{init: {'theme': 'base', 'themeVariables': { 'fontFamily': 'Roboto Mono', 'fontSize': '14px' }, 'flowchart': {'nodeSpacing': 40, 'rankSpacing': 80, 'curve': 'bumpX'}}}%%
         graph TD
             classDef default fill:#f8fafc,stroke:#94a3b8,stroke-width:2px,color:#1e293b
             classDef redblock fill:#dc2626,stroke:#7f1d1d,color:white
