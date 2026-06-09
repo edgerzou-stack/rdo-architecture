@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <title>Ultimate RDO Architecture Design</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: 'rgba(30, 41, 59, 0.8)',
+                primaryTextColor: '#f8fafc',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#94a3b8',
+                secondaryColor: 'rgba(236, 72, 153, 0.2)',
+                tertiaryColor: 'rgba(0,0,0,0.3)',
+                fontFamily: 'Inter, sans-serif'
+            }
+        });
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-lu: #3b82f6;
+            --accent-ch: #ec4899;
+            --delay-color: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        .wf-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto 3rem auto;
+        }
+
+        .wf-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.2rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .wf-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+        }
+
+        .wf-header {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .wf-header::before {
+            content: '';
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(to right, #34d399, #3b82f6);
+            margin-right: 10px;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+        }
+
+        .channel-block {
+            margin-bottom: 1.5rem;
+            border-radius: 12px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .channel-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .channel-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+        }
+
+        .channel-lu::before { background: var(--accent-lu); }
+        .channel-ch::before { background: var(--accent-ch); }
+
+        .channel-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .channel-lu .channel-title { color: #93c5fd; }
+        .channel-ch .channel-title { color: #f9a8d4; }
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .spec-item {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.5rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
+
+        .spec-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: var(--text-secondary);
+            margin-bottom: 0.2rem;
+        }
+
+        .spec-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .delay-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .delay-title {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            font-weight: 600;
+        }
+
+        .delay-row {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        
+        .delay-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .delay-row-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .delay-mode {
+            background: var(--delay-color);
+            color: #000;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .delay-val {
+            font-family: 'Roboto Mono', monospace;
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .fps-budgets {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .budget-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .budget-badge span {
+            color: #34d399;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .rdoq-cost {
+            margin-top: 1rem;
+            padding: 0.6rem 0.8rem;
+            background: linear-gradient(to right, rgba(139, 92, 246, 0.15), transparent);
+            border-left: 3px solid #8b5cf6;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.8rem;
+            color: #c4b5fd;
+            font-family: 'Roboto Mono', monospace;
+            display: flex;
+            align-items: center;
+            white-space: pre-wrap;
+        }
+
+        .arch-diagram-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin: 0 auto;
+            max-width: 100%;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        
+        .arch-diagram-container h2 {
+            font-size: 1.8rem;
+            margin-top: 0;
+            margin-bottom: 2rem;
+            color: #e2e8f0;
+        }
+
+        .mermaid {
+            background: rgba(0,0,0,0.2);
+            padding: 2rem;
+            border-radius: 16px;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 1500px) {
+            .wf-container { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 1000px) {
+            .wf-container { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 650px) {
+            .wf-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>RDO Hardware Architecture Spec</h1>
+
+    <!-- 顶层的 WF 网格 -->
+    <div class="wf-container">
+        
+        <!-- WF4 -->
+        <div class="wf-section">
+            <h2 class="wf-header">WF4</h2>
+            
+            <div class="channel-block channel-lu">
+                <h3 class="channel-title">Lu Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">16</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 14 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 2 clk</span></div>
+                            <div class="budget-badge">4K@30fps <span>剩 18 clk</span></div>
+                            <div class="budget-badge">4K@15fps <span>剩 50 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 8 clk/candi</div>
+            </div>
+
+            <div class="channel-block channel-ch">
+                <h3 class="channel-title">Ch Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">4</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 53 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 11 clk</span></div>
+                            <div class="budget-badge">4K@30fps <span>剩 75 clk</span></div>
+                            <div class="budget-badge">4K@15fps <span>剩 139 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 8 clk/candi</div>
+            </div>
+        </div>
+
+        <!-- WF8 -->
+        <div class="wf-section">
+            <h2 class="wf-header">WF8</h2>
+            
+            <div class="channel-block channel-lu">
+                <h3 class="channel-title">Lu Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">8</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">2</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">3</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 63 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 1 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 126 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 2 clk</span></div>
+                            <div class="budget-badge">4K@15fps <span>剩 130 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 25 clk/candi</div>
+            </div>
+
+            <div class="channel-block channel-ch">
+                <h3 class="channel-title">Ch Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">4</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">3</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 53 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 11 clk</span></div>
+                            <div class="budget-badge">4K@30fps <span>剩 75 clk</span></div>
+                            <div class="budget-badge">4K@15fps <span>剩 139 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 8 clk/candi</div>
+            </div>
+        </div>
+
+        <!-- WF16 -->
+        <div class="wf-section">
+            <h2 class="wf-header">WF16</h2>
+            
+            <div class="channel-block channel-lu">
+                <h3 class="channel-title">Lu Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">8</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 241 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 14 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 498 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 14 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">TT</span>
+                            <span class="delay-val">Delay: 794 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@15fps <span>剩 230 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 93 clk/candi</div>
+            </div>
+
+            <div class="channel-block channel-ch">
+                <h3 class="channel-title">Ch Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">4</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 186 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 30 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 442 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 70 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">TT</span>
+                            <span class="delay-val">Delay: 636 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@15fps <span>剩 388 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 25 clk/candi</div>
+            </div>
+        </div>
+
+        <!-- WF32 -->
+        <div class="wf-section">
+            <h2 class="wf-header">WF32</h2>
+            
+            <div class="channel-block channel-lu">
+                <h3 class="channel-title">Lu Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">8</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 917 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 107 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 1941 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 107 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">TT</span>
+                            <span class="delay-val">Delay: 3061 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@15fps <span>剩 1035 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 304 clk/candi</div>
+            </div>
+
+            <div class="channel-block channel-ch">
+                <h3 class="channel-title">Ch Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">4</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 721 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 303 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 1617 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 431 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">TT</span>
+                            <span class="delay-val">Delay: 2689 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@15fps <span>剩 1407 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 93 clk/candi</div>
+            </div>
+        </div>
+
+        <!-- WF64 -->
+        <div class="wf-section">
+            <h2 class="wf-header">WF64</h2>
+            
+            <div class="channel-block channel-lu">
+                <h3 class="channel-title">Lu Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">8</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 2453 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 1643 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 6549 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 1643 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">TT</span>
+                            <span class="delay-val">Delay: 10837 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@15fps <span>剩 5547 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 1216 clk/candi</div>
+            </div>
+
+            <div class="channel-block channel-ch">
+                <h3 class="channel-title">Ch Channel</h3>
+                <div class="specs-grid">
+                    <div class="spec-item"><span class="spec-label">PPC</span><span class="spec-value">4</span></div>
+                    <div class="spec-item"><span class="spec-label">WF</span><span class="spec-value">1</span></div>
+                    <div class="spec-item"><span class="spec-label">Candi</span><span class="spec-value">4</span></div>
+                </div>
+                <div class="delay-section">
+                    <div class="delay-title">Budget</div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">QT</span>
+                            <span class="delay-val">Delay: 2261 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@60fps <span>剩 1835 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">BT</span>
+                            <span class="delay-val">Delay: 6357 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@30fps <span>剩 1835 clk</span></div>
+                        </div>
+                    </div>
+                    <div class="delay-row">
+                        <div class="delay-row-header">
+                            <span class="delay-mode">TT</span>
+                            <span class="delay-val">Delay: 10549 clk</span>
+                        </div>
+                        <div class="fps-budgets">
+                            <div class="budget-badge">4K@15fps <span>剩 5835 clk</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rdoq-cost">⚡ RDOQ Delay: 372 clk/candi</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 架构框图移至底部 -->
+    <div class="arch-diagram-container">
+        <h2>Hardware Architecture Flow</h2>
+        <div class="mermaid">
+            flowchart LR
+                Data[Input CU Pixel Data & Ctrl] --> Split{Lu / Ch Separation}
+                
+                Split -->|Luma Channel| Lu_Channel
+                Split -->|Chroma Channel| Ch_Channel
+                
+                subgraph Lu_Channel [Luma Pipelines]
+                    direction TB
+                    WF4_Lu[WF4: PPC=16<br/>1 Pipe x 4 Candi]
+                    WF8_Lu[WF8: PPC=8<br/>2 Pipe x 3 Candi]
+                    WF16_Lu[WF16: PPC=8<br/>1 Pipe x 4 Candi]
+                    WF32_Lu[WF32: PPC=8<br/>1 Pipe x 4 Candi]
+                    WF64_Lu[WF64: PPC=8<br/>1 Pipe x 4 Candi]
+                end
+                
+                subgraph Ch_Channel [Chroma Pipelines]
+                    direction TB
+                    WF4_Ch[WF4: PPC=4<br/>1 Pipe x 4 Candi]
+                    WF8_Ch[WF8: PPC=4<br/>1 Pipe x 3 Candi]
+                    WF16_Ch[WF16: PPC=4<br/>1 Pipe x 4 Candi]
+                    WF32_Ch[WF32: PPC=4<br/>1 Pipe x 4 Candi]
+                    WF64_Ch[WF64: PPC=4<br/>1 Pipe x 4 Candi]
+                end
+                
+                Lu_Channel --> Budget{RDOQ Budget Logic<br/>Remaining Clk > RDOQ Delay?}
+                Ch_Channel --> Budget
+                
+                Budget -- Yes --> RDOQ[Execute RDOQ Engine<br/>RDOQ Delay: 8 ~ 1216 clk per Candi]
+                Budget -- No --> Bypass[Bypass RDOQ]
+                
+                RDOQ --> Output[Select Best Candidate Output]
+                Bypass --> Output
+        </div>
+    </div>
+
+</body>
+</html>
