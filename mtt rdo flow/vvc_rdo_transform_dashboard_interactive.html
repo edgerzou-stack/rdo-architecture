@@ -35,6 +35,7 @@
         .text-pane th, .text-pane td { padding: 14px 18px; border: 1px solid #e2e8f0; text-align: left; }
         .text-pane th { background: #f8fafc; font-weight: 600; }
         .mermaid-container { margin: 35px 0; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: flex-start; overflow-x: auto; }
+        .mermaid { margin: 0 auto; }
         .mtt-diagram-container { display: flex; gap: 40px; margin: 40px 0; justify-content: center; background: #f8fafc; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .mtt-item { display: flex; flex-direction: column; align-items: center; }
         .mtt-box { width: 110px; height: 110px; border: 2px solid #64748b; background: #ffffff; border-radius: 4px; display: flex; margin-bottom: 15px; }
@@ -855,7 +856,7 @@
 <div class="mermaid-container" style="min-height: 500px; align-items: center; padding: 40px;">
 <div class="mermaid">
         %%{init: {'theme': 'base', 'themeVariables': { 'fontFamily': 'Roboto Mono', 'fontSize': '16px' }, 'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150, 'curve': 'bumpX'}}}%%
-        graph LR
+        graph TD
             classDef default fill:#f8fafc,stroke:#94a3b8,stroke-width:2px,color:#1e293b
             classDef redblock fill:#dc2626,stroke:#7f1d1d,color:white
             
