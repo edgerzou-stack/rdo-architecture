@@ -34,8 +34,10 @@ This repository is designed to be **clean and purely web-facing**. We embrace th
 
 ## 📝 Document Generation Skills
 
-If you are looking to replicate the self-adaptive diagrams and dynamic rendering techniques used in these HTML documents, please refer to the dedicated Skill Guide:
-* **Hardware Diagram Responsive Design Skill** (Maintained locally via Antigravity Agent workflow)
+This repository also serves as a knowledge base for the frontend/deployment techniques used to build these interactive specifications. We have documented these best practices into "Skill Guides" which are checked into the repository:
+
+* 📐 **[Hardware Diagram Responsive Design Skill](skills/hardware_diagram_design_skill.md)**: Master the art of the "100% SVG stretch", auto-adapting Mermaid graph flows (`LR` vs `TD`), and dynamic mathematical scaling for giant $32\times32$ Matrix Tables to guarantee zero horizontal scrollbars.
+* 🚀 **[Web Hardware Doc Deployment Skill](skills/Git_Documentation_Deployment_Skill.md)**: A guide to the "Git Index Decoupling" method. Learn how to maintain a chaotic local engineering workspace (full of `.py`, `.xlsx`, `.docx`) while deploying an absolutely pristine, HTML-only repository to GitHub Pages using advanced `.gitignore` whitelists.
 
 ---
 *Maintained by the RDO Core Design Team.*
