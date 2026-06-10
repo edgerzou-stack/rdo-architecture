@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频编码硬件架构优化总结</title>
+    <!-- 引入 Mermaid.js 用于渲染图表 -->
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --bg: #f8f9fa;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ecf0f1;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            border-bottom: 3px solid var(--secondary);
+            padding-bottom: 15px;
+            margin-bottom: 40px;
+        }
+        h2 {
+            color: var(--secondary);
+            margin-top: 40px;
+            border-left: 5px solid var(--secondary);
+            padding-left: 15px;
+        }
+        .highlight {
+            background-color: #e8f4f8;
+            border-left: 4px solid var(--secondary);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            background: #fdfdfd;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .diagram-caption {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: -15px;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>视频编码硬件架构优化总结<br><span style="font-size:0.6em; color:#7f8c8d;">HMVP 与 RDO 流水线设计演进</span></h1>
+
+    <h2>1. 核心矛盾：算法串行依赖 vs 硬件并行流水线</h2>
+    <p>在标准算法（和 C-model 软件实现）中，HMVP 表的更新存在严格的串行依赖。如果硬件严格遵守这种首尾反馈（Feedback Loop），会导致 <code>MEMD</code> 前端必须等待后端的 <code>WF/RDO</code> 模块，产生巨大的流水线气泡（Pipeline Bubble）。</p>
+    
+    <div class="mermaid">
+    graph TD
+        subgraph S1 [软件标准串行 - 硬件灾难]
+        A1[CU0 前端 MEMD] --> B1[CU0 后端 WF PK]
+        B1 -->|经过几十个周期| C1[更新 HMVP]
+        C1 -.卡死等待.-> A2
+        A2[CU1 前端 MEMD] --> B2[CU1 后端 WF PK]
+        end
+        
+        subgraph S2 [理想硬件并发 - 需打破依赖]
+        A3[CU0 前端 MEMD] --> B3[CU0 后端 WF PK]
+        A4[CU1 前端 MEMD] --> B4[CU1 后端 WF PK]
+        A5[CU2 前端 MEMD] --> B5[CU2 后端 WF PK]
+        B3 --> C2[统一更新/滞后更新机制]
+        B4 --> C2
+        B5 --> C2
+        end
+    </div>
+    <div class="diagram-caption">图 1：串行依赖导致的流水线停顿 vs 理想的高吞吐硬件流水线</div>
+
+    <h2>2. 深入本质：AMVP 与 Merge 模式下 HMVP 的不同作用</h2>
+    <div class="warning">
+        <strong>核心误区澄清：</strong> HMVP 不仅仅是用来算 bin cost 的。它在占比最大的 Merge 模式下，直接决定了抓取哪些像素来做运动补偿（MC），从而严重影响失真代价（SAD/SATD）。
+    </div>
+    
+    <div class="mermaid">
+    flowchart LR
+        subgraph S3 [AMVP 模式 - 常规 Inter]
+            HMVP1[HMVP候选] -->|仅提供预测值 MVP| MVD[计算 MVD]
+            ME[硬件 ME 搜索] -->|找到最优物理坐标| P1[抓取像素 Pred]
+            MVD -->|仅影响| R[Rate / Bin Cost]
+            P1 -->|影响| D[Distortion SAD]
+        end
+    </div>
+    <div class="mermaid">
+    flowchart LR
+        subgraph S4 [Merge / Skip 模式 - 无 MVD]
+            HMVP2[HMVP候选] -->|直接作为物理坐标使用| P2[向内存抓取像素 Pred]
+            P2 -->|直接决定| D2[Distortion SAD]
+        end
+    </div>
+    <div class="diagram-caption">图 2：HMVP 在不同模式下的数据流向对比</div>
+
+    <h2>3. 破除迷思：MTT 结构下的“平行宇宙”</h2>
+    <p>在多类型树（MTT）的 RDO 搜索中，不同的划分方式（如 HB 和 VB）是<strong>互斥的竞争方案</strong>，它们属于平行宇宙，毫无数据依赖。</p>
+    
+    <div class="mermaid">
+    graph TD
+        Parent[父节点 CU 拍下 HMVP 快照]
+        Parent -->|共享同一份干净快照| HB[探索 Horz Split]
+        Parent -->|共享同一份干净快照| VB[探索 Vert Split]
+        
+        HB --> HB0[算上半块]
+        HB --> HB1[算下半块]
+        
+        VB --> VB0[算左半块]
+        VB --> VB1[算右半块]
+        
+        classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+        classDef snapshot fill:#d4edda,stroke:#28a745,stroke-width:2px;
+        class Parent snapshot;
+    </div>
+    <div class="diagram-caption">图 3：互斥拆分方案完全解耦，可任意乱序打入流水线</div>
+
+    <h2>4. 架构终极演进：流水线滞后一拍更新</h2>
+    <p>为了既保住极高的硬件吞吐率，又尽量不损失视频画质（BD-Rate），你们最终敲定了将 <strong>MMVD 融入 MEMD</strong>，并采用 <strong>流水线滞后更新 (Pipelined Delayed Update)</strong>。</p>
+    
+    <div class="highlight">
+        <strong>为什么这是大师级的折中方案？</strong><br>
+        1. <strong>流水线 0 气泡：</strong> <code>CU_1</code> 不等 <code>CU_0</code>，直接带着稍旧一拍的表往前跑。<br>
+        2. <strong>上下文极其新鲜：</strong> 相比于冻结一整块 CU32（落后达 15 步），滞后更新让上下文永远只落后 1 步。<br>
+        3. <strong>自适应流水线深度：</strong> CU8 晚 CU8，CU16 晚 CU16，这完美咬合了硬件在处理不同尺寸 CU 时吐出结果的物理周期。
+    </div>
+
+    <div class="mermaid">
+    sequenceDiagram
+        autonumber
+        participant MEMD as 前端 MEMD
+        participant RDO as 后端 WF+RDO
+        participant Table as 硬件 HMVP 表
+        
+        MEMD->>RDO: 发送 CU_0
+        Note left of MEMD: 此时使用老状态表
+        
+        MEMD->>RDO: 发送 CU_1
+        Note left of MEMD: 此时 CU_0 仍在流水线中，<br>CU_1 不等待，继续用老表
+        
+        RDO-->>Table: CU_0 决选完成，更新最优 MV 到 HMVP
+        
+        MEMD->>RDO: 发送 CU_2
+        Note left of MEMD: 完美衔接！CU_2 成功用上了<br>刚刚被 CU_0 更新的最新状态！
+    </div>
+    <div class="diagram-caption">图 4：Pipelined Delayed Update 时序仿真</div>
+
+</div>
+
+</body>
+</html>
