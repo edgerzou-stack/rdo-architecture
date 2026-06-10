@@ -12,11 +12,11 @@ All documentation is generated and hosted statically via GitHub Pages, ensuring 
 
 You can directly access the interactive online documentation via the following links:
 
-### 🌟 1. [Top-Level Architecture Dashboard](https://edgerzou-stack.github.io/rdo-architecture/)
+### 🌟 1. [Top-Level Architecture Dashboard](https://edgerzou-stack.github.io/rdo-architecture/html/index.html)
 - **Target Audience:** Architects, Project Managers, and System Engineers.
 - **Content:** An overview of the entire RDO Hardware Architecture Workflow (WF4, WF8, WF16, WF32, WF64) and high-level RDOQ budgets.
 
-### 🔬 2. [VVC RDO Transform Core Detailed Design](https://edgerzou-stack.github.io/rdo-architecture/mtt%20rdo%20flow/vvc_rdo_transform_dashboard_interactive.html)
+### 🔬 2. [VVC RDO Transform Core Detailed Design](https://edgerzou-stack.github.io/rdo-architecture/html/vvc_rdo_transform_dashboard_interactive.html)
 - **Target Audience:** RTL Designers, Verification Engineers.
 - **Content:** The highly detailed design specification for the Transform Core Module.
 - **Highlights:**
@@ -24,6 +24,10 @@ You can directly access the interactive online documentation via the following l
   - Interactive Git-versioned Markdown content.
   - Responsive dynamic hardware matrix tables (up to 32x32) perfectly scaled for the viewport.
   - Z-shaped interactive SVG hardware pipelines.
+
+### ⚡ 3. [HMVP RDO Pipeline Optimization](https://edgerzou-stack.github.io/rdo-architecture/html/HMVP_RDO_Pipeline_Optimization.html)
+- **Target Audience:** Core RDO Architects, RTL Designers.
+- **Content:** Deep architectural analysis breaking the strict algorithmic feedback loop of HMVP. Explains why "Pipelined Delayed Update" provides zero-bubble throughput and optimal BD-Rate.
 
 ## 🛠️ Repository Philosophy
 
