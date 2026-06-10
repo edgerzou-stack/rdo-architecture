@@ -29,9 +29,7 @@ You can directly access the interactive online documentation via the following l
 - **Target Audience:** Core RDO Architects, RTL Designers.
 - **Content:** Deep architectural analysis breaking the strict algorithmic feedback loop of HMVP. Explains why "Pipelined Delayed Update" provides zero-bubble throughput and optimal BD-Rate.
 
-### 🎨 4. [Intra Prediction Architecture & MD/RDO Decoupling](https://edgerzou-stack.github.io/rdo-architecture/html/intra_prediction_architecture.html)
-- **Target Audience:** Core Intra Architects, Algorithm Engineers.
-- **Content:** Comprehensive analysis of Luma/Chroma decision loops, MD vs RDO pipeline decoupling, and advanced hardware bottleneck resolutions (MPM freeze, CCLM bypass, 4x4 handling).
+
 
 ## 🛠️ Repository Philosophy
 
