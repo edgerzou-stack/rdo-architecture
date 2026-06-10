@@ -29,6 +29,10 @@ You can directly access the interactive online documentation via the following l
 - **Target Audience:** Core RDO Architects, RTL Designers.
 - **Content:** Deep architectural analysis breaking the strict algorithmic feedback loop of HMVP. Explains why "Pipelined Delayed Update" provides zero-bubble throughput and optimal BD-Rate.
 
+### 🧮 4. [RDOQ Hardware Optimization Pipeline](https://edgerzou-stack.github.io/rdo-architecture/html/rdoq_hardware_dashboard.html)
+- **Target Audience:** RTL Designers, RDOQ Algorithm Engineers.
+- **Content:** The detailed hardware pipeline decoupling strategy for RDOQ, featuring pure 16-unit parallel calculation and completely unrolled dependency graphs.
+
 
 
 ## 🛠️ Repository Philosophy

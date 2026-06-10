@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VVC RDOQ Hardware Architecture Dashboard</title>
+<style>
+:root {
+    --primary: #0288d1;
+    --secondary: #7b1fa2;
+    --accent: #ff6f00;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+}
+body { 
+    margin: 0; padding: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: var(--bg); 
+    color: #333; 
+    display: flex; 
+    height: 100vh; 
+    overflow: hidden; 
+}
+.sidebar { 
+    width: 300px; 
+    background: white; 
+    border-right: 1px solid #e2e8f0; 
+    padding: 30px; 
+    overflow-y: auto; 
+    flex-shrink: 0;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+}
+.sidebar h2.toc-title { 
+    font-size: 14px; 
+    color: #94a3b8; 
+    text-transform: uppercase; 
+    margin-bottom: 20px; 
+    letter-spacing: 1px; 
+    border-left: none; 
+    padding-left: 0; 
+    margin-top: 0; 
+}
+ul.toc { list-style: none; padding-left: 0; margin: 0; }
+ul.toc li { margin-bottom: 8px; }
+ul.toc a { 
+    color: #475569; 
+    text-decoration: none; 
+    display: block; 
+    padding: 8px 12px; 
+    border-radius: 6px; 
+    font-size: 14px; 
+    transition: all 0.2s; 
+}
+ul.toc a:hover { background: #f1f5f9; color: var(--primary); }
+ul.toc a.active { 
+    background: #eff6ff; 
+    color: var(--primary); 
+    font-weight: 600; 
+    border-left: 3px solid var(--primary); 
+}
+ul.toc li.sub-toc a { padding-left: 30px; font-size: 13px; color: #64748b; }
+
+.main-content { 
+    flex-grow: 1; 
+    padding: 40px; 
+    overflow-y: auto; 
+    scroll-behavior: smooth; 
+}
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    background: var(--card-bg); 
+    padding: 40px 60px; 
+    border-radius: 12px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+}
+
+.top-nav { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 10px; 
+    margin-bottom: 25px; 
+    padding-bottom: 15px; 
+    border-bottom: 1px solid #e0e0e0; 
+}
+.top-nav-link { 
+    background: #f8fafc; 
+    color: var(--primary); 
+    padding: 8px 16px; 
+    border-radius: 20px; 
+    font-size: 13px; 
+    font-weight: 600; 
+    text-decoration: none; 
+    border: 1px solid #e2e8f0; 
+    transition: all 0.2s; 
+}
+.top-nav-link:hover { background: #e0f2fe; }
+.top-nav-link.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+h1 { color: var(--primary); text-align: center; border-bottom: 3px solid var(--secondary); padding-bottom: 15px; margin-bottom: 40px; margin-top: 0;}
+h2 { color: var(--secondary); margin-top: 40px; border-left: 5px solid var(--secondary); padding-left: 15px; }
+h3 { color: #555; }
+
+.critical-alert { 
+    background-color: #f3e5f5;
+    border-left: 4px solid var(--secondary);
+    padding: 15px; 
+    margin: 20px 0; 
+    border-radius: 0 4px 4px 0;
+    line-height: 1.6;
+}
+.critical-alert span.highlight { 
+    background: #fecaca; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    color: #991b1b; 
+    font-weight: 700; 
+}
+.success {
+    background-color: #e8f5e9;
+    border-left: 4px solid #2e7d32;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+}
+.algorithm-steps {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px 25px;
+    margin: 20px 0;
+}
+.algorithm-steps h3 {
+    margin-top: 0;
+    color: #475569;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px dashed #cbd5e1;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-left: none;
+}
+.algorithm-steps ol {
+    margin: 0;
+    padding-left: 20px;
+    color: #334155;
+    line-height: 1.6;
+}
+.algorithm-steps li {
+    margin-bottom: 10px;
+}
+.algorithm-steps li strong {
+    color: var(--primary);
+}
+
+code.language-verilog, code.language-c { 
+    font-family: 'Roboto Mono', Consolas, monospace; 
+    background: #f8fafc; 
+    padding: 15px; 
+    border-radius: 8px; 
+    display: block; 
+    overflow-x: auto; 
+    border: 1px solid #e2e8f0;
+}
+.mermaid-wrapper { 
+    background: #fafafa; 
+    padding: 20px; 
+    border-radius: 8px; 
+    margin: 30px 0 10px 0; 
+    display: flex; 
+    justify-content: center; 
+    overflow: hidden; 
+    border: 1px solid #eee;
+}
+.mermaid {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+.mermaid svg {
+    width: 100% !important; 
+    height: auto !important;
+    max-width: none !important;
+}
+.diagram-caption {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 0.95em;
+    margin-bottom: 30px;
+    font-style: italic;
+    font-weight: 500;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/verilog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/c.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: true });
+hljs.highlightAll();
+</script>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2 class="toc-title">目录导航</h2>
+  <ul class="toc" id="toc-list"></ul>
+</div>
+
+<div class="main-content" id="main-content">
+  <div class="container">
+      <div class="top-nav" id="top-nav"></div>
+      
+      <h1>VVC RDOQ 硬件架构设计 Dashboard<br><span style="font-size:0.6em; color:#7f8c8d;">Hardware Architecture & Pipelining</span></h1>
+      
+      <h2>1. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
+      <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
+      <div class="critical-alert">
+        <strong>核心架构抉择：弃大保小</strong><br>
+        强制关闭大块（CU16/CU32/CU8）的 RDOQ 以满足时序吞吐限制，死保 <span class="highlight">CU4/TU4 的 RDOQ (wf4)</span>。仅牺牲约 0.5% 的 BD-Rate，换取流水线不会因为长周期状态机陷入瘫痪。
+      </div>
+      
+      <div class="algorithm-steps">
+        <h3>自然语言算法步骤 (Algorithm Steps)</h3>
+        <ol>
+          <li><strong>尺寸侦测:</strong> 控制逻辑从上游截获当前流入 TU/CU 的像素尺寸元数据。</li>
+          <li><strong>大块旁路剔除:</strong> 若检测到 Size > 4x4 (如 8x8、16x16)，直接封锁 RDOQ 硬件入口，迫使数据流入极简的普通标量量化 (SQ) 模块，迅速输出残差。</li>
+          <li><strong>精英放行:</strong> 若检测到 Size == 4x4，则判定为高频收益敏感区，立刻拉高使能信号，将数据与 Context 喂入全量 RDOQ 引擎。</li>
+          <li><strong>高频提纯:</strong> 引擎针对这些 4x4 精英块进行深度 Cost 寻优，最终压榨出极限的 Bincost 并输出纯净的高频残差。</li>
+        </ol>
+      </div>
+
+      <div class="mermaid-wrapper">
+      <div class="mermaid">
+      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80, 'curve': 'bumpX'}}}%%
+      flowchart LR
+        subgraph S1 ["块尺寸处理策略 (RDOQ Pruning)"]
+          direction LR
+          A["CTU 划分树"] --> B{"TU/CU 尺寸判断"}
+          B -->|"Size > 4x4"| C["普通标量量化 (SQ)"]
+          B -->|"Size == 4x4 (wf4)"| D["启动全量 RDOQ 引擎"]
+          C --> E["输出低频/平坦区残差"]
+          D --> F["输出高频优化残差与 Bincost"]
+        end
+        
+        style C fill:#f5f5f5,stroke:#999
+        style D fill:#e1f5fe,stroke:#0288d1
+      </div>
+      </div>
+      <div class="diagram-caption">图 1：基于尺寸的 RDOQ 并发与旁路处理策略 (横向布局)</div>
+      
+      <h2>2. 帧内环路死锁破解 (Intra Feedback Loop Bypass)</h2>
+      <p>在 wf4 模块中，吞吐目标为 1 pix/clk（即每 16 拍处理一个 4x4 块）。但 RDOQ 会引入至少 8 拍延迟，使得总体重构反馈链路长达 24 拍，远超 16 拍预算。</p>
+      <div class="success">
+        <strong>破局点：前馈重建旁路 (Fast Recon Bypass)</strong><br>
+        为打破帧内相邻块的空间依赖链，<span class="highlight">强制预测重建像素跳过 RDOQ</span>，走 Fast Loop 快速闭环。而 RDOQ 则在独立的 Slow Loop 中计算真实码流。
+      </div>
+
+      <div class="algorithm-steps">
+        <h3>自然语言算法步骤 (Algorithm Steps)</h3>
+        <ol>
+          <li><strong>源头分流:</strong> 像素在完成 DCT 与简单量化 (SQ) 之后，信号兵分两路，分别进入互不干涉的独立赛道。</li>
+          <li><strong>快环抢跑 (Fast Loop):</strong> 第一路数据完全无视后续的 RDOQ，直接冲进反量化与 IDCT。仅仅 12 拍后即刻生成“快速预测重建像素”，并在第 13 拍立刻送给隔壁紧邻的块作为 Intra 空间预测源。死锁瞬间破解。</li>
+          <li><strong>慢环细雕 (Slow Loop):</strong> 第二路数据则带着 SQ 的结果，不慌不忙地进入 RDOQ 核心计算池，耗时 20 拍以上计算出真实的最佳 Level 和 CABAC 码流估算。</li>
+          <li><strong>合流决断:</strong> 最终写入比特流的数据完全采纳 Slow Loop 的高精结果；Fast Loop 的粗糙数据在发挥完“打破流水线气泡”的垫脚石作用后即被丢弃。</li>
+        </ol>
+      </div>
+
+      <div class="mermaid-wrapper">
+      <div class="mermaid">
+      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 50, 'curve': 'bumpX'}}}%%
+      flowchart TB
+        subgraph FastLoop ["快速反馈环路 (Fast Recon Loop) - 耗时 12 clk < 16 clk"]
+          direction LR
+          IPD["Intra Pred"] --> DCT["DCT"] --> SQ["简单量化"] --> InvQ["反量化"] --> IDCT["IDCT"] --> Recon["快速重建"]
+        end
+        subgraph SlowLoop ["真实码流计算 (RDOQ Slow Loop) - 耗时 20+ clk"]
+          direction LR
+          SQ2["SQ 结果分流"] --> RDOQ["RDOQ 核心计算 (8 clk)"] --> CABAC["CABAC 码率估计"]
+        end
+        FastLoop -. "旁路分支" .-> SlowLoop
+        
+        style Recon fill:#e8f5e9,stroke:#2e7d32
+        style RDOQ fill:#fff3e0,stroke:#f57c00
+      </div>
+      </div>
+      <div class="diagram-caption">图 2：帧内反馈环路的双层拆解与 RDOQ 旁路设计 (横向拉伸排版)</div>
+    
+      <h2>3. 静态上下文预生成 (Static Context Generation)</h2>
+      <p>传统的 Trellis 网格寻优存在深度的系数间因果依赖。在硬件设计中，必须采用“局部独立近似”来替换“全局网格搜索”，为彻底打平流水线铺平道路。</p>
+      
+      <div class="algorithm-steps">
+        <h3>自然语言算法步骤 (Algorithm Steps)</h3>
+        <ol>
+          <li><strong>静态快照剥离:</strong> 抛弃原本动态更新上下文的做法，改为在第 1 拍利用初步 SQ 的结果，一次性暴力预生成 16 个系数的 CABAC Context 静态快照。这彻底切除了系数计算之间的时序依赖链。</li>
+          <li><strong>搜索空间极简压缩:</strong> 舍弃了从 0 一直搜索到最优 Level 的传统庞大循环，硬件判定器强行锁定只有原始 Q 和减弱一档的 Q-1 两个候选目标参与角逐。</li>
+          <li><strong>并行兵团展开:</strong> 点亮 16 个完全独立的物理计算单元 (Compute Unit)。这 16 个单元在同一时钟周期内，各自抱着自己的 Context 快照，疯狂且独立地计算自己所属系数的 Q Cost 和 Q-1 Cost。</li>
+          <li><strong>决出局部霸主:</strong> 16 个单元内部的比较器瞬间各自决出 Cost 最小的优胜 Level。最终通过总线拼合，形成当前 4x4 块的伪全局最优解。</li>
+        </ol>
+      </div>
+
+      <div class="mermaid-wrapper">
+      <div class="mermaid">
+      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80, 'curve': 'bumpX'}}}%%
+      flowchart LR
+        subgraph StaticCtx ["静态上下文剥离 (Static Context)"]
+          direction LR
+          SQ["SQ 初始状态"] --> CABAC["一拍预生成 16 系数 Context"]
+        end
+        subgraph ParallelOpt ["16-Unit 并行寻优 (Parallel Opt)"]
+          direction LR
+          Q["计算 Q Cost"]
+          Q1["计算 Q-1 Cost"]
+          Q --> CMP["比较器并行决断最优 Level"]
+          Q1 --> CMP
+        end
+        CABAC --> Q
+        CABAC --> Q1
+      </div>
+      </div>
+      <div class="diagram-caption">图 3：静态上下文解耦与 16 单元绝对并行计算架构 (全横向展开)</div>
+      
+      <h2>4. 终极吞吐利器：Two-Stage Fast RDOQ Pruning</h2>
+      <p>为了满足严苛的 4K/8K 帧率，单纯在底层进行流水线化仍显不足，必须从宏观算法上源头把控，控制 RDOQ 模块的绝对启动频次。</p>
+      <div class="critical-alert">
+        <strong>两级 Candidate 剪枝过滤：</strong><br>
+        前级采用标量量化 (SQ) 与 CABAC 初估，选出 <span class="highlight">Top-2 Best Candidates</span>。仅将这 2 个 Candidate 扔入深度 RDOQ 流水线。牺牲极小 BD-Rate，削减 70% 的面积与时间开销，完美闭环 16 clk 预算！
+      </div>
+
+      <div class="algorithm-steps">
+        <h3>自然语言算法步骤 (Algorithm Steps)</h3>
+        <ol>
+          <li><strong>海选起跑线:</strong> 帧内预测模块筛选出的 16 个潜在最优模式 (Candidates) 汹涌涌入流水线。</li>
+          <li><strong>廉价粗筛阵列:</strong> 对于这 16 个候选者，门禁系统强行禁止它们触碰昂贵的 RDOQ 引擎，而是让它们全部只经过廉价的普通 SQ 量化，并结合简易查表估算出一个极其粗糙的 Cost。</li>
+          <li><strong>末位残酷淘汰:</strong> 硬件冒泡排序树接收这 16 个粗糙 Cost 并进行火速排序，当场无情抹杀排名靠后的 14 个选项，只留下金字塔尖的 Top-2 精英。</li>
+          <li><strong>精英极深造:</strong> 此时，只有这历经千辛万苦幸存的 2 个 Elite Candidates，才被获准正式踏入极其吃面积与功耗的 4-Unit 深度 RDOQ 优化阵列。吞吐量从而被奇迹般地压制在了物理预算极限之内。</li>
+        </ol>
+      </div>
+
+      <div class="mermaid-wrapper">
+      <div class="mermaid">
+      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 50, 'curve': 'bumpX'}}}%%
+      flowchart TB
+        subgraph Stage1 ["Stage 1: 粗筛 (Rough Pruning)"]
+          direction LR
+          ALL["16 Candidates"] --> SQ["标量量化 + 粗 CABAC 估算"] --> SORT["排序器当场淘汰后 14 名"]
+        end
+        subgraph Stage2 ["Stage 2: 精细优化 (Fine RDOQ)"]
+          direction LR
+          SORT_OUT["Top-2 幸存者"] --> RDOQ1["Candidate 0 进入深度 RDOQ"]
+          SORT_OUT --> RDOQ2["Candidate 1 进入深度 RDOQ"]
+        end
+        Stage1 -. "传递 Top-2" .-> Stage2
+      </div>
+      </div>
+      <div class="diagram-caption">图 4：双层两极分化剪枝流水线架构 (横向布局)</div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocList = document.getElementById('toc-list');
+    const topNav = document.getElementById('top-nav');
+    const headers = document.querySelectorAll('.container h2, .container h3:not(.algorithm-steps h3)');
+    const mainContent = document.getElementById('main-content');
+    
+    headers.forEach((header, index) => {
+      const id = 'section-' + index;
+      header.id = id;
+      
+      const li = document.createElement('li');
+      li.className = header.tagName === 'H2' ? 'level-2' : 'level-3';
+      
+      const a = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = header.textContent;
+      
+      a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = document.getElementById(id);
+          mainContent.scrollTo({
+              top: target.offsetTop - 40,
+              behavior: 'smooth'
+          });
+      });
+      
+      li.appendChild(a);
+      tocList.appendChild(li);
+
+      if (header.tagName === 'H2' && topNav) {
+          const topA = document.createElement('a');
+          topA.href = '#' + id;
+          topA.className = 'top-nav-link';
+          topA.textContent = header.textContent;
+          topA.addEventListener('click', (e) => {
+              e.preventDefault();
+              const target = document.getElementById(id);
+              mainContent.scrollTo({
+                  top: target.offsetTop - 40,
+                  behavior: 'smooth'
+              });
+          });
+          topNav.appendChild(topA);
+      }
+    });
+
+    const links = document.querySelectorAll('#toc-list a');
+    
+    mainContent.addEventListener('scroll', () => {
+      let currentId = '';
+      let currentH2Id = '';
+      headers.forEach(header => {
+        if (mainContent.scrollTop >= header.offsetTop - 100) {
+          currentId = header.id;
+          if (header.tagName === 'H2') {
+              currentH2Id = header.id;
+          }
+        }
+      });
+      
+      if (currentId) {
+          document.querySelectorAll('.sidebar a').forEach(link => {
+              link.classList.remove('active');
+              if (link.getAttribute('href') === '#' + currentId) {
+                  link.classList.add('active');
+              }
+          });
+      }
+
+      if (currentH2Id) {
+          document.querySelectorAll('.top-nav-link').forEach(link => {
+              link.classList.remove('active');
+              if (link.getAttribute('href') === '#' + currentH2Id) {
+                  link.classList.add('active');
+              }
+          });
+      }
+    });
+
+    if(tocList.firstChild) {
+        tocList.firstChild.querySelector('a').classList.add('active');
+    }
+    if(topNav && topNav.firstChild) {
+        topNav.firstChild.classList.add('active');
+    }
+});
+</script>
+</body>
+</html>
