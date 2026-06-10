@@ -40,13 +40,6 @@ This repository is designed to be **clean and purely web-facing**. We embrace th
 - **Zero Horizontal Scrolling:** All diagrams and tables are designed using a strict 100% relative width or dynamic dimensional sizing rule to ensure 0-drag readability across any display.
 - **Hardware UI/UX:** We bring modern Web UI principles (glassmorphism, dark mode, high-contrast alerts) into Hardware Specification viewing.
 
-## 📝 Document Generation Skills
-
-This repository also serves as a knowledge base for the frontend/deployment techniques used to build these interactive specifications. We have documented these best practices into "Skill Guides" which are checked into the repository:
-
-* 📐 **[Hardware Diagram Responsive Design Skill](skills/hardware_diagram_design_skill.md)**: Master the art of the "100% SVG stretch", auto-adapting Mermaid graph flows (`LR` vs `TD`), and dynamic mathematical scaling for giant $32\times32$ Matrix Tables to guarantee zero horizontal scrollbars.
-* 🚀 **[Web Hardware Doc Deployment Skill](skills/Git_Documentation_Deployment_Skill.md)**: A guide to the "Git Index Decoupling" method. Learn how to maintain a chaotic local engineering workspace (full of `.py`, `.xlsx`, `.docx`) while deploying an absolutely pristine, HTML-only repository to GitHub Pages using advanced `.gitignore` whitelists.
-* 🧠 **[Hardware Design Doc Generation Skill](skills/Hardware_Design_Doc_Generation_Skill.md)**: The foundational guide on how we transformed static Word/Excel specifications into interactive HTML dashboards using Python, BeautifulSoup, and Mammoth.
 
 ---
 *Maintained by the RDO Core Design Team.*
