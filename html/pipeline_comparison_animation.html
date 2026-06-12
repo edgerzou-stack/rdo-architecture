@@ -190,7 +190,7 @@
     <div class="seq-container" id="seq1-container">
         <div class="seq-title">
             <span>序列 1: 将小块与中块相对聚集 (1 次大接小)</span>
-            <span id="seq1-time" style="color: #10b981;">总耗时: 208 clk</span>
+            <span id="seq1-time" style="color: #10b981;">总耗时: 计算中... clk</span>
         </div>
         <div style="font-family: monospace; color:#94a3b8; margin-bottom: 15px; font-size:14px;">
             顺序: 16*4 -> 4*16 -> 16*8 -> 8*16 -> 16*4 -> 4*16 -> 16*8 -> 8*16 -> 16*8 -> 8*16 -> 16*16
@@ -205,7 +205,7 @@
     <div class="seq-container" id="seq2-container">
         <div class="seq-title">
             <span>序列 2: 频繁穿插 (2 次大接小)</span>
-            <span id="seq2-time" style="color: #ef4444;">总耗时: 216 clk</span>
+            <span id="seq2-time" style="color: #ef4444;">总耗时: 计算中... clk</span>
         </div>
         <div style="font-family: monospace; color:#94a3b8; margin-bottom: 15px; font-size:14px;">
             顺序: 16*4 -> 16*8 -> 16*8 -> 16*8 -> 16*4 -> 4*16 -> 8*16 -> 8*16 -> 8*16 -> 4*16 -> 16*16
@@ -247,7 +247,7 @@
             let area = seq[i][1];
             
             let in_dur = area / 8;
-            let delay = in_dur + 8; 
+            let delay = in_dur * 3 + 13; 
             let out_dur = in_dur;
             
             // FIFO output constraint
@@ -274,11 +274,14 @@
             t = in_start + in_dur;
             last_out_end = out_end;
         }
-        return { blocks, bubbles };
+        return { blocks, bubbles, totalTime: last_out_end };
     }
 
     const sched1 = calculateSchedule(s1_data);
     const sched2 = calculateSchedule(s2_data);
+    
+    document.getElementById('seq1-time').innerText = `总耗时: ${sched1.totalTime} clk`;
+    document.getElementById('seq2-time').innerText = `总耗时: ${sched2.totalTime} clk`;
     
     let animationTimers = [];
 
