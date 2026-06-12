@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline Sequence Animation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 40px;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #38bdf8;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .seq-container {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .seq-title {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .timeline {
+            position: relative;
+            height: 120px;
+            background: #0f172a;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+        }
+        .axis {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            border-top: 1px solid #475569;
+        }
+        .block {
+            position: absolute;
+            height: 60px;
+            top: 20px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: white;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        .bubble {
+            position: absolute;
+            height: 60px;
+            top: 20px;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(239, 68, 68, 0.2),
+                rgba(239, 68, 68, 0.2) 10px,
+                rgba(239, 68, 68, 0.5) 10px,
+                rgba(239, 68, 68, 0.5) 20px
+            );
+            border: 2px dashed #ef4444;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fca5a5;
+            font-weight: bold;
+            font-size: 0.9rem;
+            opacity: 0;
+            box-sizing: border-box;
+        }
+        .bubble-label {
+            position: absolute;
+            top: -25px;
+            color: #ef4444;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; text-shadow: 0 0 10px #ef4444; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        /* Area Colors */
+        .area-64 { background-color: #10b981; }  /* Green */
+        .area-128 { background-color: #3b82f6; } /* Blue */
+        .area-256 { background-color: #8b5cf6; } /* Purple */
+        
+        .animated .block {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .animated .bubble {
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>流水线发送顺序对比动画 (Pipeline Input Sequence)</h1>
+    <p class="subtitle">展示两种不同子块发送顺序对流水线吞吐量的影响。<br>注：因为 FIFO 物理特性，真实的“气泡”产生于<b>大块接小块 (128 -> 64)</b>的降级瞬间，而非小接大。</p>
+    
+    <div class="legend">
+        <div class="legend-item"><div class="legend-box area-64"></div> 小块 (面积64, 耗时8clk)</div>
+        <div class="legend-item"><div class="legend-box area-128"></div> 中块 (面积128, 耗时16clk)</div>
+        <div class="legend-item"><div class="legend-box area-256"></div> 大块 (面积256, 耗时32clk)</div>
+        <div class="legend-item"><div class="legend-box" style="background: repeating-linear-gradient(45deg, #ef444433, #ef444433 5px, #ef444480 5px, #ef444480 10px); border:1px dashed #ef4444;"></div> 等待气泡 (Stall Bubble)</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="playAnimation()">▶ 播放动画 (Play Animation)</button>
+        <button onclick="resetAnimation()" style="background-color: #475569;">重置 (Reset)</button>
+    </div>
+
+    <!-- Sequence 1 -->
+    <div class="seq-container" id="seq1-container">
+        <div class="seq-title">
+            <span>序列 1: 将小块与中块相对聚集 (1 次大接小)</span>
+            <span id="seq1-time" style="color: #10b981;">总耗时: 208 clk</span>
+        </div>
+        <div style="font-family: monospace; color:#94a3b8; margin-bottom: 15px; font-size:14px;">
+            顺序: 16*4 -> 4*16 -> 16*8 -> 8*16 -> 16*4 -> 4*16 -> 16*8 -> 8*16 -> 16*8 -> 8*16 -> 16*16
+        </div>
+        <div class="timeline" id="tl1">
+            <div class="axis"></div>
+            <!-- Elements will be injected here by JS -->
+        </div>
+    </div>
+
+    <!-- Sequence 2 -->
+    <div class="seq-container" id="seq2-container">
+        <div class="seq-title">
+            <span>序列 2: 频繁穿插 (2 次大接小)</span>
+            <span id="seq2-time" style="color: #ef4444;">总耗时: 216 clk</span>
+        </div>
+        <div style="font-family: monospace; color:#94a3b8; margin-bottom: 15px; font-size:14px;">
+            顺序: 16*4 -> 16*8 -> 16*8 -> 16*8 -> 16*4 -> 4*16 -> 8*16 -> 8*16 -> 8*16 -> 4*16 -> 16*16
+        </div>
+        <div class="timeline" id="tl2">
+            <div class="axis"></div>
+            <!-- Elements will be injected here by JS -->
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Scale factor: 1 clk = 6px
+    const SCALE = 6;
+    
+    // Data definition
+    // Format: name, area
+    const s1_data = [
+        ["16x4", 64], ["4x16", 64], ["16x8", 128], ["8x16", 128], 
+        ["16x4", 64], ["4x16", 64], ["16x8", 128], ["8x16", 128], 
+        ["16x8", 128], ["8x16", 128], ["16x16", 256]
+    ];
+    
+    const s2_data = [
+        ["16x4", 64], ["16x8", 128], ["16x8", 128], ["16x8", 128], 
+        ["16x4", 64], ["4x16", 64], ["8x16", 128], ["8x16", 128], 
+        ["8x16", 128], ["4x16", 64], ["16x16", 256]
+    ];
+
+    function calculateSchedule(seq) {
+        let t = 0;
+        let last_out_end = 0;
+        let blocks = [];
+        let bubbles = [];
+        
+        for (let i = 0; i < seq.length; i++) {
+            let name = seq[i][0];
+            let area = seq[i][1];
+            
+            let in_dur = area / 8;
+            let delay = in_dur + 8; 
+            let out_dur = in_dur;
+            
+            // FIFO output constraint
+            let in_start = Math.max(t, last_out_end - delay);
+            
+            // Check for bubble
+            if (in_start > t) {
+                bubbles.push({
+                    start: t,
+                    dur: in_start - t
+                });
+            }
+            
+            let out_start = in_start + delay;
+            let out_end = out_start + out_dur;
+            
+            blocks.push({
+                name: name,
+                area: area,
+                start: in_start,
+                dur: in_dur
+            });
+            
+            t = in_start + in_dur;
+            last_out_end = out_end;
+        }
+        return { blocks, bubbles };
+    }
+
+    const sched1 = calculateSchedule(s1_data);
+    const sched2 = calculateSchedule(s2_data);
+    
+    let animationTimers = [];
+
+    function renderTimeline(tl_id, schedule) {
+        const tl = document.getElementById(tl_id);
+        // clear old blocks
+        tl.querySelectorAll('.block, .bubble, .bubble-label').forEach(e => e.remove());
+        
+        // Add bubbles
+        schedule.bubbles.forEach((b, i) => {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.style.left = (b.start * SCALE) + 'px';
+            bubble.style.width = (b.dur * SCALE) + 'px';
+            // Store animation delay in dataset
+            bubble.dataset.animDelay = b.start * 10;
+            
+            const label = document.createElement('div');
+            label.className = 'bubble-label';
+            label.innerText = `⚠️ 大接小气泡 (${b.dur}clk)`;
+            label.style.left = (b.start * SCALE) + 'px';
+            label.dataset.animDelay = b.start * 10;
+            label.style.opacity = '0';
+            
+            tl.appendChild(bubble);
+            tl.appendChild(label);
+        });
+        
+        // Add blocks
+        schedule.blocks.forEach((b, i) => {
+            const block = document.createElement('div');
+            block.className = `block area-${b.area}`;
+            block.style.left = (b.start * SCALE) + 'px';
+            block.style.width = (b.dur * SCALE - 2) + 'px'; // -2 for margin
+            block.innerHTML = `${b.name}`;
+            
+            // Store animation delay in dataset
+            block.dataset.animDelay = b.start * 10;
+            
+            tl.appendChild(block);
+        });
+    }
+
+    function init() {
+        renderTimeline('tl1', sched1);
+        renderTimeline('tl2', sched2);
+    }
+
+    function playAnimation() {
+        resetAnimation();
+        setTimeout(() => {
+            document.querySelectorAll('.block, .bubble').forEach(el => {
+                let delay = parseInt(el.dataset.animDelay);
+                let timer = setTimeout(() => {
+                    el.style.opacity = '1';
+                    if (el.classList.contains('block')) {
+                        el.style.transform = 'translateY(0)';
+                    }
+                }, delay);
+                animationTimers.push(timer);
+            });
+            
+            document.querySelectorAll('.bubble-label').forEach(el => {
+                let delay = parseInt(el.dataset.animDelay);
+                let timer = setTimeout(() => {
+                    el.style.opacity = '1';
+                }, delay + 200); // slightly after bubble appears
+                animationTimers.push(timer);
+            });
+        }, 100);
+    }
+
+    function resetAnimation() {
+        animationTimers.forEach(t => clearTimeout(t));
+        animationTimers = [];
+        document.querySelectorAll('.block').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-20px)';
+        });
+        document.querySelectorAll('.bubble, .bubble-label').forEach(el => {
+            el.style.opacity = '0';
+        });
+    }
+
+    // Initialize layout
+    init();
+
+</script>
+</body>
+</html>
