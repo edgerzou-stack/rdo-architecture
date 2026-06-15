@@ -254,6 +254,19 @@ hljs.highlightAll();
           Total Bits = bits(sig_coeff_flag) + bits(greater1) + bits(greater2) + bits(sign) + bits(level_rem)
         </div>
         
+        <div class="success" style="margin-top: 15px; margin-bottom: 20px;">
+          <strong>举个例子 (Example)：评估 Level = 3 的码率消耗</strong><br>
+          假设当前评估的量化候选值是 <code>Level = 3</code>，那么在查表累加的过程中，它会经历如下关卡：
+          <ul style="margin-top: 8px; margin-bottom: 0;">
+            <li><code>sig_coeff_flag = 1</code>：消耗查表得到的上下文分数比特 (例如 1.2 bits)。</li>
+            <li><code>greater1_flag = 1</code>：因为 3 > 1，消耗对应上下文分数比特 (例如 0.8 bits)。</li>
+            <li><code>greater2_flag = 1</code>：因为 3 > 2，消耗对应上下文分数比特 (例如 0.9 bits)。</li>
+            <li><code>sign_flag = 1 (或0)</code>：符号位走 Bypass 模式，固定消耗 1 真实比特（即内部定点放大的 32768 分数比特）。</li>
+            <li><code>level_rem = 0</code>：剩余绝对值 <code>3 - 3 = 0</code>，使用 Golomb-Rice 编码，消耗若干比特。</li>
+          </ul>
+          所有这些细碎的 Fractional Bits 累加起来，就构成了评估 <code>Level = 3</code> 时庞大的 <code>cabac_bits</code>！
+        </div>
+        
         <p style="color: #475569; margin-bottom: 15px;">最终，这些比特将通过拉格朗日乘子 $\lambda$ 映射为整型 <code>bincost</code>，带入到微观 PK 公式中：</p>
         <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
           <img src="./rdoq_formula.png" alt="RDOQ Cost Formula" style="max-width: 100%; height: auto;">
