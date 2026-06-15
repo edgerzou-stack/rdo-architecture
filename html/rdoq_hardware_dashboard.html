@@ -201,6 +201,7 @@ code.language-verilog, code.language-c {
 mermaid.initialize({ startOnLoad: true });
 hljs.highlightAll();
 </script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 
@@ -475,53 +476,29 @@ hljs.highlightAll();
               <strong style="color: #0369a1;">前置寻址与模型提取：上下文依赖的精确推导 (Context Derivation)</strong><br>
               在查 <code>Entropy_LUT</code> 之前，C-Model 必须先从一维的 <code>Context_Array</code> 中定位当前标志位专属的概率模型，从中提取出 <code>pStateIdx</code> 和 <code>valMPS</code>。为了满足硬件架构师对时序和状态机的精准控制需求，以下展示 CABAC 中最复杂的 <strong><code>ctxInc</code> 动态增量</strong>计算与 <strong><code>Context_Array</code> 初始化</strong>的数学级流向：
               
-              <div class="mermaid-wrapper" style="margin-top: 15px;">
-                <div class="mermaid">
-                  graph TD
-                      subgraph Slice Level: Context_Array Init
-                          A[initValue] --> C(slope = initValue>>4 * 5 - 45)
-                          B[QP] --> D(initState = slope*QP + offset)
-                          A --> C2(offset)
-                          C --> D
-                          C2 --> D
-                          D --> E{initState >= 64?}
-                          E -- Yes --> F[valMPS=1, pStateIdx=initState-64]
-                          E -- No --> G[valMPS=0, pStateIdx=63-initState]
-                          F --> H[m_ucState = pStateIdx &lt;&lt; 1 | valMPS]
-                          G --> H
-                      end
-
-                      subgraph Point Level: ctxInc Derivation
-                          I[Block Size/Type] --> J[BaseOffset & LumaOffset]
-                          K[posX, posY] --> L[Local SubPos]
-                          M[patternSigCtx] --> N(cnt)
-                          L --> N
-                          J --> O(ctxInc = BaseOffset + LumaOffset + cnt)
-                          N --> O
-                      end
-
-                      H -.-> |m_ucState 8-bit| P((Context_Array))
-                      O -.-> |Fetch Array Index| P
-                      P --> Q[Entropy LUT Index]
-                </div>
+              <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+                <img src="./rdoq_ctx_derivation_flow_py.png" alt="Context Derivation Flow" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
               </div>
               
               <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">1. 动态增量 ctxInc 计算公式 (以 sig_coeff_flag 为例)</p>
-              <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.9em; line-height: 1.6; color: #334155;">
-                <code style="display: block; background: #e2e8f0; padding: 8px; margin-bottom: 8px; border-radius: 4px; font-weight: bold; color: #0f172a;">ctxInc = BaseOffset + LumaCGOffset + cnt;</code>
-                <ul style="margin: 0; padding-left: 20px;">
-                  <li><strong>BaseOffset</strong>: <code>(log2BlockSize == 3) ? (scanIdx == SCAN_DIAG ? 9 : 15) : (textureType == TEXT_LUMA ? 21 : 12)</code></li>
-                  <li style="margin-top: 8px;"><strong>LumaCGOffset</strong>: <code>((textureType == TEXT_LUMA && ((posX>>2) + (posY>>2)) > 0) ? 3 : 0)</code></li>
-                  <li style="margin-top: 8px;"><strong>cnt (空间模板坍缩)</strong>: 
-<pre style="background: #e2e8f0; padding: 10px; border-radius: 4px; margin-top: 5px; overflow-x: auto; border-left: 4px solid #94a3b8; margin-bottom: 0;">
-Int posXinSubset = posX & 3; Int posYinSubset = posY & 3;
-if(patternSigCtx == 0) cnt = (posXinSubset + posYinSubset <= 2) ? ((posXinSubset + posYinSubset == 0) ? 2 : 1) : 0;
-else if(patternSigCtx == 1) cnt = (posYinSubset <= 1) ? ((posYinSubset == 0) ? 2 : 1) : 0;
-else if(patternSigCtx == 2) cnt = (posXinSubset <= 1) ? ((posXinSubset == 0) ? 2 : 1) : 0;
-else cnt = 2;
-</pre>
+              <div style="background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; color: #334155; margin-bottom: 20px; overflow-x: auto;">
+                <div style="font-size: 1.1em; color: #0f172a; margin-bottom: 15px;">
+                  $$ \text{ctxInc} = \text{BaseOffset} + \text{LumaCGOffset} + \text{cnt} $$
+                </div>
+                <ul style="margin: 0; padding-left: 20px; line-height: 2;">
+                  <li><strong>BaseOffset</strong>:
+                    $$ \text{BaseOffset} = \begin{cases} 9 & \text{if } \text{Size} = 8\times8 \text{ and } \text{DiagScan} \\ 15 & \text{if } \text{Size} = 8\times8 \text{ and } \text{NonDiagScan} \\ 21 & \text{if } \text{Luma} \text{ and } \text{Size} > 8\times8 \\ 12 & \text{if } \text{Chroma} \text{ and } \text{Size} > 8\times8 \end{cases} $$
+                  </li>
+                  <li style="margin-top: 15px;"><strong>LumaCGOffset</strong>:
+                    $$ \text{LumaCGOffset} = \begin{cases} 3 & \text{if } \text{Luma} \text{ and } (\text{posX} \ge 4 \text{ or } \text{posY} \ge 4) \\ 0 & \text{otherwise} \end{cases} $$
+                  </li>
+                  <li style="margin-top: 15px;"><strong>cnt (空间模板坍缩)</strong>: 
+                    $$ \text{cnt} = f(\text{posX} \pmod 4, \text{posY} \pmod 4, \text{patternSigCtx}) $$
                   </li>
                 </ul>
+                <div style="text-align: center; margin-top: 25px; background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+                  <img src="./rdoq_cnt_spatial_logic_py.png" alt="Spatial Logic of cnt" style="max-width: 100%; height: auto;">
+                </div>
               </div>
 
               <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border: 1px solid #a7f3d0; margin-top: 15px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
@@ -538,14 +515,20 @@ else cnt = 2;
               </div>
 
               <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2. Context_Array 内部节点 (m_ucState) 初始化公式</p>
-              <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.9em; line-height: 1.6; color: #334155;">
-                <p style="margin-top: 0; margin-bottom: 8px; font-family: system-ui, -apple-system, sans-serif;">在每个 Slice 编码的伊始，必须利用规范表中的 <code>initValue</code> 与当前 <code>QP</code> 初始化上述一维阵列中的每一个 8-bit 节点：</p>
-                <code>slope = (initValue >> 4) * 5 - 45;</code><br>
-                <code>offset = ((initValue & 15) &lt;&lt; 3) - 16;</code><br>
-                <code>initState = Clip3(1, 126, ((slope * QP) >> 4) + offset);</code><br><br>
-                <code>valMPS = (initState >= 64) ? 1 : 0;</code><br>
-                <code>pStateIdx = (initState >= 64) ? (initState - 64) : (63 - initState);</code><br>
-                <strong style="color: #b91c1c; display: block; margin-top: 8px; font-size: 1.1em;">m_ucState = (pStateIdx &lt;&lt; 1) | valMPS;</strong>
+              <div style="background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; color: #334155; overflow-x: auto;">
+                <p style="margin-top: 0; margin-bottom: 15px;">在每个 Slice 编码的伊始，必须利用规范表中的 <code>initValue</code> 与当前 <code>QP</code> 初始化上述一维阵列中的每一个 8-bit 节点：</p>
+                <div style="font-size: 1.05em; line-height: 2.2;">
+                  $$ \text{slope} = \left(\left\lfloor \frac{\text{initValue}}{16} \right\rfloor \times 5\right) - 45 $$
+                  $$ \text{offset} = ((\text{initValue} \pmod{16}) \times 8) - 16 $$
+                  $$ \text{initState} = \text{Clip3}\left(1, 126, \left\lfloor \frac{\text{slope} \times \text{QP}}{16} \right\rfloor + \text{offset}\right) $$
+                  $$ \text{valMPS} = \begin{cases} 1 & \text{if } \text{initState} \ge 64 \\ 0 & \text{otherwise} \end{cases} $$
+                  $$ \text{pStateIdx} = \begin{cases} \text{initState} - 64 & \text{if } \text{initState} \ge 64 \\ 63 - \text{initState} & \text{otherwise} \end{cases} $$
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 4px; color: #991b1b; text-align: center;">
+                  <span style="font-size: 1.2em; font-weight: bold;">
+                    $$ \mathbf{m\_ucState} = (\mathbf{pStateIdx} \ll 1) \ | \ \mathbf{valMPS} $$
+                  </span>
+                </div>
               </div>
             </div>
 
