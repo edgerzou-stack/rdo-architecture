@@ -238,7 +238,7 @@ MathJax = {
           <li><strong>RDOQ 核心 Cost 公式:</strong> <br>
           在 C-Model 中，<code>RDOQCOST_S</code> 宏被展开为严格的整数定点数学形式：
           <div style="font-size: 1.1em; text-align: center; margin: 15px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-            $$Cost = \underbrace{\left( d^2 \cdot 2^{scaleBits} \right)}_{\text{RDOQDIST\_S}(d)} + \underbrace{\left\lfloor \frac{\lambda \cdot bits}{2^{shift}} \right\rfloor}_{\text{RDOQBINCOST\_S}(bits)}$$
+            $$Cost = \underbrace{\left( d^2 \cdot 2^{scaleBits} \right)}_{\text{RDOQDIST_S}(d)} + \underbrace{\left\lfloor \frac{\lambda \cdot bits}{2^{shift}} \right\rfloor}_{\text{RDOQBINCOST_S}(bits)}$$
           </div>
           <ul style="list-style-type: circle; margin-top: 10px; margin-bottom: 15px; color: #475569; font-size: 0.95em;">
             <li><strong>$d = |C_{trans} - C_{inv\_quant}|$</strong>：原始变换系数与反量化重建系数的绝对差值。</li>
@@ -253,6 +253,62 @@ MathJax = {
           完成 4x4 系数级的独立寻优后，它会将整个 4x4 系数组 (Sub-Block) 暴切为 0 的代价 <code class="language-c">costZeroCG = blockZeroCosts[iSubBlk] + sbfCost[0]</code> 与保留精英系数的总体代价进行比较。若全切为 0 更划算，则强制关闭 Sub-Block Flag (SBF)，实现一刀切剪枝。</li>
         </ol>
       </div>
+
+      <!-- 互动示例组件开始 -->
+      <div class="interactive-card" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin: 30px 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+        <div style="background: var(--secondary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; color: white; border: none; font-size: 16px;">互动示例：微观系数的生死决断</h3>
+          <span style="font-size: 14px; opacity: 0.8;">Interactive RDOQ Sandbox</span>
+        </div>
+        <div style="padding: 25px;">
+          <p style="margin-top: 0; color: #475569;"><strong>前情提要：</strong>假设有一个边缘 DCT 系数 $C_{trans} = 15$。按照普通的标量量化 (SQ)，它会被量化为 <code>Level = 1</code> ($C_{inv\_quant} = 26$)。让我们看看 RDOQ 引擎是如何评估它的：</p>
+          
+          <div id="rdoq-step-1" class="rdoq-step" style="display: block; background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #1e40af;">Step 1: 评估正常量化 (Level = 1)</h4>
+            <ul style="color: #334155; line-height: 1.8;">
+              <li><strong>计算畸变 (D):</strong> 差值 $d = |15 - 26| = 11$。<br> $\text{RDOQDIST_S} = 11^2 \times 1024 = \mathbf{123,904}$</li>
+              <li><strong>估算码率 (R):</strong> CABAC 需要编码 <code>sig_flag=1</code>, <code>gr1_flag=0</code>, <code>sign_flag</code>，消耗约 2.5 bits。<br> $\text{RDOQBINCOST_S} \approx 2.5 \times \lambda = \mathbf{150,000}$</li>
+              <li style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;"><strong>总代价 (Cost):</strong> $123,904 + 150,000 = \mathbf{273,904}$</li>
+            </ul>
+          </div>
+
+          <div id="rdoq-step-2" class="rdoq-step" style="display: none; background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #b45309;">Step 2: 评估强行抹零 (Level = 0)</h4>
+            <ul style="color: #334155; line-height: 1.8;">
+              <li><strong>计算畸变 (D):</strong> 差值 $d = |15 - 0| = 15$。误差变大了！<br> $\text{RDOQDIST_S} = 15^2 \times 1024 = \mathbf{230,400}$</li>
+              <li><strong>估算码率 (R):</strong> CABAC 只需要编码 <code>sig_flag=0</code>，消耗约 0.2 bits。码率暴跌！<br> $\text{RDOQBINCOST_S} \approx 0.2 \times \lambda = \mathbf{12,000}$</li>
+              <li style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;"><strong>总代价 (Cost):</strong> $230,400 + 12,000 = \mathbf{242,400}$</li>
+            </ul>
+          </div>
+
+          <div id="rdoq-step-3" class="rdoq-step" style="display: none; background: #ecfdf5; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #047857;">Step 3: 贪婪 PK 裁决 (The Verdict)</h4>
+            <div style="text-align: center; font-size: 1.1em; padding: 10px;">
+              Cost(Level=0) <strong>242,400</strong> &lt; Cost(Level=1) <strong>273,904</strong>
+            </div>
+            <p style="color: #065f46; margin-bottom: 0;"><strong>结论：</strong>虽然强行变成 0 会导致像素误差 (D) 变大，但省下的编码比特 (R) 实在太多了！RDOQ 引擎贪婪地选择 <strong style="color: #dc2626;">Level = 0</strong>，成功将这个边缘系数“斩杀”！这就是 RDOQ 压榨压缩率的灵魂所在。</p>
+          </div>
+
+          <div style="text-align: right; margin-top: 20px;">
+            <button id="rdoq-next-btn" onclick="nextRdoqStep()" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;">开始演示 (Next Step) &rarr;</button>
+          </div>
+        </div>
+      </div>
+      
+      <script>
+        let currentRdoqStep = 1;
+        function nextRdoqStep() {
+          if (currentRdoqStep === 1) {
+            document.getElementById('rdoq-step-2').style.display = 'block';
+            document.getElementById('rdoq-next-btn').innerText = '查看对决结果 (Verdict) \u2192';
+            currentRdoqStep++;
+          } else if (currentRdoqStep === 2) {
+            document.getElementById('rdoq-step-3').style.display = 'block';
+            document.getElementById('rdoq-next-btn').style.display = 'none';
+          }
+        }
+      </script>
+      <!-- 互动示例组件结束 -->
 
       <h2>2. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
       <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
