@@ -201,6 +201,14 @@ code.language-verilog, code.language-c {
 mermaid.initialize({ startOnLoad: true });
 hljs.highlightAll();
 </script>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']]
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 
@@ -228,8 +236,17 @@ hljs.highlightAll();
         <h3>C-Model 的微观 PK 机制</h3>
         <ol>
           <li><strong>RDOQ 核心 Cost 公式:</strong> <br>
-          <code class="language-c">RDOQCOST_S(d, bits) = RDOQDIST_S(d) + RDOQBINCOST_S(bits)</code><br>
-          其中 <code>D</code> 是未量化系数与反量化系数绝对差值的缩放平方；<code>R</code> 是通过 <code>rdoq_coeff_est()</code> 模拟 CABAC 状态机得到的熵编码比特消耗估计，并乘以拉格朗日乘子 <code>&lambda;</code>。</li>
+          在 C-Model 中，<code>RDOQCOST_S</code> 宏被展开为严格的整数定点数学形式：
+          <div style="font-size: 1.1em; text-align: center; margin: 15px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+            $$Cost = \underbrace{\left( d^2 \cdot 2^{scaleBits} \right)}_{\text{RDOQDIST\_S}(d)} + \underbrace{\left\lfloor \frac{\lambda \cdot bits}{2^{shift}} \right\rfloor}_{\text{RDOQBINCOST\_S}(bits)}$$
+          </div>
+          <ul style="list-style-type: circle; margin-top: 10px; margin-bottom: 15px; color: #475569; font-size: 0.95em;">
+            <li><strong>$d = |C_{trans} - C_{inv\_quant}|$</strong>：原始变换系数与反量化重建系数的绝对差值。</li>
+            <li><strong>$scaleBits$</strong>：用于将平方误差 (SSE) 定点放大的位移常量。</li>
+            <li><strong>$bits$</strong>：由 <code>rdoq_coeff_est()</code> 模拟 CABAC 状态机得到的熵编码比特数估计。</li>
+            <li><strong>$\lambda$ 与 $shift$</strong>：拉格朗日乘子及其对应的定点化右移常量。</li>
+          </ul>
+          </li>
           <li><strong>单系数层面的“贪婪 PK”:</strong> <br>
           对于任何一个非零系数，C-Model 会生成候选数组：<code class="language-c">absLevels[3] = {maxQuantLevel, maxQuantLevel - 1, 0}</code>。它遍历这些候选值，计算 <code>RDOQCOST_S</code>，并贪婪地选取使得 Cost 绝对最小的 Level。</li>
           <li><strong>系数组 (CG) 的“一刀切 PK”:</strong> <br>
