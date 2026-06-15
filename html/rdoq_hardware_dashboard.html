@@ -395,6 +395,9 @@ hljs.highlightAll();
               <p style="margin-top: 10px; margin-bottom: 5px; color: #881337; line-height: 1.6;">
                 在计算当前坐标 <code>(x,y)</code> 的上下文增量 <code>ctxInc</code> 时，系统需要构建一个周边相邻掩码 <strong><code>patternSigCtx</code></strong>。这个掩码强依赖于它的<strong>右侧邻居 (x+1,y)</strong> 和<strong>下方邻居 (x,y+1)</strong> 最终是否为非零系数。
               </p>
+              <div style="text-align: center; margin: 15px 0; padding: 10px; background: #ffffff; border-radius: 8px; border: 1px solid #fecdd3;">
+                <img src="./rdoq_data_hazard_py.png" alt="Data Hazard Dependency Graphic" style="max-width: 100%; height: auto;">
+              </div>
               <ul style="color: #9f1239; margin-top: 5px; padding-left: 20px; line-height: 1.7;">
                 <li><strong>时空交错：</strong>因为扫描顺序是“从右下到左上的逆向对角线”，这意味着右侧和下方的邻居在时间轴上必然<strong>先于</strong>当前系数被扫描。</li>
                 <li><strong>致命的 RDOQ 反馈：</strong>RDOQ 的贪婪本质在于“试探与微雕”，它极有可能把原本初始量化不为 0 的右侧邻居，为了省码率而<strong>强制量化为 0 (Level=0)</strong>。</li>
@@ -412,54 +415,8 @@ hljs.highlightAll();
 
         <div class="mermaid-wrapper" style="margin: 25px 0; background: #fff; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
           <h4 style="margin-top: 0; text-align: center; color: #3b82f6; border-bottom: 1px dashed #bfdbfe; padding-bottom: 10px;">📊 宏观控制流：三层嵌套循环执行架构 (Nested Execution Flow)</h4>
-          <div class="mermaid" style="display: flex; justify-content: center;">
-            flowchart TD
-                Start([Start RDOQ for TU]) --> B[Init TU_Cost]
-                B --> C{Any unprocessed<br>4x4 CG?}
-                
-                %% CG Level
-                subgraph CG_Loop [CG Level Processing (Reverse Scan)]
-                    C -- Yes --> D[Enter 4x4 CG]
-                    D --> E[Init CG_Cost]
-                    
-                    %% Point Level
-                    subgraph Point_Loop [Point Level Processing (Reverse Diag)]
-                        E --> F{Any unprocessed<br>Coefficient?}
-                        F -- Yes --> G[Generate Candidates:<br>L_SQ, L_SQ-1, 0]
-                        G --> H[Calculate D + R Cost<br>Wait for Prev CABAC]
-                        H --> I[Greedy Select Best Level]
-                        I --> J[Accumulate to CG_Cost]
-                        J --> F
-                    end
-                    
-                    F -- No --> K[Evaluate CG-Level Cost]
-                    K --> L{Cost(CG All 0s)<br>&lt; Cost(Current)?}
-                    L -- Yes --> M[Set coded_sub_block_flag = 0<br>Zero out CG]
-                    L -- No --> N[Keep CG Levels]
-                    M --> O[Accumulate to TU_Cost]
-                    N --> O
-                end
-                
-                O --> C
-                
-                %% TU Level
-                C -- No --> P[Evaluate TU-Level Cost]
-                P --> Q{Cost(TU All 0s)<br>&lt; Cost(Current)?}
-                Q -- Yes --> R[Set Root CBF = 0<br>Zero out TU]
-                Q -- No --> S[Keep TU Levels]
-                
-                R --> End([End RDOQ])
-                S --> End
-                
-                style Start fill:#f1f5f9,stroke:#94a3b8,color:#334155
-                style End fill:#f1f5f9,stroke:#94a3b8,color:#334155
-                style C fill:#eff6ff,stroke:#3b82f6,color:#1e40af
-                style F fill:#eff6ff,stroke:#3b82f6,color:#1e40af
-                style L fill:#fef3c7,stroke:#d97706,color:#92400e
-                style Q fill:#fef3c7,stroke:#d97706,color:#92400e
-                style H fill:#fee2e2,stroke:#ef4444,color:#b91c1c
-                style M fill:#d1fae5,stroke:#10b981,color:#065f46
-                style R fill:#d1fae5,stroke:#10b981,color:#065f46
+          <div style="text-align: center; margin-top: 15px;">
+            <img src="./rdoq_nested_loops_py.png" alt="Nested Execution Flow Chart" style="max-width: 100%; height: auto; border-radius: 6px;">
           </div>
         </div>
       </div>
