@@ -530,13 +530,13 @@ hljs.highlightAll();
                 </div>
                 <ul style="margin: 0; padding-left: 20px; line-height: 2;">
                   <li><strong>BaseOffset</strong>:
-                    $$ \text{BaseOffset} = \begin{cases} 9 & \text{if } \text{Size} = 8\times8 \text{ and } \text{DiagScan} \\ 15 & \text{if } \text{Size} = 8\times8 \text{ and } \text{NonDiagScan} \\ 21 & \text{if } \text{Luma} \text{ and } \text{Size} > 8\times8 \\ 12 & \text{if } \text{Chroma} \text{ and } \text{Size} > 8\times8 \end{cases} $$
+                    $$ \text{BaseOffset} = \begin{cases} 9 & \text{if } \text{Size} = 8\times8 \text{ and } \text{DiagScan} \\ 15 & \text{if } \text{Size} = 8\times8 \text{ and } \text{NonDiagScan} \\ 21 & \text{if } \text{Luma} \text{ and } \text{Size} > 8\times8 \\ 12 & \text{if } \text{Chroma} \text{ and } \text{Size} > 8\times8 \end{cases} \quad \color{#64748b}{\text{(由块尺寸和扫描模式决定的基准地址)}} $$
                   </li>
                   <li style="margin-top: 15px;"><strong>LumaCGOffset</strong>:
-                    $$ \text{LumaCGOffset} = \begin{cases} 3 & \text{if } \text{Luma} \text{ and } (\text{posX} \ge 4 \text{ or } \text{posY} \ge 4) \\ 0 & \text{otherwise} \end{cases} $$
+                    $$ \text{LumaCGOffset} = \begin{cases} 3 & \text{if } \text{Luma} \text{ and } (\text{posX} \ge 4 \text{ or } \text{posY} \ge 4) \\ 0 & \text{otherwise} \end{cases} \quad \color{#64748b}{\text{(若脱离左上角 DC 区域，增加额外偏移)}} $$
                   </li>
                   <li style="margin-top: 15px;"><strong>cnt (空间模板坍缩)</strong>: 
-                    $$ \text{cnt} = f(\text{posX} \pmod 4, \text{posY} \pmod 4, \text{patternSigCtx}) $$
+                    $$ \text{cnt} = f(\text{posX} \pmod 4, \text{posY} \pmod 4, \text{patternSigCtx}) \quad \color{#64748b}{\text{(基于邻居状态的微观坍缩偏移)}} $$
                   </li>
                 </ul>
                 <div style="text-align: center; margin-top: 25px; background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
@@ -561,15 +561,15 @@ hljs.highlightAll();
               <div style="background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; color: #334155; overflow-x: auto;">
                 <p style="margin-top: 0; margin-bottom: 15px;">在每个 Slice 编码的伊始，必须利用规范表中的 <code>initValue</code> 与当前 <code>QP</code> 初始化上述一维阵列中的每一个 8-bit 节点：</p>
                 <div style="font-size: 1.05em; line-height: 2.2;">
-                  $$ \text{slope} = \left(\left\lfloor \frac{\text{initValue}}{16} \right\rfloor \times 5\right) - 45 $$
-                  $$ \text{offset} = ((\text{initValue} \pmod{16}) \times 8) - 16 $$
-                  $$ \text{initState} = \text{Clip3}\left(1, 126, \left\lfloor \frac{\text{slope} \times \text{QP}}{16} \right\rfloor + \text{offset}\right) $$
-                  $$ \text{valMPS} = \begin{cases} 1 & \text{if } \text{initState} \ge 64 \\ 0 & \text{otherwise} \end{cases} $$
-                  $$ \text{pStateIdx} = \begin{cases} \text{initState} - 64 & \text{if } \text{initState} \ge 64 \\ 63 - \text{initState} & \text{otherwise} \end{cases} $$
+                  $$ \text{slope} = \left(\left\lfloor \frac{\text{initValue}}{16} \right\rfloor \times 5\right) - 45 \quad \color{#64748b}{\text{(根据预设提取斜率因子)}} $$
+                  $$ \text{offset} = ((\text{initValue} \pmod{16}) \times 8) - 16 \quad \color{#64748b}{\text{(根据预设提取截距因子)}} $$
+                  $$ \text{initState} = \text{Clip3}\left(1, 126, \left\lfloor \frac{\text{slope} \times \text{QP}}{16} \right\rfloor + \text{offset}\right) \quad \color{#64748b}{\text{(结合当前 Slice 的 QP 计算初始状态)}} $$
+                  $$ \text{valMPS} = \begin{cases} 1 & \text{if } \text{initState} \ge 64 \\ 0 & \text{otherwise} \end{cases} \quad \color{#64748b}{\text{(提取最高概率符号 MPS)}} $$
+                  $$ \text{pStateIdx} = \begin{cases} \text{initState} - 64 & \text{if } \text{initState} \ge 64 \\ 63 - \text{initState} & \text{otherwise} \end{cases} \quad \color{#64748b}{\text{(提取 0~63 的概率状态索引)}} $$
                 </div>
                 <div style="margin-top: 20px; padding: 15px; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 4px; color: #991b1b; text-align: center;">
                   <span style="font-size: 1.2em; font-weight: bold;">
-                    $$ \mathbf{m\_ucState} = (\mathbf{pStateIdx} \ll 1) \ | \ \mathbf{valMPS} $$
+                    $$ \mathbf{m\_ucState} = (\mathbf{pStateIdx} \ll 1) \ | \ \mathbf{valMPS} \quad \color{#991b1b}{\text{(拼接为 8-bit 最终状态字写入 SRAM)}} $$
                   </span>
                 </div>
               </div>
