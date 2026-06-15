@@ -385,7 +385,23 @@ hljs.highlightAll();
         </script>
 
         <ol style="color: #334155; line-height: 1.8;">
-          <li><strong>系数级：严格串行的单点逆向扫描 (Point-by-Point)</strong><br>虽然 TU 被划分为了 4x4 的块 (CG)，但在硬件微观执行层面，依然是<strong>一个坐标一个坐标 (单点)</strong> 去串行处理的。从末尾非零系数所在的 CG 开始，沿着对角线方向逆向推进。例如处理 <code>(4,5)</code> 后处理 <code>(5,4)</code>。它们<strong>绝对不能跨点并行处理</strong>，因为后一个系数的 CABAC 概率模型，强依赖于前一个系数的最终量化结果。</li>
+          <li><strong>系数级：严格串行的单点逆向扫描 (Point-by-Point)</strong><br>虽然 TU 被划分为了 4x4 的块 (CG)，但在硬件微观执行层面，依然是<strong>一个坐标一个坐标 (单点)</strong> 去串行处理的。从末尾非零系数所在的 CG 开始，沿着对角线方向逆向推进。例如处理 <code>(4,5)</code> 后处理 <code>(5,4)</code>。它们<strong>绝对不能跨点并行处理</strong>，因为后一个系数的 CABAC 概率模型，强依赖于前一个系数的最终量化结果。
+            
+            <div style="background: #fff1f2; border-left: 4px solid #e11d48; padding: 15px; margin: 15px 0; border-radius: 6px; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.05);">
+              <strong style="color: #be123c; font-size: 1.05em; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                深度解析：这道阻止并行的“数据冒险 (Data Hazard)”墙是如何产生的？
+              </strong>
+              <p style="margin-top: 10px; margin-bottom: 5px; color: #881337; line-height: 1.6;">
+                在计算当前坐标 <code>(x,y)</code> 的上下文增量 <code>ctxInc</code> 时，系统需要构建一个周边相邻掩码 <strong><code>patternSigCtx</code></strong>。这个掩码强依赖于它的<strong>右侧邻居 (x+1,y)</strong> 和<strong>下方邻居 (x,y+1)</strong> 最终是否为非零系数。
+              </p>
+              <ul style="color: #9f1239; margin-top: 5px; padding-left: 20px; line-height: 1.7;">
+                <li><strong>时空交错：</strong>因为扫描顺序是“从右下到左上的逆向对角线”，这意味着右侧和下方的邻居在时间轴上必然<strong>先于</strong>当前系数被扫描。</li>
+                <li><strong>致命的 RDOQ 反馈：</strong>RDOQ 的贪婪本质在于“试探与微雕”，它极有可能把原本初始量化不为 0 的右侧邻居，为了省码率而<strong>强制量化为 0 (Level=0)</strong>。</li>
+                <li><strong>并行悖论：</strong>如果硬件设计想把 <code>(x,y)</code> 和 <code>(x+1,y)</code> 放入同一个时钟周期内流水线并行计算，那么在算 <code>(x,y)</code> 的 CABAC 码率代价值时，<code>(x+1,y)</code> 的最终 RDOQ 判决结果<strong>还没出炉</strong>！硬件根本不知道 <code>patternSigCtx</code> 该不该包含这个邻居，从而导致查表的 <code>Fractional Bits Cost</code> 彻底跑飞。因此，必须老老实实等前一个系数的 RDOQ 彻底走完全流程，其最终状态固化后，才能推导下一个系数的 Context。这就是所谓<strong>“强依赖”</strong>的硬件灾难级来源！</li>
+              </ul>
+            </div>
+          </li>
           <li><strong>CG 级：4x4 块级阻断判决 (Sub-Block Flag)</strong><br>当一个 4x4 CG 内部的 16 个系数<strong>全部单点处理完毕</strong>后，系统会整体暂停，进行一次块级宏观算账：“如果我把刚才这 16 个系数连同这个 4x4 块的标志位直接全部抹零，总体代价会不会更低？” 如果是，则触发 <code>coded_sub_block_flag = 0</code>。</li>
           <li><strong>TU 级：终极判决 (Root CBF)</strong><br>当单点扫描最终抵达并处理完左上角的 DC 系数 <code>(0,0)</code>，整个大 TU 扫描宣告结束。引擎最后评估一次将整个 TU 清零的代价，如果更低，则触发 <code>cbf = 0</code>。</li>
         </ol>
