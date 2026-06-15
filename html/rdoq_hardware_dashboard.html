@@ -215,7 +215,29 @@ hljs.highlightAll();
       
       <h1>VVC RDOQ 硬件架构设计 Dashboard<br><span style="font-size:0.6em; color:#7f8c8d;">Hardware Architecture & Pipelining</span></h1>
       
-      <h2>1. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
+      <h2>1. RDOQ 算法微观原理与 C-Model RD-Cost 计算机制</h2>
+      <p>在深入硬件优化前，必须厘清 RDOQ 的算法本质，并将其与宏观的 RDO 严格区分。在 C-Model 的 <code>simpleRdoQuant()</code> 函数中，RDOQ 执行的是最底层的<strong>“系数级贪婪寻优”</strong>。</p>
+      
+      <div class="critical-alert">
+        <strong>核心概念厘清：RDO vs RDOQ</strong><br>
+        <span class="highlight">RDO (Mode Decision)</span>: 宏观层面的模式决策。评估整个块最终重建像素的 SAD/SSE 畸变与总体比特消耗。<br>
+        <span class="highlight">RDOQ (Quantization)</span>: 微观层面的量化优化。在选定 Mode 之后，针对每一个 DCT 频率系数，评估“量化为哪个具体整数（包括 0）”能获得最优的局部 Cost 表现。
+      </div>
+
+      <div class="algorithm-steps">
+        <h3>C-Model 的微观 PK 机制</h3>
+        <ol>
+          <li><strong>RDOQ 核心 Cost 公式:</strong> <br>
+          <code class="language-c">RDOQCOST_S(d, bits) = RDOQDIST_S(d) + RDOQBINCOST_S(bits)</code><br>
+          其中 <code>D</code> 是未量化系数与反量化系数绝对差值的缩放平方；<code>R</code> 是通过 <code>rdoq_coeff_est()</code> 模拟 CABAC 状态机得到的熵编码比特消耗估计，并乘以拉格朗日乘子 <code>&lambda;</code>。</li>
+          <li><strong>单系数层面的“贪婪 PK”:</strong> <br>
+          对于任何一个非零系数，C-Model 会生成候选数组：<code class="language-c">absLevels[3] = {maxQuantLevel, maxQuantLevel - 1, 0}</code>。它遍历这些候选值，计算 <code>RDOQCOST_S</code>，并贪婪地选取使得 Cost 绝对最小的 Level。</li>
+          <li><strong>系数组 (CG) 的“一刀切 PK”:</strong> <br>
+          完成 4x4 系数级的独立寻优后，它会将整个 4x4 系数组 (Sub-Block) 暴切为 0 的代价 <code class="language-c">costZeroCG = blockZeroCosts[iSubBlk] + sbfCost[0]</code> 与保留精英系数的总体代价进行比较。若全切为 0 更划算，则强制关闭 Sub-Block Flag (SBF)，实现一刀切剪枝。</li>
+        </ol>
+      </div>
+
+      <h2>2. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
       <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
       <div class="critical-alert">
         <strong>核心架构抉择：弃大保小</strong><br>
@@ -251,7 +273,7 @@ hljs.highlightAll();
       </div>
       <div class="diagram-caption">图 1：基于尺寸的 RDOQ 并发与旁路处理策略 (横向布局)</div>
       
-      <h2>2. 帧内环路死锁破解 (Intra Feedback Loop Bypass)</h2>
+      <h2>3. 帧内环路死锁破解 (Intra Feedback Loop Bypass)</h2>
       <p>在 wf4 模块中，吞吐目标为 1 pix/clk（即每 16 拍处理一个 4x4 块）。但 RDOQ 会引入至少 8 拍延迟，使得总体重构反馈链路长达 24 拍，远超 16 拍预算。</p>
       <div class="success">
         <strong>破局点：前馈重建旁路 (Fast Recon Bypass)</strong><br>
@@ -268,27 +290,12 @@ hljs.highlightAll();
         </ol>
       </div>
 
-      <div class="mermaid-wrapper">
-      <div class="mermaid">
-      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 50, 'curve': 'bumpX'}}}%%
-      flowchart TB
-        subgraph FastLoop ["快速反馈环路 (Fast Recon Loop) - 耗时 12 clk < 16 clk"]
-          direction LR
-          IPD["Intra Pred"] --> DCT["DCT"] --> SQ["简单量化"] --> InvQ["反量化"] --> IDCT["IDCT"] --> Recon["快速重建"]
-        end
-        subgraph SlowLoop ["真实码流计算 (RDOQ Slow Loop) - 耗时 20+ clk"]
-          direction LR
-          SQ2["SQ 结果分流"] --> RDOQ["RDOQ 核心计算 (8 clk)"] --> CABAC["CABAC 码率估计"]
-        end
-        FastLoop -. "旁路分支" .-> SlowLoop
-        
-        style Recon fill:#e8f5e9,stroke:#2e7d32
-        style RDOQ fill:#fff3e0,stroke:#f57c00
-      </div>
+      <div class="mermaid-wrapper" style="border:none; padding:0; background:transparent;">
+        <img src="./redesign_rdoq_bypass.png" style="max-width:100%; height:auto; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.05);" alt="RDOQ Bypass Strategy">
       </div>
       <div class="diagram-caption">图 2：帧内反馈环路的双层拆解与 RDOQ 旁路设计 (横向拉伸排版)</div>
     
-      <h2>3. 静态上下文预生成 (Static Context Generation)</h2>
+      <h2>4. 静态上下文预生成 (Static Context Generation)</h2>
       <p>传统的 Trellis 网格寻优存在深度的系数间因果依赖。在硬件设计中，必须采用“局部独立近似”来替换“全局网格搜索”，为彻底打平流水线铺平道路。</p>
       
       <div class="algorithm-steps">
@@ -322,7 +329,7 @@ hljs.highlightAll();
       </div>
       <div class="diagram-caption">图 3：静态上下文解耦与 16 单元绝对并行计算架构 (全横向展开)</div>
       
-      <h2>4. 终极吞吐利器：Two-Stage Fast RDOQ Pruning</h2>
+      <h2>5. 终极吞吐利器：Two-Stage Fast RDOQ Pruning</h2>
       <p>为了满足严苛的 4K/8K 帧率，单纯在底层进行流水线化仍显不足，必须从宏观算法上源头把控，控制 RDOQ 模块的绝对启动频次。</p>
       <div class="critical-alert">
         <strong>两级 Candidate 剪枝过滤：</strong><br>
@@ -339,23 +346,45 @@ hljs.highlightAll();
         </ol>
       </div>
 
-      <div class="mermaid-wrapper">
-      <div class="mermaid">
-      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 50, 'curve': 'bumpX'}}}%%
-      flowchart TB
-        subgraph Stage1 ["Stage 1: 粗筛 (Rough Pruning)"]
-          direction LR
-          ALL["16 Candidates"] --> SQ["标量量化 + 粗 CABAC 估算"] --> SORT["排序器当场淘汰后 14 名"]
-        end
-        subgraph Stage2 ["Stage 2: 精细优化 (Fine RDOQ)"]
-          direction LR
-          SORT_OUT["Top-2 幸存者"] --> RDOQ1["Candidate 0 进入深度 RDOQ"]
-          SORT_OUT --> RDOQ2["Candidate 1 进入深度 RDOQ"]
-        end
-        Stage1 -. "传递 Top-2" .-> Stage2
-      </div>
+      <div class="mermaid-wrapper" style="border:none; padding:0; background:transparent;">
+        <img src="./redesign_rdoq_stage.png" style="max-width:100%; height:auto; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.05);" alt="RDOQ Stage Architecture">
       </div>
       <div class="diagram-caption">图 4：双层两极分化剪枝流水线架构 (横向布局)</div>
+
+      <h2>6. 亮色度分治策略 (Luma-Chroma RDOQ Bypass)</h2>
+      <p>在实际硬件流水线中，针对亮色度采取非对称的量化策略，以追求极致的性价比与吞吐率。这是一种完全符合标准语法且 100% 保证编解码一致性（Mismatch Free）的经典工程权衡。</p>
+      <div class="success">
+        <strong>核心优化：Luma 开启 RDOQ，Chroma 关闭 RDOQ</strong><br>
+        由于人眼对亮度细节远比色度敏感，RDOQ 带来的压缩收益绝大部分集中在 Luma (亮度) 分量。强迫 <span class="highlight">Chroma (色度) 旁路 RDOQ</span>，仅执行基础的标量量化 (SQ)，可在几乎不影响整体 BD-Rate 的前提下，节省可观的计算周期与面积开销。
+      </div>
+
+      <div class="algorithm-steps">
+        <h3>自然语言算法步骤 (Algorithm Steps)</h3>
+        <ol>
+          <li><strong>分量侦测:</strong> 流水线控制端根据当前 TU 的颜色通道元数据，区分 Luma (Y) 与 Chroma (Cb/Cr)。</li>
+          <li><strong>色度快速旁路 (Chroma Fast-Path):</strong> 若为色度通道，强制封锁 RDOQ 硬件入口使能，数据仅流过廉价的普通标量量化 (SQ) 模块，快速闭环并输出残差。</li>
+          <li><strong>亮度深度精雕 (Luma RDOQ-Path):</strong> 若为亮度通道（且符合 4x4 等精英尺寸），则获准进入完整的 RDOQ 深度优化寻优阵列，以压榨极限的视觉与码流收益。</li>
+        </ol>
+      </div>
+
+      <div class="mermaid-wrapper">
+      <div class="mermaid">
+      %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '28px'}, 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80, 'curve': 'bumpX'}}}%%
+      flowchart LR
+        subgraph ChromaBypass ["亮色度非对称量化架构"]
+          direction LR
+          A["TU/CU 数据入口"] --> B{"通道类型判断"}
+          B -->|"Chroma (Cb/Cr)"| C["普通标量量化 (SQ)"]
+          B -->|"Luma (Y)"| D["启动全量 RDOQ 引擎"]
+          C --> E["极速输出色度残差"]
+          D --> F["深度寻优亮度残差"]
+        end
+        
+        style C fill:#f5f5f5,stroke:#999
+        style D fill:#e1f5fe,stroke:#0288d1
+      </div>
+      </div>
+      <div class="diagram-caption">图 5：基于通道类型的亮色度非对称 RDOQ 旁路策略 (Luma vs Chroma)</div>
 
   </div>
 </div>
