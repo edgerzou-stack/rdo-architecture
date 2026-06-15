@@ -665,9 +665,54 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
               <img src="./rdoq_entropy_lut.png" alt="CABAC Entropy LUT Mathematical Curves" style="max-width: 100%; height: auto; border-radius: 6px;">
             </div>
 
+            <div style="background: #f0f9ff; border: 2px solid #0284c7; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08);">
+              <h4 style="margin-top: 0; color: #0369a1; margin-bottom: 15px; font-size: 1.1em; border-bottom: 2px dashed #7dd3fc; padding-bottom: 8px;">
+                <span style="font-size: 1.2em;">🔍</span> 深度解析：用 m_ucState 查 Entropy_LUT 的完整硬件流程
+              </h4>
+              <p style="color: #0c4a6e; line-height: 1.7; margin-bottom: 15px;">
+                前文已经讲过，每个上下文节点在 SRAM 中的存储格式是 <code>m_ucState = (pStateIdx &lt;&lt; 1) | valMPS</code>，其中高 7 位是概率状态索引 (0~63)，最低 1 位是最高概率符号 (MPS)。当硬件需要评估“编码某个二值符号 (bin) 的代价”时，会按以下流程执行：
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px;">
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                  <span style="background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 50%; font-size: 0.95em; flex-shrink: 0;">1</span>
+                  <div style="color: #0c4a6e; line-height: 1.6;">
+                    <strong>拆分 m_ucState：</strong>硬件通过简单的位操作从 8-bit 的 m_ucState 中提取出两个关键信息：<br>
+                    <span style="font-family: monospace; background: #e0f2fe; padding: 2px 6px; border-radius: 3px;">pStateIdx = m_ucState >> 1</span>（概率状态索引，0~63）<br>
+                    <span style="font-family: monospace; background: #e0f2fe; padding: 2px 6px; border-radius: 3px;">valMPS = m_ucState & 1</span>（最高概率符号，0 或 1）
+                  </div>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                  <span style="background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 50%; font-size: 0.95em; flex-shrink: 0;">2</span>
+                  <div style="color: #0c4a6e; line-height: 1.6;">
+                    <strong>构造查表地址：</strong>结合当前要编码的二值符号 <code>flag_val</code>（0 或 1），硬件将 <code>flag_val</code> 与 <code>valMPS</code> 进行<strong>异或 (XOR)</strong> 操作。异或的巧妙之处在于：<br>
+                    • 若 <code>flag_val == valMPS</code>（即编码的是高概率事件 MPS），XOR 结果为 0 → 查到的是“低代价”（因为高概率事件耗费的比特数少）<br>
+                    • 若 <code>flag_val != valMPS</code>（即编码的是低概率事件 LPS），XOR 结果为 1 → 查到的是“高代价”（因为低概率事件耗费的比特数多）
+                  </div>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                  <span style="background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 50%; font-size: 0.95em; flex-shrink: 0;">3</span>
+                  <div style="color: #0c4a6e; line-height: 1.6;">
+                    <strong>一次查表得到 Fractional Bits：</strong>将拼接后的地址送入预计算好的 Entropy_LUT（128 行，每行存储一个 16-bit 定点整数），直接读出对应的分数比特代价。<br>
+                    <strong style="color: #0369a1;">硬件实现上，这就是一个纯组合逻辑的 ROM 查表，单周期即可完成，无任何迭代或反馈。</strong>
+                  </div>
+                </div>
+              </div>
+              <div style="background: #ffffff; padding: 12px 16px; border-radius: 6px; border: 1px solid #bae6fd; text-align: center; font-family: monospace; font-size: 1.05em; color: #0369a1; font-weight: bold;">
+                bit_cost = Entropy_LUT[ (pStateIdx &lt;&lt; 1) | (flag_val ^ valMPS) ]
+              </div>
+              <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px 15px; border-radius: 4px; margin-top: 15px;">
+                <strong style="color: #065f46; font-size: 0.95em;">📌 实战举例：</strong><br>
+                <span style="color: #064e3b; font-size: 0.9em; line-height: 1.7;">
+                  假设前文推算出的 <code>m_ucState = 15</code>（即二进制 00001111），现在要计算编码 <code>sig_coeff_flag = 1</code> 的代价：<br>
+                  1) pStateIdx = 15 >> 1 = <strong>7</strong>，valMPS = 15 & 1 = <strong>1</strong><br>
+                  2) flag_val = 1，flag_val ^ valMPS = 1 ^ 1 = <strong>0</strong>（说明编码的是 MPS 事件，代价低）<br>
+                  3) 查表地址 = (7 &lt;&lt; 1) | 0 = <strong>14</strong><br>
+                  4) bit_cost = Entropy_LUT[14]，读出一个较小的定点整数（如 5396，约 0.16 bits）→ 代价很低！
+                </span>
+              </div>
+            </div>
+
             <p style="margin: 0; color: #334155; line-height: 1.6;">
-            在 RDOQ 执行期间，当需要计算编码某个 <code>flag_val</code>（0 或 1）的代价时，操作变得极其轻量化：只需执行一次位异或与数组寻址：<br>
-            <code style="background: #bae6fd; padding: 2px 6px; border-radius: 4px; color: #0369a1; font-weight: bold; margin: 5px 0; display: inline-block;">bit_cost = Entropy_LUT[ (pStateIdx &lt;&lt; 1) | (flag_val ^ valMPS) ]</code><br>
             <strong>定点放大的魅力：</strong>通过预将浮点对数转化为定点整数（1 真实比特 = 32768 分数比特），原本复杂的概率计算被彻底降维。这就是为什么一个看似 1.2 bits 的代价，在硬件寄存器里其实是一个巨大的整数 <code>39321</code>！
           </p>
         </div>
@@ -960,6 +1005,28 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
           } else {<br>
           &nbsp;&nbsp;&nbsp;&nbsp;ctxInc = f(posX, posY, <strong style="color: #dc2626;">patternSigCtx</strong>); // 强数据依赖<br>
           }
+        </div>
+
+        <div style="background: #fffbeb; border-left: 5px solid #f59e0b; padding: 15px; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(245,158,11,0.08);">
+          <strong style="color: #b45309; font-size: 1.05em; display: flex; align-items: center; gap: 8px; border-bottom: 1px dashed #fde68a; padding-bottom: 8px; margin-bottom: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            大块场景的折中方案：基于 SQ 结果的 patternSigCtx 预计算
+          </strong>
+          <p style="color: #92400e; font-size: 0.95em; line-height: 1.7; margin-top: 0; margin-bottom: 12px;">
+            上述 4×4 的“完美解耦”是标准赋予的特权，但对于 8×8、8×16 等大尺寸 TU 中的普通 AC CG，<code>patternSigCtx</code> 的强依赖依然存在。硬件架构师常采用以下折中策略来缓解这个矛盾：
+          </p>
+          <div style="background: rgba(255,255,255,0.7); padding: 12px 16px; border-radius: 6px; border: 1px solid #fde68a; margin-bottom: 12px;">
+            <strong style="color: #92400e;">策略核心：用“先骗后纠”代替“硬等”</strong>
+            <ol style="color: #78350f; font-size: 0.9em; line-height: 1.8; margin: 8px 0 0 0; padding-left: 20px;">
+              <li><strong>预先用 SQ 结果生成“近似”的 patternSigCtx：</strong>在 RDOQ 正式开始之前，硬件先拿着普通标量量化 (SQ) 的结果（而非最终的 RDOQ 结果）来判断每个邻居系数是否为零。因为 SQ 在 RDOQ 之前已经全部完成，所有 16 个系数的 SQ 结果都是现成的，不存在任何前后依赖。</li>
+              <li><strong>基于 SQ 论断一次性预生成 16 个点的 ctxInc：</strong>硬件在第 1 拍就能并行地为当前 CG 内所有 16 个系数计算出各自的 patternSigCtx 和 ctxInc，因为它们全部基于已知的 SQ 状态，而不是还没有计算出来的 RDOQ 状态。</li>
+              <li><strong>精度损失可控：</strong>SQ 结果与 RDOQ 最终结果的差异通常只发生在极少数边缘系数上（即那些被 RDOQ 从 Level=1 强制清零的系数），因此预算出的 patternSigCtx 与理想值的偏差极小，对最终压缩率的影响几乎可以忽略不计。</li>
+            </ol>
+          </div>
+          <div style="background: #fef3c7; border-left: 3px solid #d97706; padding: 8px 12px; border-radius: 4px;">
+            <strong style="color: #92400e; font-size: 0.9em;">硬件收益：</strong>
+            <span style="color: #78350f; font-size: 0.88em;">这种“SQ 代替 RDOQ”的预计算策略，正是前文 2.3 节“静态上下文预生成”的核心原理。它把原本要“等前一个系数 RDOQ 跑完”才能开始的串行链，变成了“第 1 拍统一预算，第 2 拍并行展开”的两步流水线。代价仅仅是微小的精度损失。</span>
+          </div>
         </div>
         
         <h3 style="color: #166534; border-bottom: 1px dashed #bbf7d0;">硬件并行化收益 (Hardware Parallelism)</h3>
