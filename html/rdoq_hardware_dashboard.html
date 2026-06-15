@@ -309,8 +309,9 @@ hljs.highlightAll();
                 <p style="color: #065f46; margin-bottom: 0;"><strong>结论：</strong>虽然强行变成 0 会导致像素误差 (D) 变大，但省下的编码比特 (R) 实在太多了！RDOQ 引擎贪婪地选择 <strong style="color: #dc2626;">Level = 0</strong>，成功将这个边缘系数“斩杀”！这就是 RDOQ 压榨压缩率的灵魂所在。</p>
               </div>
 
-              <div style="text-align: right; margin-top: 10px;">
-                <button id="rdoq-next-btn" onclick="nextRdoqStep()" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(2, 136, 209, 0.2);">开始演示 (Next Step) &rarr;</button>
+              <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="rdoq-auto-btn" onclick="autoPlayRdoq()" style="background: #e2e8f0; color: #475569; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;">连续播放 (Auto Play) &#9654;</button>
+                <button id="rdoq-next-btn" onclick="nextRdoqStep()" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(2, 136, 209, 0.2);">单步演示 (Next Step) &rarr;</button>
               </div>
             </div>
           </div>
@@ -319,6 +320,8 @@ hljs.highlightAll();
       
       <script>
         let currentRdoqStep = 1;
+        let autoPlayTimer = null;
+
         function nextRdoqStep() {
           if (currentRdoqStep === 1) {
             document.getElementById('rdoq-step-2').style.display = 'block';
@@ -327,7 +330,21 @@ hljs.highlightAll();
           } else if (currentRdoqStep === 2) {
             document.getElementById('rdoq-step-3').style.display = 'block';
             document.getElementById('rdoq-next-btn').style.display = 'none';
+            document.getElementById('rdoq-auto-btn').style.display = 'none';
+            if (autoPlayTimer) clearInterval(autoPlayTimer);
           }
+        }
+
+        function autoPlayRdoq() {
+          document.getElementById('rdoq-auto-btn').style.background = '#cbd5e1';
+          document.getElementById('rdoq-auto-btn').innerText = '播放中...';
+          document.getElementById('rdoq-auto-btn').disabled = true;
+          document.getElementById('rdoq-next-btn').disabled = true;
+          document.getElementById('rdoq-next-btn').style.opacity = '0.5';
+          
+          autoPlayTimer = setInterval(() => {
+            nextRdoqStep();
+          }, 1500); // 1.5 seconds per step
         }
       </script>
       <!-- 互动示例组件结束 -->
