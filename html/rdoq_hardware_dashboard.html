@@ -300,86 +300,51 @@ hljs.highlightAll();
       </div>
 
       <!-- 互动示例组件开始 -->
-      <div class="interactive-card" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin: 30px 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin: 30px 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
         <div style="background: var(--secondary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="margin: 0; color: white; border: none; font-size: 16px; font-weight: bold;">互动示例：微观系数的量化判决</div>
-          <span style="font-size: 14px; opacity: 0.8;">Interactive RDOQ Sandbox</span>
+          <div style="margin: 0; color: white; border: none; font-size: 16px; font-weight: bold;">图解示例：微观系数的量化判决</div>
+          <span style="font-size: 14px; opacity: 0.8;">Static RDOQ Decision Sandbox</span>
         </div>
         <div style="padding: 25px; display: flex; flex-direction: column; gap: 20px;">
-          <p style="margin-top: 0; color: #475569;"><strong>前情提要：</strong>假设有一个边缘 DCT 系数 <code>C_trans = 15</code>。按照普通的标量量化 (SQ)，它会被量化为 <code>Level = 1</code> (反量化后 <code>unQuant = 26</code>)。让我们通过下面的动画与逻辑树，看看 RDOQ 引擎是如何评估它的：</p>
+          <p style="margin-top: 0; color: #475569;"><strong>前情提要：</strong>假设有一个边缘 DCT 系数 <code>C_trans = 15</code>。按照普通的标量量化 (SQ)，它会被量化为 <code>Level = 1</code> (反量化后 <code>unQuant = 26</code>)。让我们通过下面的决策树与详细的代价值拆解，看看 RDOQ 引擎是如何评估它的：</p>
           
           <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
             <!-- 左侧图表区域 -->
             <div style="flex: 1; min-width: 350px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px; display: flex; justify-content: center;">
-              <img src="./redesign_rdoq_pk_sandbox.png" alt="RDOQ PK Sandbox Graph" style="max-width: 100%; height: auto; border-radius: 6px;">
+              <img src="./rdoq_decision_tree.png" alt="RDOQ Decision Tree Graph" style="max-width: 100%; height: auto; border-radius: 6px;">
             </div>
 
-            <!-- 右侧互动文字区域 -->
+            <!-- 右侧文字区域 -->
             <div style="flex: 1; min-width: 350px;">
-              <div id="rdoq-step-1" class="rdoq-step" style="display: block; background: #fff; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
+              <div style="background: #fff; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
                 <h4 style="margin-top: 0; color: #1e40af;">Step 1: 评估正常量化 (Level = 1)</h4>
                 <ul style="color: #334155; line-height: 1.8;">
-                  <li><strong>畸变 (D):</strong> 差值 d = |15 - 26| = 11。<br> D = 11² × 1024 = <strong>123,904</strong></li>
-                  <li><strong>码率 (R):</strong> CABAC 需要编码 <code>sig=1</code>, <code>gr1=0</code>, <code>sign=1</code>，耗约 2.5 bits。<br> R ≈ 2.5 × λ = <strong>150,000</strong></li>
+                  <li><strong>畸变 (D):</strong> 差值 d = |15 - 26| = 11。<br> D = 11&sup2; &times; 1024 = <strong>123,904</strong></li>
+                  <li><strong>码率 (R):</strong> CABAC 需要编码 <code>sig=1</code>, <code>gr1=0</code>, <code>sign=1</code>，耗约 2.5 bits。<br> R &approx; 2.5 &times; <b>&lambda;</b> = <strong>150,000</strong></li>
                   <li style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;"><strong>总代价 (Cost):</strong> 123,904 + 150,000 = <strong>273,904</strong></li>
                 </ul>
               </div>
 
-              <div id="rdoq-step-2" class="rdoq-step" style="display: none; background: #fff; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
+              <div style="background: #fff; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
                 <h4 style="margin-top: 0; color: #b45309;">Step 2: 评估强制量化为零 (Level = 0)</h4>
                 <ul style="color: #334155; line-height: 1.8;">
-                  <li><strong>畸变 (D):</strong> 差值 d = |15 - 0| = 15。(误差变大了！)<br> D = 15² × 1024 = <strong>230,400</strong></li>
-                  <li><strong>码率 (R):</strong> CABAC 只需要编码 <code>sig=0</code>，耗约 0.2 bits。(码率暴跌！)<br> R ≈ 0.2 × λ = <strong>12,000</strong></li>
+                  <li><strong>畸变 (D):</strong> 差值 d = |15 - 0| = 15。(误差变大)<br> D = 15&sup2; &times; 1024 = <strong>230,400</strong></li>
+                  <li><strong>码率 (R):</strong> CABAC 只需要编码 <code>sig=0</code>，耗约 0.2 bits。(码率大幅下降)<br> R &approx; 0.2 &times; <b>&lambda;</b> = <strong>12,000</strong></li>
                   <li style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;"><strong>总代价 (Cost):</strong> 230,400 + 12,000 = <strong>242,400</strong></li>
                 </ul>
               </div>
 
-              <div id="rdoq-step-3" class="rdoq-step" style="display: none; background: #ecfdf5; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
+              <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
                 <h4 style="margin-top: 0; color: #047857;">Step 3: 贪婪判决 (Greedy Decision)</h4>
                 <div style="text-align: center; font-size: 1.1em; padding: 10px;">
                   Cost(0) <strong>242,400</strong> &lt; Cost(1) <strong>273,904</strong>
                 </div>
-                <p style="color: #065f46; margin-bottom: 0;"><strong>结论：</strong>虽然强制量化为 0 会导致像素误差 (D) 变大，但节约的编码比特 (R) 非常显著！RDOQ 引擎基于贪婪策略选择 <strong style="color: #dc2626;">Level = 0</strong>，成功将该系数截断为 0。这也是 RDOQ 提升压缩率的核心机制。</p>
-              </div>
-
-              <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="rdoq-auto-btn" onclick="autoPlayRdoq()" style="background: #e2e8f0; color: #475569; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;">连续播放 (Auto Play) &#9654;</button>
-                <button id="rdoq-next-btn" onclick="nextRdoqStep()" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(2, 136, 209, 0.2);">单步演示 (Next Step) &rarr;</button>
+                <p style="color: #065f46; margin-bottom: 0;"><strong>结论：</strong>虽然强制量化为 0 会导致像素误差 (D) 变大，但节约的编码比特 (R) 非常显著。RDOQ 引擎基于贪婪策略选择 <strong style="color: #059669;">Level = 0</strong>，成功将该系数截断为 0。这也是 RDOQ 提升压缩率的核心机制。</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-      <script>
-        let currentRdoqStep = 1;
-        let autoPlayTimer = null;
-
-        function nextRdoqStep() {
-          if (currentRdoqStep === 1) {
-            document.getElementById('rdoq-step-2').style.display = 'block';
-            document.getElementById('rdoq-next-btn').innerText = '查看对决结果 (Verdict) \u2192';
-            currentRdoqStep++;
-          } else if (currentRdoqStep === 2) {
-            document.getElementById('rdoq-step-3').style.display = 'block';
-            document.getElementById('rdoq-next-btn').style.display = 'none';
-            document.getElementById('rdoq-auto-btn').style.display = 'none';
-            if (autoPlayTimer) clearInterval(autoPlayTimer);
-          }
-        }
-
-        function autoPlayRdoq() {
-          document.getElementById('rdoq-auto-btn').style.background = '#cbd5e1';
-          document.getElementById('rdoq-auto-btn').innerText = '播放中...';
-          document.getElementById('rdoq-auto-btn').disabled = true;
-          document.getElementById('rdoq-next-btn').disabled = true;
-          document.getElementById('rdoq-next-btn').style.opacity = '0.5';
-          
-          autoPlayTimer = setInterval(() => {
-            nextRdoqStep();
-          }, 1500); // 1.5 seconds per step
-        }
-      </script>
       <!-- 互动示例组件结束 -->
 
       <div class="algorithm-steps">
