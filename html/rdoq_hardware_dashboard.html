@@ -426,11 +426,54 @@ hljs.highlightAll();
           其实并不矛盾。<strong>“4x4”是管理的粒度（决定何时触发块级评估），而“单点”是执行的粒度（保证 CABAC 依赖的正确性）。</strong> 只有跑完完整的 <strong>系数级 &rarr; CG级 &rarr; TU级</strong> 三层循环后，RDOQ 流程才算真正“计算完毕”。
         </div>
 
-        <div class="mermaid-wrapper" style="margin: 25px 0; background: #fff; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-          <h4 style="margin-top: 0; text-align: center; color: #3b82f6; border-bottom: 1px dashed #bfdbfe; padding-bottom: 10px;">📊 宏观控制流：三层嵌套循环执行架构 (Nested Execution Flow)</h4>
-          <div style="text-align: center; margin-top: 15px;">
-            <img src="./rdoq_nested_loops_py.png" alt="Nested Execution Flow Chart" style="max-width: 100%; height: auto; border-radius: 6px;">
+        <div class="mermaid-wrapper" style="margin: 25px 0; background: #0f172a; padding: 30px; border: 1px solid #1e293b; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); font-family: sans-serif;">
+          <h4 style="margin-top: 0; text-align: center; color: #38bdf8; border-bottom: 1px dashed #334155; padding-bottom: 15px;">⚡ 宏观控制流：三层嵌套循环 (动态执行流)</h4>
+          <style>
+            .flow-box { border: 2px solid #334155; border-radius: 8px; padding: 15px 20px; margin: 15px auto; text-align: center; width: 80%; max-width: 400px; background: #1e293b; color: #94a3b8; font-weight: bold; transition: all 0.2s; }
+            .down-arrow { text-align: center; color: #475569; font-size: 24px; margin: -10px 0; }
+            .loop-text { text-align: right; font-size: 12px; margin-top: -5px; margin-bottom: 15px; padding-right: 10%; }
+            
+            @keyframes glowTUStart { 0%, 10%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 5% { box-shadow: 0 0 25px #38bdf8; transform: scale(1.05); background: #38bdf8; color: #fff; border-color: #bae6fd; } }
+            @keyframes glowCGStart { 0%, 10%, 20%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 15% { box-shadow: 0 0 25px #3b82f6; transform: scale(1.05); background: #3b82f6; color: #fff; border-color: #bfdbfe; } }
+            @keyframes glowPTStart { 0%, 20%, 30%, 50%, 60%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 25%, 55% { box-shadow: 0 0 25px #f43f5e; transform: scale(1.05); background: #f43f5e; color: #fff; border-color: #fecdd3; } }
+            @keyframes glowPTWait { 0%, 30%, 40%, 60%, 70%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 35%, 65% { box-shadow: 0 0 25px #fbbf24; transform: scale(1.05); background: #fbbf24; color: #000; border-color: #fef08a; } }
+            @keyframes glowPTCost { 0%, 40%, 50%, 70%, 80%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 45%, 75% { box-shadow: 0 0 25px #f43f5e; transform: scale(1.05); background: #f43f5e; color: #fff; border-color: #fecdd3; } }
+            @keyframes glowCGEval { 0%, 80%, 90%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 85% { box-shadow: 0 0 25px #22c55e; transform: scale(1.05); background: #22c55e; color: #fff; border-color: #bbf7d0; } }
+            @keyframes glowTUEval { 0%, 90%, 100% { box-shadow: none; transform: scale(1); background: #1e293b; color: #94a3b8; border-color: #334155; } 95% { box-shadow: 0 0 25px #22c55e; transform: scale(1.05); background: #22c55e; color: #fff; border-color: #bbf7d0; } }
+            
+            .anim-tu-start { animation: glowTUStart 8s infinite; }
+            .anim-cg-start { animation: glowCGStart 8s infinite; }
+            .anim-pt-start { animation: glowPTStart 8s infinite; }
+            .anim-pt-wait  { animation: glowPTWait 8s infinite; }
+            .anim-pt-cost  { animation: glowPTCost 8s infinite; }
+            .anim-cg-eval  { animation: glowCGEval 8s infinite; }
+            .anim-tu-eval  { animation: glowTUEval 8s infinite; }
+          </style>
+          
+          <div class="flow-box anim-tu-start">开始 TU 级 RDOQ (TU Level)</div>
+          <div class="down-arrow">↓</div>
+          
+          <div style="border: 2px dashed #475569; padding: 15px; border-radius: 12px; margin: 0 auto; width: 85%; max-width: 450px;">
+            <div class="flow-box anim-cg-start" style="width: 90%;">进入 4x4 块 (CG Level)</div>
+            <div class="down-arrow">↓</div>
+            
+            <div style="border: 2px dashed #3b82f6; padding: 15px; border-radius: 12px; margin: 0 auto; width: 90%; background: rgba(59, 130, 246, 0.05);">
+              <div class="flow-box anim-pt-start" style="width: 90%;">1. 扫描单点产生候选 Level</div>
+              <div class="down-arrow">↓</div>
+              <div class="flow-box anim-pt-wait" style="width: 90%;">2. 等待邻居 CABAC 上下文<br><span style="font-size: 0.8em; font-weight: normal;">(数据冒险瓶颈)</span></div>
+              <div class="down-arrow">↓</div>
+              <div class="flow-box anim-pt-cost" style="width: 90%;">3. 计算码率代价，选定最优 Level</div>
+              
+              <div class="loop-text" style="color: #60a5fa;">↑ 循环回到下个单点 (Point Loop)</div>
+            </div>
+            
+            <div class="down-arrow">↓</div>
+            <div class="flow-box anim-cg-eval" style="width: 90%;">评估 CG 级宏观抹零<br><span style="font-size: 0.8em; font-weight: normal;">(coded_sub_block_flag)</span></div>
+            <div class="loop-text" style="color: #94a3b8;">↑ 循环回到下个 CG (CG Loop)</div>
           </div>
+          
+          <div class="down-arrow">↓</div>
+          <div class="flow-box anim-tu-eval">评估 TU 级终极抹零<br><span style="font-size: 0.8em; font-weight: normal;">(Root CBF)</span></div>
         </div>
       </div>
 
