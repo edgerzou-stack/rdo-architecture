@@ -488,6 +488,16 @@ hljs.highlightAll();
                 <ul style="margin: 0; padding-left: 20px; line-height: 2;">
                   <li><strong>BaseOffset</strong>:
                     $$ \text{BaseOffset} = \begin{cases} 9 & \text{if } \text{Size} = 8\times8 \text{ and } \text{DiagScan} \\ 15 & \text{if } \text{Size} = 8\times8 \text{ and } \text{NonDiagScan} \\ 21 & \text{if } \text{Luma} \text{ and } \text{Size} > 8\times8 \\ 12 & \text{if } \text{Chroma} \text{ and } \text{Size} > 8\times8 \end{cases} \quad \color{#64748b}{\text{(由块尺寸和扫描模式决定的基准地址)}} $$
+                    <div style="background: #fdf2f8; border-left: 4px solid #f43f5e; padding: 10px 15px; margin-top: 10px; margin-bottom: 5px; border-radius: 4px;">
+                      <strong style="color: #be123c; font-size: 0.95em;">💡 深度解析：是谁决定了 DiagScan 与 NonDiagScan？</strong><br>
+                      <span style="color: #881337; font-size: 0.9em; line-height: 1.6; display: block; margin-top: 5px;">
+                        这是由预测引擎隐式决定的 <strong>MDCS (模式依赖系数扫描)</strong> 机制。解码器无需读取额外码流，直接根据当前的 <code>Intra PredMode (帧内预测方向)</code> 盲推：<br>
+                        &bull; 若 PredMode 为 22~30 (接近垂直)，残差能量挤压在水平轴，强制切为 <strong>HorScan (水平扫描)</strong>。<br>
+                        &bull; 若 PredMode 为 6~14 (接近水平)，残差能量挤压在垂直轴，强制切为 <strong>VerScan (垂直扫描)</strong>。<br>
+                        &bull; HorScan 和 VerScan 统称为 <strong>NonDiagScan</strong>。由于它们的非零概率分布变了，CABAC 标准强制为它们劈出独立的概率模型（如跑到基址 15 取模型）。<br>
+                        &bull; 其他模式 (如 Inter 帧间块、Planar/DC、大于 8x8 的块) 均无脑采用默认的 <strong>DiagScan (对角线扫描)</strong>。这种 CABAC 对预测模块的强后向依赖，是硬件流水线时序设计的一大痛点！
+                      </span>
+                    </div>
                   </li>
                   <li style="margin-top: 15px;"><strong>LumaCGOffset</strong>:
                     $$ \text{LumaCGOffset} = \begin{cases} 3 & \text{if } \text{Luma} \text{ and } (\text{posX} \ge 4 \text{ or } \text{posY} \ge 4) \\ 0 & \text{otherwise} \end{cases} \quad \color{#64748b}{\text{(若脱离左上角 DC 区域，增加额外偏移)}} $$
@@ -528,6 +538,20 @@ hljs.highlightAll();
                   <span style="font-size: 1.2em; font-weight: bold;">
                     $$ \mathbf{m\_ucState} = (\mathbf{pStateIdx} \ll 1) \ | \ \mathbf{valMPS} \quad \color{#991b1b}{\text{(拼接为 8-bit 最终状态字写入 SRAM)}} $$
                   </span>
+                </div>
+                
+                <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border: 1px solid #a7f3d0; margin-top: 20px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05); text-align: left;">
+                  <strong style="color: #065f46; font-size: 1.05em;">📌 实战推演：图解 CABAC 初始状态推导</strong><br>
+                  <p style="margin-top: 8px; color: #064e3b; line-height: 1.6;">假设标准规范中规定某个上下文的初始值 <strong><code>initValue = 184</code></strong>，且当前 Slice 的量化参数 <strong><code>QP = 37</code></strong>。</p>
+                  <div style="font-family: monospace; font-size: 0.95em; color: #064e3b; margin-top: 10px; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 4px;">
+                    1) <strong>slope</strong> = &lfloor;184 / 16&rfloor; &times; 5 - 45 = 11 &times; 5 - 45 = <strong>10</strong><br>
+                    2) <strong>offset</strong> = (184 mod 16) &times; 8 - 16 = 8 &times; 8 - 16 = <strong>48</strong><br>
+                    3) <strong>initState</strong> = Clip3(1, 126, &lfloor;(10 &times; 37) / 16&rfloor; + 48) = Clip3(1, 126, 23 + 48) = <strong>71</strong><br>
+                    4) 因为 71 &ge; 64，所以最高概率符号 <strong>valMPS = 1</strong>。<br>
+                    5) 概率状态索引 <strong>pStateIdx</strong> = 71 - 64 = <strong>7</strong>。<br>
+                    <strong style="display: block; margin-top: 8px; font-size: 1.1em; color: #047857; background: #d1fae5; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #10b981;">最终写入 SRAM 的字：m_ucState = (7 &lt;&lt; 1) | 1 = 15 (即二进制 00001111)</strong>
+                  </div>
+                  <p style="margin-top: 8px; margin-bottom: 0; color: #064e3b; font-size: 0.9em;">这短短的 8 个 bit，完美浓缩了 <code>valMPS</code>（最低位为 1）和 <code>pStateIdx</code>（高 7 位为 7），硬件在随后查 Entropy_LUT 时直接将这 8-bit 当作地址线送入即可读出代价！</p>
                 </div>
               </div>
               </div>
