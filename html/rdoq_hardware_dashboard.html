@@ -434,13 +434,81 @@ hljs.highlightAll();
             在 CABAC 中，每个上下文模型 (Context Model) 都在不断追踪特定语法的概率状态，表现为一个 0~63 的整数状态索引 <code>pStateIdx</code>（代表 LPS 出现的概率），再加上 1 位的 <code>valMPS</code> 标志。两者组合构成了 128 个可能的上下文状态。<br>
             
             <div style="background: rgba(255,255,255,0.6); padding: 12px; margin: 15px 0; border-radius: 6px; border-left: 3px solid #0284c7;">
-              <strong style="color: #0369a1;">前置寻址：如何找到对应的 pStateIdx？(Context Derivation)</strong><br>
-              在查 <code>Entropy_LUT</code> 之前，C-Model 必须先定位当前标志位专属的概率模型，这是一个典型的数组基址+偏移的寻址过程：
-              <ol style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.6; color: #1e293b;">
-                <li><strong>基地址 (Base Offset)</strong>：不同类型的语法元素（如 <code>sig_coeff_flag</code>, <code>greater1_flag</code>）在全局的一维 <code>Context_Array</code> 中分配了不同的固定起址。</li>
-                <li><strong>动态增量 (ctxInc)</strong>：系统会根据当前处理系数在空间上的特性（如：坐标距离 DC 的远近、周围局部模板内邻居系数的“非零”个数）动态推导出一个偏移量 <code>ctxInc</code>。</li>
-                <li><strong>模型提取 (Fetch)</strong>：通过 <code>Model = Context_Array[ Base_Offset + ctxInc ]</code> 锁定唯一的上下文模型，并从中提取出该模型当前记忆的 <code>pStateIdx</code> 和 <code>valMPS</code>，最后拿着它们去查熵值表。</li>
-              </ol>
+              <strong style="color: #0369a1;">前置寻址与模型提取：上下文依赖的精确推导 (Context Derivation)</strong><br>
+              在查 <code>Entropy_LUT</code> 之前，C-Model 必须先从一维的 <code>Context_Array</code> 中定位当前标志位专属的概率模型，从中提取出 <code>pStateIdx</code> 和 <code>valMPS</code>。为了满足硬件架构师对时序和状态机的精准控制需求，以下展示 CABAC 中最复杂的 <strong><code>ctxInc</code> 动态增量</strong>计算与 <strong><code>Context_Array</code> 初始化</strong>的数学级流向：
+              
+              <div class="mermaid-wrapper" style="margin-top: 15px;">
+                <div class="mermaid">
+                  graph TD
+                      subgraph Slice Level: Context_Array Init
+                          A[initValue] --> C(slope = initValue>>4 * 5 - 45)
+                          B[QP] --> D(initState = slope*QP + offset)
+                          A --> C2(offset)
+                          C --> D
+                          C2 --> D
+                          D --> E{initState >= 64?}
+                          E -- Yes --> F[valMPS=1, pStateIdx=initState-64]
+                          E -- No --> G[valMPS=0, pStateIdx=63-initState]
+                          F --> H[m_ucState = pStateIdx &lt;&lt; 1 | valMPS]
+                          G --> H
+                      end
+
+                      subgraph Point Level: ctxInc Derivation
+                          I[Block Size/Type] --> J[BaseOffset & LumaOffset]
+                          K[posX, posY] --> L[Local SubPos]
+                          M[patternSigCtx] --> N(cnt)
+                          L --> N
+                          J --> O(ctxInc = BaseOffset + LumaOffset + cnt)
+                          N --> O
+                      end
+
+                      H -.-> |m_ucState 8-bit| P((Context_Array))
+                      O -.-> |Fetch Array Index| P
+                      P --> Q[Entropy LUT Index]
+                </div>
+              </div>
+              
+              <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">1. 动态增量 ctxInc 计算公式 (以 sig_coeff_flag 为例)</p>
+              <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.9em; line-height: 1.6; color: #334155;">
+                <code style="display: block; background: #e2e8f0; padding: 8px; margin-bottom: 8px; border-radius: 4px; font-weight: bold; color: #0f172a;">ctxInc = BaseOffset + LumaCGOffset + cnt;</code>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li><strong>BaseOffset</strong>: <code>(log2BlockSize == 3) ? (scanIdx == SCAN_DIAG ? 9 : 15) : (textureType == TEXT_LUMA ? 21 : 12)</code></li>
+                  <li style="margin-top: 8px;"><strong>LumaCGOffset</strong>: <code>((textureType == TEXT_LUMA && ((posX>>2) + (posY>>2)) > 0) ? 3 : 0)</code></li>
+                  <li style="margin-top: 8px;"><strong>cnt (空间模板坍缩)</strong>: 
+<pre style="background: #e2e8f0; padding: 10px; border-radius: 4px; margin-top: 5px; overflow-x: auto; border-left: 4px solid #94a3b8; margin-bottom: 0;">
+Int posXinSubset = posX & 3; Int posYinSubset = posY & 3;
+if(patternSigCtx == 0) cnt = (posXinSubset + posYinSubset <= 2) ? ((posXinSubset + posYinSubset == 0) ? 2 : 1) : 0;
+else if(patternSigCtx == 1) cnt = (posYinSubset <= 1) ? ((posYinSubset == 0) ? 2 : 1) : 0;
+else if(patternSigCtx == 2) cnt = (posXinSubset <= 1) ? ((posXinSubset == 0) ? 2 : 1) : 0;
+else cnt = 2;
+</pre>
+                  </li>
+                </ul>
+              </div>
+
+              <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border: 1px solid #a7f3d0; margin-top: 15px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
+                <strong style="color: #065f46; font-size: 1.05em;">📌 实战推演：图解 ctxInc 坐标计算</strong><br>
+                <p style="margin-top: 8px; color: #064e3b; line-height: 1.6;">假设在一个 <code>8x8 (log2BlockSize=3)</code> 的 Luma TU 中，我们逆向扫描到了坐标 <strong><code>(posX=5, posY=6)</code></strong>，且它所在周边模板中尚未编码任何非零系数 (即 <code>patternSigCtx=0</code>)。</p>
+                <div style="font-family: monospace; font-size: 0.95em; color: #064e3b; margin-top: 10px; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 4px;">
+                  1) BaseOffset = <strong>21</strong> (因为 Size&ge;8x8, Luma 通道)<br>
+                  2) LumaCGOffset = <strong>3</strong> (因为 5>>2=1, 6>>2=1，和为2>0，跳出了 DC 所在的左上角 CG)<br>
+                  3) posXinSubset = 5 & 3 = <strong>1</strong>; posYinSubset = 6 & 3 = <strong>2</strong>。<br>
+                  4) 因为 patternSigCtx=0，且 1+2=3 > 2，走 false 分支，所以 <strong>cnt = 0</strong>。<br>
+                  <strong style="display: block; margin-top: 8px; font-size: 1.1em; color: #047857; background: #d1fae5; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #10b981;">最终推导出的 ctxInc = 21 + 3 + 0 = 24！</strong>
+                </div>
+                <p style="margin-top: 8px; margin-bottom: 0; color: #064e3b; font-size: 0.9em;">硬件拿到这个 <code>24</code> 的偏移量后，加上该语法元素的全局基址，就能从 SRAM 的 Context_Array 中瞬间读出属于这个坐标的 8-bit 上下文概率状态 (m_ucState) 了。</p>
+              </div>
+
+              <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2. Context_Array 内部节点 (m_ucState) 初始化公式</p>
+              <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.9em; line-height: 1.6; color: #334155;">
+                <p style="margin-top: 0; margin-bottom: 8px; font-family: system-ui, -apple-system, sans-serif;">在每个 Slice 编码的伊始，必须利用规范表中的 <code>initValue</code> 与当前 <code>QP</code> 初始化上述一维阵列中的每一个 8-bit 节点：</p>
+                <code>slope = (initValue >> 4) * 5 - 45;</code><br>
+                <code>offset = ((initValue & 15) &lt;&lt; 3) - 16;</code><br>
+                <code>initState = Clip3(1, 126, ((slope * QP) >> 4) + offset);</code><br><br>
+                <code>valMPS = (initState >= 64) ? 1 : 0;</code><br>
+                <code>pStateIdx = (initState >= 64) ? (initState - 64) : (63 - initState);</code><br>
+                <strong style="color: #b91c1c; display: block; margin-top: 8px; font-size: 1.1em;">m_ucState = (pStateIdx &lt;&lt; 1) | valMPS;</strong>
+              </div>
             </div>
 
             为了在 RDOQ 中极速估算编码该语法的代价，必须避免极其耗时的对数（-log<sub>2</sub>(p)）和浮点运算。因此，C-Model 在初始化时，会预先通过香农熵公式计算好一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
@@ -523,65 +591,7 @@ hljs.highlightAll();
       </div>
       <!-- 互动示例组件结束 -->
 
-      <div class="algorithm-steps" id="math-appendix-section">
-        <h3>1.4 硬核附录：CABAC 上下文依赖的精确数学推导</h3>
-        <p style="color: #475569; margin-bottom: 15px;">为了满足硬件架构师对时序和状态机的精准控制需求，以下严格摘录自 HM C-Model，对 CABAC 中最复杂的 <strong><code>ctxInc</code> 动态增量</strong>与 <strong><code>Context State</code> 初始化</strong>给出数学级别的解析。</p>
 
-        <h4 style="color: #3b82f6; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px;">A. 动态增量 ctxInc 计算 (sig_coeff_flag)</h4>
-        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.95em; color: #334155;">
-          <p style="margin-top: 0;"><strong>Step 1. DC 系数极简特判 (DC Bypass)</strong><br>
-          如果当前处理的是左上角的直流系数，强制指向 Context 0：<br>
-          <code>if (posX + posY == 0) ctxInc = 0;</code></p>
-          
-          <p><strong>Step 2. 4x4 独立 TU 查表特判 (4x4 LUT)</strong><br>
-          对于 4x4 的微小 TU (<code>log2BlockSize == 2</code>)，直接采用硬编码二维阵列查表：<br>
-          <code>ctxInc = ctxIndMap[posY][posX];</code><br>
-          <span style="color: #94a3b8;">/* ctxIndMap = {0,1,4,5, 2,3,4,5, 6,6,8,8, 7,7,8,8} */</span></p>
-
-          <p><strong>Step 3. &ge; 8x8 大块的动态推导方程 (Strict General Formula)</strong><br>
-          对于 8x8 及以上尺寸的 TU，动态增量由三个分量严格累加而成：<br>
-          <code style="display: block; background: #e2e8f0; padding: 10px; margin-top: 8px; border-radius: 4px; font-weight: bold;">ctxInc = BaseOffset + LumaCGOffset + cnt;</code>
-          </p>
-          
-          <ul style="margin-top: 10px; line-height: 1.7;">
-            <li><strong>BaseOffset</strong>: 由尺寸、扫描模式、通道类型共同决定的基准偏移量：<br>
-            <code style="background: #e2e8f0; padding: 2px 6px; font-size: 0.9em; border-radius: 4px;">Int offset = (log2BlockSize == 3) ? (scanIdx == SCAN_DIAG ? 9 : 15) : (textureType == TEXT_LUMA ? 21 : 12);</code></li>
-            
-            <li style="margin-top: 10px;"><strong>LumaCGOffset</strong>: 若为 Luma 亮度通道，且当前跳出 DC 所在的 <code>CG(0,0)</code> 系数组时，增加 3 的偏移补偿：<br>
-            <code style="background: #e2e8f0; padding: 2px 6px; font-size: 0.9em; border-radius: 4px;">((textureType == TEXT_LUMA && ((posX>>2) + (posY>>2)) > 0) ? 3 : 0)</code></li>
-            
-            <li style="margin-top: 10px;"><strong>cnt (微观位置与相邻状态补偿)</strong>: 取决于当前系数在 4x4 CG 内的局部坐标 <code>(posXinSubset, posYinSubset)</code>，以及周边已编码相邻系数的状态掩码 <code>patternSigCtx</code>。C-Model 的精确坍缩逻辑如下：
-<pre style="background: #e2e8f0; padding: 15px; border-radius: 6px; margin-top: 10px; overflow-x: auto; font-family: monospace; font-size: 0.9em; line-height: 1.4; border-left: 4px solid #94a3b8;">
-Int posXinSubset = posX - ((posX>>2)<<2); // 即 posX & 3
-Int posYinSubset = posY - ((posY>>2)<<2); // 即 posY & 3
-
-if(patternSigCtx == 0) {
-  cnt = (posXinSubset + posYinSubset <= 2) ? ((posXinSubset + posYinSubset == 0) ? 2 : 1) : 0;
-} else if(patternSigCtx == 1) {
-  cnt = (posYinSubset <= 1) ? ((posYinSubset == 0) ? 2 : 1) : 0;
-} else if(patternSigCtx == 2) {
-  cnt = (posXinSubset <= 1) ? ((posXinSubset == 0) ? 2 : 1) : 0;
-} else {
-  cnt = 2;
-}
-</pre>
-            </li>
-          </ul>
-        </div>
-
-        <h4 style="color: #3b82f6; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; margin-top: 20px;">B. Context Array (m_ucState) 节点初始化公式</h4>
-        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.95em; color: #334155;">
-          <p style="margin-top: 0;">在编码 Slice 之前，必须用规范查表得出的 8-bit <code>initValue</code> 和当前 <code>QP</code> 对上下文阵列节点进行初始化。C-Model 的推导公式如下：</p>
-          <p><code>slope = (initValue >> 4) * 5 - 45;</code><br>
-          <code>offset = ((initValue & 15) << 3) - 16;</code><br>
-          <code>initState = Clip3(1, 126, ((slope * QP) >> 4) + offset);</code></p>
-          
-          <p>最后，将内部状态概率索引 (<code>pStateIdx</code>) 和最可能符号 (<code>valMPS</code>) 融合为一个极度紧凑的 8-bit 状态变量存储到上下文寄存器阵列中：</p>
-          <p><code>valMPS = (initState >= 64) ? 1 : 0;</code><br>
-          <code>pStateIdx = (initState >= 64) ? (initState - 64) : (63 - initState);</code><br>
-          <strong style="color: #b91c1c;">m_ucState = (pStateIdx << 1) + valMPS;</strong></p>
-        </div>
-      </div>
 
       <h2>2. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
       <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
