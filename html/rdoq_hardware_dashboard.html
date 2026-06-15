@@ -268,21 +268,32 @@ hljs.highlightAll();
         <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; font-family: monospace; color: #0f172a; margin-bottom: 15px;">
           Total Bits = bits(sig_coeff_flag) + bits(greater1) + bits(greater2) + bits(sign) + bits(level_rem)
         </div>
+
+        <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+          <h4 style="margin-top: 0; color: #0369a1; margin-bottom: 10px;">核心解密：上下文分数比特 (Fractional Bits) 到底是怎么算出来的？</h4>
+          <p style="margin: 0; color: #334155; line-height: 1.6;">
+            在 CABAC 中，每个上下文模型 (Context Model) 都在不断追踪特定语法的概率状态，表现为一个 0~127 的整数状态索引 <code>pStateIdx</code>（代表 LPS 出现的概率）。<br>
+            在 RDOQ 阶段，为了避免极度耗时的对数（$log_2$）和浮点运算，C-Model 预先计算好了一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
+            计算某个 Flag (值为 0 或 1) 的代价时，公式极其简单：<br>
+            <code>bit_cost = Entropy_LUT[ pStateIdx ^ flag_val ]</code><br><br>
+            <strong>注意：</strong>由于底层是纯整数运算，这里的比特代价被定点放大了。在 VVC/HEVC 的 C-Model 中，通常规定 <strong>1 个真实比特 = 32768 个分数比特</strong>。所以，所谓的 "1.2 bits"，在代码底层其实是直接查表得到的一个巨大的整数 <code>39321</code>！
+          </p>
+        </div>
         
         <div class="success" style="margin-top: 15px; margin-bottom: 20px;">
           <strong>举个例子 (Example)：评估 Level = 3 的码率消耗</strong><br>
           假设当前评估的量化候选值是 <code>Level = 3</code>，那么在查表累加的过程中，它会经历如下关卡：
           <ul style="margin-top: 8px; margin-bottom: 0;">
-            <li><code>sig_coeff_flag = 1</code>：消耗查表得到的上下文分数比特 (例如 1.2 bits)。</li>
-            <li><code>greater1_flag = 1</code>：因为 3 > 1，消耗对应上下文分数比特 (例如 0.8 bits)。</li>
-            <li><code>greater2_flag = 1</code>：因为 3 > 2，消耗对应上下文分数比特 (例如 0.9 bits)。</li>
-            <li><code>sign_flag = 1 (或0)</code>：符号位走 Bypass 模式，固定消耗 1 真实比特（即内部定点放大的 32768 分数比特）。</li>
+            <li><code>sig_coeff_flag = 1</code>：根据该系数的 Context，查表得到分数比特 (例如 39321，约 1.2 bits)。</li>
+            <li><code>greater1_flag = 1</code>：因为 3 > 1，查表得到对应分数比特 (例如 26214，约 0.8 bits)。</li>
+            <li><code>greater2_flag = 1</code>：因为 3 > 2，查表得到对应分数比特 (例如 29491，约 0.9 bits)。</li>
+            <li><code>sign_flag = 1 (或0)</code>：符号位走 Bypass 模式（等概率0.5），固定消耗 1 真实比特（即硬编码的 32768 分数比特）。</li>
             <li><code>level_rem = 0</code>：剩余绝对值 <code>3 - 3 = 0</code>，使用 Golomb-Rice 编码，消耗若干比特。</li>
           </ul>
           所有这些细碎的 Fractional Bits 累加起来，就构成了评估 <code>Level = 3</code> 时庞大的 <code>cabac_bits</code>！
         </div>
         
-        <p style="color: #475569; margin-bottom: 15px;">最终，这些比特将通过拉格朗日乘子 $\lambda$ 映射为整型 <code>bincost</code>，带入到微观 PK 公式中：</p>
+        <p style="color: #475569; margin-bottom: 15px;">最终，这些比特将通过拉格朗日乘子 <b>&lambda;</b> 映射为整型 <code>bincost</code>，带入到微观代价值比较公式中：</p>
         <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
           <img src="./rdoq_formula.png" alt="RDOQ Cost Formula" style="max-width: 100%; height: auto;">
         </div>
