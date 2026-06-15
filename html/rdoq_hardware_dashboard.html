@@ -273,6 +273,17 @@ hljs.highlightAll();
           <h4 style="margin-top: 0; color: #0369a1; margin-bottom: 10px;">核心解密：上下文分数比特 (Fractional Bits) 与 128 级熵值查表 (Entropy LUT) 的底层逻辑</h4>
           <p style="margin: 0; color: #334155; line-height: 1.6;">
             在 CABAC 中，每个上下文模型 (Context Model) 都在不断追踪特定语法的概率状态，表现为一个 0~63 的整数状态索引 <code>pStateIdx</code>（代表 LPS 出现的概率），再加上 1 位的 <code>valMPS</code> 标志。两者组合构成了 128 个可能的上下文状态。<br>
+            
+            <div style="background: rgba(255,255,255,0.6); padding: 12px; margin: 15px 0; border-radius: 6px; border-left: 3px solid #0284c7;">
+              <strong style="color: #0369a1;">前置寻址：如何找到对应的 pStateIdx？(Context Derivation)</strong><br>
+              在查 <code>Entropy_LUT</code> 之前，C-Model 必须先定位当前标志位专属的概率模型，这是一个典型的数组基址+偏移的寻址过程：
+              <ol style="margin-top: 8px; margin-bottom: 0; padding-left: 20px; line-height: 1.6; color: #1e293b;">
+                <li><strong>基地址 (Base Offset)</strong>：不同类型的语法元素（如 <code>sig_coeff_flag</code>, <code>greater1_flag</code>）在全局的一维 <code>Context_Array</code> 中分配了不同的固定起址。</li>
+                <li><strong>动态增量 (ctxInc)</strong>：系统会根据当前处理系数在空间上的特性（如：坐标距离 DC 的远近、周围局部模板内邻居系数的“非零”个数）动态推导出一个偏移量 <code>ctxInc</code>。</li>
+                <li><strong>模型提取 (Fetch)</strong>：通过 <code>Model = Context_Array[ Base_Offset + ctxInc ]</code> 锁定唯一的上下文模型，并从中提取出该模型当前记忆的 <code>pStateIdx</code> 和 <code>valMPS</code>，最后拿着它们去查熵值表。</li>
+              </ol>
+            </div>
+
             为了在 RDOQ 中极速估算编码该语法的代价，必须避免极其耗时的对数（-log&sub2;(p)）和浮点运算。因此，C-Model 在初始化时，会预先通过香农熵公式计算好一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
             <strong>查表的生成算法 (C++ 伪代码解析)：</strong>
           </p>
