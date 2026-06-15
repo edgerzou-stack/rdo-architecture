@@ -409,6 +409,59 @@ hljs.highlightAll();
           <strong>嵌套执行总结：</strong><br>
           其实并不矛盾。<strong>“4x4”是管理的粒度（决定何时触发块级评估），而“单点”是执行的粒度（保证 CABAC 依赖的正确性）。</strong> 只有跑完完整的 <strong>系数级 &rarr; CG级 &rarr; TU级</strong> 三层循环后，RDOQ 流程才算真正“计算完毕”。
         </div>
+
+        <div class="mermaid-wrapper" style="margin: 25px 0; background: #fff; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+          <h4 style="margin-top: 0; text-align: center; color: #3b82f6; border-bottom: 1px dashed #bfdbfe; padding-bottom: 10px;">📊 宏观控制流：三层嵌套循环执行架构 (Nested Execution Flow)</h4>
+          <div class="mermaid" style="display: flex; justify-content: center;">
+            flowchart TD
+                Start([Start RDOQ for TU]) --> B[Init TU_Cost]
+                B --> C{Any unprocessed<br>4x4 CG?}
+                
+                %% CG Level
+                subgraph CG_Loop [CG Level Processing (Reverse Scan)]
+                    C -- Yes --> D[Enter 4x4 CG]
+                    D --> E[Init CG_Cost]
+                    
+                    %% Point Level
+                    subgraph Point_Loop [Point Level Processing (Reverse Diag)]
+                        E --> F{Any unprocessed<br>Coefficient?}
+                        F -- Yes --> G[Generate Candidates:<br>L_SQ, L_SQ-1, 0]
+                        G --> H[Calculate D + R Cost<br>Wait for Prev CABAC]
+                        H --> I[Greedy Select Best Level]
+                        I --> J[Accumulate to CG_Cost]
+                        J --> F
+                    end
+                    
+                    F -- No --> K[Evaluate CG-Level Cost]
+                    K --> L{Cost(CG All 0s)<br>&lt; Cost(Current)?}
+                    L -- Yes --> M[Set coded_sub_block_flag = 0<br>Zero out CG]
+                    L -- No --> N[Keep CG Levels]
+                    M --> O[Accumulate to TU_Cost]
+                    N --> O
+                end
+                
+                O --> C
+                
+                %% TU Level
+                C -- No --> P[Evaluate TU-Level Cost]
+                P --> Q{Cost(TU All 0s)<br>&lt; Cost(Current)?}
+                Q -- Yes --> R[Set Root CBF = 0<br>Zero out TU]
+                Q -- No --> S[Keep TU Levels]
+                
+                R --> End([End RDOQ])
+                S --> End
+                
+                style Start fill:#f1f5f9,stroke:#94a3b8,color:#334155
+                style End fill:#f1f5f9,stroke:#94a3b8,color:#334155
+                style C fill:#eff6ff,stroke:#3b82f6,color:#1e40af
+                style F fill:#eff6ff,stroke:#3b82f6,color:#1e40af
+                style L fill:#fef3c7,stroke:#d97706,color:#92400e
+                style Q fill:#fef3c7,stroke:#d97706,color:#92400e
+                style H fill:#fee2e2,stroke:#ef4444,color:#b91c1c
+                style M fill:#d1fae5,stroke:#10b981,color:#065f46
+                style R fill:#d1fae5,stroke:#10b981,color:#065f46
+          </div>
+        </div>
       </div>
 
       <div class="algorithm-steps">
