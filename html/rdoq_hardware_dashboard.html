@@ -538,7 +538,27 @@ hljs.highlightAll();
 
               <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2. Context_Array 内部节点 (m_ucState) 初始化公式</p>
               <div style="background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; color: #334155; overflow-x: auto;">
-                <p style="margin-top: 0; margin-bottom: 15px;">在每个 Slice 编码的伊始，必须利用规范表中的 <code>initValue</code> 与当前 <code>QP</code> 初始化上述一维阵列中的每一个 8-bit 节点：</p>
+                <p style="margin-top: 0; margin-bottom: 15px;">在每个 Slice 编码的伊始，必须利用规范表（ITU-T 官方标准文档中硬编码的最佳初始概率魔数）中的 <code>initValue</code> 与当前 <code>QP</code> 初始化上述一维阵列中的每一个 8-bit 节点：</p>
+                <div style="background: #fdf2f8; border-left: 4px solid #f43f5e; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px;">
+                  <strong style="color: #be123c; font-size: 0.95em;">💡 深度解析：什么是“规范表中的 initValue”？</strong><br>
+                  <span style="color: #881337; font-size: 0.9em; line-height: 1.6; display: block; margin-top: 5px;">
+                    在官方标准中，专家通过海量视频序列的统计分析，为每一种语法元素硬编码了最优的初始概率值 (8-bit 整数)。<br>
+                    在 HM (HEVC C-Model) 源码中，这些规范表被完整地定义在 <code>TLibCommon/ContextTables.h</code> 文件里。例如最核心的非零系数标志位 <code>sig_coeff_flag</code> 的规范表如下：
+                  </span>
+                  <pre style="background: #fff0f2; color: #831843; padding: 8px; border-radius: 4px; border: 1px solid #fbcfe8; font-size: 0.85em; margin-top: 8px; overflow-x: auto; font-family: monospace;">
+static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] = 
+{
+  // 第一维：对应 I Slice (帧内编码) 的初始值
+  { 170,  154,  139,  153,  139,  123,  123,   63,  124, ... }, 
+  // 第二维：对应 P Slice (前向预测) 的初始值
+  { 155,  154,  139,  153,  139,  123,  123,   63,  153, ... }, 
+  // 第三维：对应 B Slice (双向预测) 的初始值
+  { 111,  111,  125,  110,  110,   94,  124,  108,  124, ... }, 
+};</pre>
+                  <span style="color: #881337; font-size: 0.9em; line-height: 1.6; display: block; margin-top: 5px;">
+                    硬件在每个 Slice 刚开始时，根据当前是 I/P/B 帧，拿着该语法元素对应的 <code>ctxInc</code> 偏移量作为数组下标，从这种表格里“抠”出一个查表数字。然后代入下面的数学公式，结合当前的 QP，计算出真正的动态初始概率。
+                  </span>
+                </div>
                 <div style="font-size: 1.05em; line-height: 2.2;">
                   $$ \text{slope} = \left(\left\lfloor \frac{\text{initValue}}{16} \right\rfloor \times 5\right) - 45 \quad \color{#64748b}{\text{(根据预设提取斜率因子)}} $$
                   $$ \text{offset} = ((\text{initValue} \pmod{16}) \times 8) - 16 \quad \color{#64748b}{\text{(根据预设提取截距因子)}} $$
