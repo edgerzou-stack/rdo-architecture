@@ -31,7 +31,13 @@ You can directly access the interactive online documentation via the following l
 
 ### 🧮 4. [RDOQ Hardware Optimization Pipeline](https://edgerzou-stack.github.io/rdo-architecture/html/rdoq_hardware_dashboard.html)
 - **Target Audience:** RTL Designers, RDOQ Algorithm Engineers.
-- **Content:** The detailed hardware pipeline decoupling strategy for RDOQ, featuring pure 16-unit parallel calculation and completely unrolled dependency graphs.
+- **Content:** RDOQ algorithm principles and hardware optimization strategies in a two-chapter interactive dashboard.
+- **Chapter 1 — Algorithm (three-part layout):**
+  - **1.1** Overall process (nested scan, data hazard, candidate levels, **decision-tree example**, fixed-point Cost formula)
+  - **1.2** **Dcost** — transform-domain SSE, dequant error, Parseval equivalence
+  - **1.3** **Bincost** — CABAC 4-step chain, ctxInc, Context_Array, Entropy_LUT build & lookup (worked example)
+- **Chapter 2 — Hardware Optimization:** Pruning, Fast/Slow loop, static context, Two-Stage, Luma-Chroma bypass, 4×4 parallel decoupling
+- **Assets:** `rdoq_decision_tree.png`, `rdoq_dcost.png`, `rdoq_entropy_lut.png`, `rdoq_formula.png`, and supporting diagrams under `html/`
 
 
 
