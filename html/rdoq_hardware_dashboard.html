@@ -405,18 +405,7 @@ hljs.highlightAll();
                 <li><strong>并行悖论：</strong>如果硬件设计想把 <code>(x,y)</code> 和 <code>(x+1,y)</code> 放入同一个时钟周期内流水线并行计算，那么在算 <code>(x,y)</code> 的 CABAC 码率代价值时，<code>(x+1,y)</code> 的最终 RDOQ 判决结果<strong>还没出炉</strong>！硬件根本不知道 <code>patternSigCtx</code> 该不该包含这个邻居，从而导致查表的 <code>Fractional Bits Cost</code> 彻底跑飞。因此，必须老老实实等前一个系数的 RDOQ 彻底走完全流程，其最终状态固化后，才能推导下一个系数的 Context。这就是所谓<strong>“强依赖”</strong>的硬件灾难级来源！</li>
               </ul>
             </div>
-            <div class="geek-insight" style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 12px; margin-top: 10px; margin-bottom: 20px; border-radius: 6px; color: #166534; font-size: 0.95em; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.05);">
-              <strong style="display: flex; align-items: center; gap: 8px; font-size: 1.05em; color: #14532d; border-bottom: 1px dashed #bbf7d0; padding-bottom: 5px; margin-bottom: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                极客洞察：4x4 小块的“法外狂徒”特权与并行解耦
-              </strong>
-              <p style="margin: 0; line-height: 1.6;">
-                既然存在 Data Hazard，为什么之前我们在讨论 4x4 TU 时，说它的上下文索引 <code>ctxInc</code> 是通过一个<strong>纯固定数组 (Context_Array)</strong> 查出来的呢？<br>
-                答案是：<strong>这就是 HEVC/VVC 算法标准故意留给硬件优化的后门！</strong><br>
-                对于 4x4 TU（以及大尺寸 TU 中位于左上角的 DC CG），标准规定它们的 <code>ctxInc</code> <strong>只跟自身坐标 (x,y) 有关，彻底无视周边邻居状态</strong>，也就是说，在这些特定区域，<code>patternSigCtx</code> 这个强耦合变量是被强行抛弃的！<br>
-                <strong>硬件收益：</strong>正是因为这种空间依赖上的解耦，在处理 4x4 TU 时，这堵“数据冒险墙”就不存在了。如果我们在硬件 RDOQ 的开头预先冻结/缓存了 CABAC 的概率状态 (pStateIdx)，那么对于 4x4 TU，硬件<strong>完全可以做到多点、甚至 16 个点全并行的 RDOQ 极速计算！</strong>但一旦碰到 16x16 等大块里的普通 AC CG，就只能乖乖退化回被 <code>patternSigCtx</code> 支配的单点串行炼狱。
-              </p>
-            </div>
+
           </li>
           <li><strong>CG 级：4x4 块级阻断判决 (Sub-Block Flag)</strong><br>当一个 4x4 CG 内部的 16 个系数<strong>全部单点处理完毕</strong>后，系统会整体暂停，进行一次块级宏观算账：“如果我把刚才这 16 个系数连同这个 4x4 块的标志位直接全部抹零，总体代价会不会更低？” 如果是，则触发 <code>coded_sub_block_flag = 0</code>。</li>
           <li><strong>TU 级：终极判决 (Root CBF)</strong><br>当单点扫描最终抵达并处理完左上角的 DC 系数 <code>(0,0)</code>，整个大 TU 扫描宣告结束。引擎最后评估一次将整个 TU 清零的代价，如果更低，则触发 <code>cbf = 0</code>。</li>
@@ -465,6 +454,56 @@ hljs.highlightAll();
         <p style="color: #475569; margin-bottom: 15px;">如上图所示，C-Model 的 <code>rdoq_coeff_est()</code> 函数会模拟真实的 CABAC 状态机更新，但不做实际的区间划分，而是查表获取理论上的<strong>“分数比特 (Fractional Bits)”</strong>。总比特消耗的计算公式为：</p>
         <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; font-family: monospace; color: #0f172a; margin-bottom: 15px;">
           Total Bits = bits(sig_coeff_flag) + bits(greater1) + bits(greater2) + bits(sign) + bits(level_rem)
+        </div>
+
+        <div style="background: #fefce8; border: 2px solid #eab308; padding: 20px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(234, 179, 8, 0.1);">
+          <h4 style="margin-top: 0; color: #854d0e; margin-bottom: 15px; font-size: 1.15em; border-bottom: 2px dashed #fbbf24; padding-bottom: 8px;">
+            <span style="font-size: 1.3em;">⚙️</span> 关键前提：CABAC 码率代价的三步计算链路
+          </h4>
+          <p style="color: #713f12; line-height: 1.6; margin-bottom: 15px;">
+            在计算上面公式中每一项的 <strong>Fractional Bits</strong> 时，硬件/C-Model 并非直接给出一个数字，而是必须严格按照以下<strong>三步串行链路</strong>逐步推导。这三步环环相扣，缺一不可：
+          </p>
+          <div style="display: flex; align-items: stretch; gap: 0; justify-content: center; flex-wrap: wrap; margin: 10px 0;">
+            <div style="background: #eff6ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; max-width: 250px; text-align: center;">
+              <div style="font-size: 1.6em; margin-bottom: 5px;">①</div>
+              <strong style="color: #1e40af; font-size: 1.05em;">确定语法元素</strong><br>
+              <span style="color: #1e3a8a; font-size: 0.85em; line-height: 1.4; display: inline-block; margin-top: 5px;">
+                当前这个系数需要编码哪些标志？<br>
+                <code style="background: #dbeafe; padding: 1px 4px; border-radius: 2px;">sig_coeff_flag</code>?
+                <code style="background: #dbeafe; padding: 1px 4px; border-radius: 2px;">greater1_flag</code>?<br>
+                <code style="background: #dbeafe; padding: 1px 4px; border-radius: 2px;">sign_flag</code> (Bypass)?
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; padding: 0 6px; font-size: 1.5em; color: #f59e0b; font-weight: bold;">→</div>
+            <div style="background: #fdf2f8; border: 2px solid #ec4899; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; max-width: 250px; text-align: center;">
+              <div style="font-size: 1.6em; margin-bottom: 5px;">②</div>
+              <strong style="color: #be185d; font-size: 1.05em;">语法元素 → ctxInc 映射</strong><br>
+              <span style="color: #831843; font-size: 0.85em; line-height: 1.4; display: inline-block; margin-top: 5px;">
+                每种语法元素有<strong>独立的映射规则</strong>：<br>
+                sig_flag 需 BaseOffset + cnt<br>
+                greater1_flag 用历史计数器<br>
+                sign_flag 走 Bypass 无需 ctx
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; padding: 0 6px; font-size: 1.5em; color: #f59e0b; font-weight: bold;">→</div>
+            <div style="background: #ecfdf5; border: 2px solid #10b981; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; max-width: 250px; text-align: center;">
+              <div style="font-size: 1.6em; margin-bottom: 5px;">③</div>
+              <strong style="color: #065f46; font-size: 1.05em;">查表获取 Cost</strong><br>
+              <span style="color: #064e3b; font-size: 0.85em; line-height: 1.4; display: inline-block; margin-top: 5px;">
+                用 ctxInc 作为地址<br>
+                → 从 <strong>Context_Array</strong> 读 m_ucState<br>
+                → 用 m_ucState 查 <strong>Entropy_LUT</strong><br>
+                → 得到 Fractional Bits!
+              </span>
+            </div>
+          </div>
+          <div style="background: #fef9c3; border-left: 4px solid #ca8a04; padding: 10px 14px; border-radius: 4px; margin-top: 15px;">
+            <strong style="color: #854d0e; font-size: 0.95em;">💡 为什么这个链路如此关键？</strong><br>
+            <span style="color: #713f12; font-size: 0.9em; line-height: 1.6;">
+              <strong>硬件视角：</strong>这三步在流水线上必须严格串行执行——第②步的 ctxInc 计算依赖第①步确定的语法元素类型（不同语法元素走完全不同的寻址逻辑），第③步的 SRAM 读取又依赖第②步算出的地址。这条三级串行链路的<strong>总延迟</strong>就是单个系数 CABAC 码率估算的时序瓶颈。<br>
+              <strong>Bypass 捷径：</strong>并非所有语法元素都需要走完全部三步！像 <code>sign_flag</code> 在第①步就被识别为 Bypass 模式，直接输出固定代价 32768（1 bit），完全跳过第②③步，这是标准留给硬件的关键加速通道。
+            </span>
+          </div>
         </div>
 
         <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
@@ -585,7 +624,6 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
                   </div>
                   <p style="margin-top: 8px; margin-bottom: 0; color: #064e3b; font-size: 0.9em;">这短短的 8 个 bit，完美浓缩了 <code>valMPS</code>（最低位为 1）和 <code>pStateIdx</code>（高 7 位为 7），硬件在随后查 Entropy_LUT 时直接将这 8-bit 当作地址线送入即可读出代价！</p>
                 </div>
-              </div>
               </div>
               
               <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">3. 其他核心语法元素的上下文或旁路机制 (Bypass)</p>
@@ -845,6 +883,38 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
       </div>
       </div>
       <div class="diagram-caption">图 5：基于通道类型的亮色度非对称 RDOQ 旁路策略 (Luma vs Chroma)</div>
+      
+      <h2 style="margin-top: 50px;">7. 强耦合解绑与全并行架构设计 (Context Decoupling in 4x4 TU)</h2>
+      <p>既然前文提到 <code>patternSigCtx</code> 造成了极其严重的数据冒险 (Data Hazard) 并导致硬件只能逐点串行扫描，那么是不是整个 RDOQ 都无法并行了呢？并非如此。HEVC/VVC 标准在设计时，专门为硬件架构师留了一个关键的“后门”。</p>
+      
+      <div class="algorithm-steps" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
+        <h3 style="color: #166534; border-bottom: 1px dashed #bbf7d0;">4x4 小块与 DC 区域的“法外狂徒”特权</h3>
+        <p style="color: #14532d; line-height: 1.8;">
+          对于 <strong>4x4 尺寸的 TU</strong>（以及任何大尺寸 TU 中位于最左上角的 DC CG），标准做出了一个重要的妥协：<br>
+          它们的上下文索引 <code>ctxInc</code> <strong>只跟自身坐标 (posX, posY) 有关，彻底无视周边邻居状态！</strong>
+        </p>
+        <div style="background: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #bbf7d0; color: #166534; font-family: monospace; margin-bottom: 15px;">
+          if (Size == 4x4) {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;ctxInc = f(posX, posY); // 完全解耦<br>
+          } else {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;ctxInc = f(posX, posY, <strong style="color: #dc2626;">patternSigCtx</strong>); // 强数据依赖<br>
+          }
+        </div>
+        
+        <h3 style="color: #166534; border-bottom: 1px dashed #bbf7d0;">硬件并行化收益 (Hardware Parallelism)</h3>
+        <p style="color: #14532d; line-height: 1.8;">
+          正是因为这种空间依赖上的解耦，在处理 4x4 TU 时，那堵限制并行的“数据冒险墙”就不复存在了。<br>
+          结合前文提到的 <strong>冻结模型 (Frozen Context)</strong> 策略（即在 RDOQ 计算期间不真实更新 SRAM，只读取初始概率），硬件可以做到：
+        </p>
+        <ul style="color: #14532d; line-height: 1.8; margin-bottom: 0;">
+          <li>将一个 4x4 TU 内的 16 个系数在<strong>同一个时钟周期内</strong>并行展开。</li>
+          <li>16 个计算单元同时查表 <code>Entropy_LUT</code>，瞬间输出 16 个独立的代价值。</li>
+          <li>通过一个并行的比较树网络，一周期内直接完成这 16 个系数的最优 Level 判决！</li>
+        </ul>
+        <div class="critical-alert" style="margin-top: 15px; background: #e0e7ff; border-left-color: #4f46e5;">
+          <strong style="color: #3730a3;">架构启示：</strong>在设计高性能 VPU 时，对于最耗时的 16x16 / 32x32 宏块，只能采用折中的“Two-Stage”剪枝或单点超频；但对于海量的 4x4 小块，<strong>必须</strong>利用这个解耦特性设计专用的全并行处理路径 (Fast Track)，这是拉升整体芯片吞吐率 (Throughput) 的杀手锏。
+        </div>
+      </div>
 
   </div>
 </div>
