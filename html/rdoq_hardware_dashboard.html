@@ -216,8 +216,14 @@ hljs.highlightAll();
       
       <h1>VVC RDOQ 硬件架构设计 Dashboard<br><span style="font-size:0.6em; color:#7f8c8d;">Hardware Architecture & Pipelining</span></h1>
       
-      <h2>1. RDOQ 算法全景解析 (Algorithm Panorama)</h2>
-      <p>在深入硬件优化前，必须厘清 RDOQ 在 C-Model 中的算法本质。RDOQ 并非盲目尝试，而是一场从宏观扫描到微观计算，再到层级截断的精密“外科手术”。</p>
+      <h2>第一章 RDOQ 算法原理 (Algorithm Principles)</h2>
+      <div style="background: linear-gradient(135deg, #eff6ff, #f0fdf4); padding: 20px; border-radius: 10px; border: 1px solid #bfdbfe; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(59,130,246,0.08);">
+        <p style="margin: 0; color: #1e3a8a; font-size: 1.05em; line-height: 1.8;">
+          <strong style="font-size: 1.15em;">总览：</strong>RDOQ (Rate-Distortion Optimized Quantization) 的本质是在标准量化 (SQ) 完成后，对每一个变换系数进行局部的 <strong>RD 代价比较</strong>：它只尝试将系数“减弱一档”或“强制清零”，然后计算 <code>Cost = Distortion + λ × Rate</code>，择优保留代价最低的量化值。<br>
+          整个算法由三个层级构成：<strong>① 系数级</strong>（逐点串行扫描、计算 CABAC 码率代价、选最优 Level）→ <strong>② CG 级</strong>（4×4 块整体抹零判决）→ <strong>③ TU 级</strong>（终极 CBF 清零判决）。本章将自顶向下地剖析这套算法从“扫描路径”到“代价计算”的完整数学逻辑。
+        </p>
+      </div>
+      <p>在深入硬件优化前，必须厘清 RDOQ 在 C-Model 中的算法本质。RDOQ 并非盲目尝试，而是一场从宏观扫描到微观计算，再到层级截断的精密计算过程。</p>
       
       <div class="algorithm-steps">
         <h3>1.1 战场全貌与宏观扫描：能量分布与嵌套执行流程</h3>
@@ -735,8 +741,63 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
 
 
 
-      <h2>2. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
-      <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
+      <h2>第二章 硬件级 RDOQ 优化策略 (Hardware Optimization)</h2>
+      <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 20px; border-radius: 10px; border: 1px solid #fbbf24; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(245,158,11,0.08);">
+        <p style="margin: 0 0 15px 0; color: #78350f; font-size: 1.05em; line-height: 1.8;">
+          <strong style="font-size: 1.15em;">总览：</strong>RDOQ 算法的核心瓶颈在于 CABAC 上下文的<strong>强串行依赖</strong>，导致硬件吞吐率极低。为了在 4K/8K 实时编码中落地，工业界发展出了一整套优化策略。以下是所有关键优化手段的全局视图：
+        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em; background: rgba(255,255,255,0.85); border-radius: 6px; overflow: hidden;">
+          <thead>
+            <tr style="background: #1e3a5f; color: white;">
+              <th style="padding: 10px 12px; text-align: left;">优化策略</th>
+              <th style="padding: 10px 12px; text-align: left;">核心思想</th>
+              <th style="padding: 10px 12px; text-align: left;">BD-Rate 代价</th>
+              <th style="padding: 10px 12px; text-align: left;">适用场景</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #b91c1c;">弃大保小 Pruning</td>
+              <td style="padding: 8px 12px;">关闭大块 RDOQ，只保留 4×4</td>
+              <td style="padding: 8px 12px;">~0.5%</td>
+              <td style="padding: 8px 12px;">所有 TU 尺寸</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #b91c1c;">Fast/Slow Loop</td>
+              <td style="padding: 8px 12px;">分离重建反馈与 RDOQ 优化路径</td>
+              <td style="padding: 8px 12px;">无 (精确一致)</td>
+              <td style="padding: 8px 12px;">帧内预测环路</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #b91c1c;">静态上下文冻结</td>
+              <td style="padding: 8px 12px;">冻结 Context，16 路并行计算</td>
+              <td style="padding: 8px 12px;">微小精度损失</td>
+              <td style="padding: 8px 12px;">4×4 TU</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #b91c1c;">Two-Stage 剪枝</td>
+              <td style="padding: 8px 12px;">16→2 候选淘汰，精英入深度优化</td>
+              <td style="padding: 8px 12px;">极小</td>
+              <td style="padding: 8px 12px;">帧内模式选择</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #b91c1c;">亮色度分治</td>
+              <td style="padding: 8px 12px;">Chroma 旁路 RDOQ，仅做 SQ</td>
+              <td style="padding: 8px 12px;">极小</td>
+              <td style="padding: 8px 12px;">色度通道</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px; font-weight: bold; color: #047857;">4×4 全并行解耦</td>
+              <td style="padding: 8px 12px;">利用标准后门，解除 patternSigCtx 依赖</td>
+              <td style="padding: 8px 12px;">无 (标准允许)</td>
+              <td style="padding: 8px 12px;">4×4 TU / DC CG</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>2.1 收益分布与取舍策略 (RDOQ Pruning Strategy)</h3>
+      <p>RDOQ 作为压缩率优化工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
       <div class="critical-alert">
         <strong>核心架构抉择：弃大保小</strong><br>
         强制关闭大块（CU16/CU32/CU8）的 RDOQ 以满足时序吞吐限制，死保 <span class="highlight">CU4/TU4 的 RDOQ (wf4)</span>。仅牺牲约 0.5% 的 BD-Rate，换取流水线不会因为长周期状态机陷入瘫痪。
@@ -771,7 +832,7 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
       </div>
       <div class="diagram-caption">图 1：基于尺寸的 RDOQ 并发与旁路处理策略 (横向布局)</div>
       
-      <h2>3. 帧内环路死锁破解 (Intra Feedback Loop Bypass)</h2>
+      <h3>2.2 帧内环路死锁破解 (Intra Feedback Loop Bypass)</h3>
       <p>在 wf4 模块中，吞吐目标为 1 pix/clk（即每 16 拍处理一个 4x4 块）。但 RDOQ 会引入至少 8 拍延迟，使得总体重构反馈链路长达 24 拍，远超 16 拍预算。</p>
       <div class="success">
         <strong>破局点：前馈重建旁路 (Fast Recon Bypass)</strong><br>
@@ -793,7 +854,7 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
       </div>
       <div class="diagram-caption">图 2：帧内反馈环路的双层拆解与 RDOQ 旁路设计 (横向拉伸排版)</div>
     
-      <h2>4. 静态上下文预生成 (Static Context Generation)</h2>
+      <h3>2.3 静态上下文预生成 (Static Context Generation)</h3>
       <p>传统的 Trellis 网格寻优存在深度的系数间因果依赖。在硬件设计中，必须采用“局部独立近似”来替换“全局网格搜索”，为彻底打平流水线铺平道路。</p>
       
       <div class="algorithm-steps">
@@ -827,7 +888,7 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
       </div>
       <div class="diagram-caption">图 3：静态上下文解耦与 16 单元绝对并行计算架构 (全横向展开)</div>
       
-      <h2>5. 终极吞吐利器：Two-Stage Fast RDOQ Pruning</h2>
+      <h3>2.4 Two-Stage 候选剪枝 (Two-Stage Fast RDOQ Pruning)</h3>
       <p>为了满足严苛的 4K/8K 帧率，单纯在底层进行流水线化仍显不足，必须从宏观算法上源头把控，控制 RDOQ 模块的绝对启动频次。</p>
       <div class="critical-alert">
         <strong>两级 Candidate 剪枝过滤：</strong><br>
@@ -849,7 +910,7 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
       </div>
       <div class="diagram-caption">图 4：双层两极分化剪枝流水线架构 (横向布局)</div>
 
-      <h2>6. 亮色度分治策略 (Luma-Chroma RDOQ Bypass)</h2>
+      <h3>2.5 亮色度分治策略 (Luma-Chroma RDOQ Bypass)</h3>
       <p>在实际硬件流水线中，针对亮色度采取非对称的量化策略，以追求极致的性价比与吞吐率。这是一种完全符合标准语法且 100% 保证编解码一致性（Mismatch Free）的经典工程权衡。</p>
       <div class="success">
         <strong>核心优化：Luma 开启 RDOQ，Chroma 关闭 RDOQ</strong><br>
@@ -884,7 +945,7 @@ static const UChar INIT_SIG_FLAG[3][NUM_SIG_FLAG_CTX] =
       </div>
       <div class="diagram-caption">图 5：基于通道类型的亮色度非对称 RDOQ 旁路策略 (Luma vs Chroma)</div>
       
-      <h2 style="margin-top: 50px;">7. 强耦合解绑与全并行架构设计 (Context Decoupling in 4x4 TU)</h2>
+      <h3 style="margin-top: 40px;">2.6 强耦合解绑与 4×4 全并行架构 (Context Decoupling)</h3>
       <p>既然前文提到 <code>patternSigCtx</code> 造成了极其严重的数据冒险 (Data Hazard) 并导致硬件只能逐点串行扫描，那么是不是整个 RDOQ 都无法并行了呢？并非如此。HEVC/VVC 标准在设计时，专门为硬件架构师留了一个关键的“后门”。</p>
       
       <div class="algorithm-steps" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
