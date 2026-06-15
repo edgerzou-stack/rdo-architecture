@@ -215,34 +215,48 @@ hljs.highlightAll();
       
       <h1>VVC RDOQ 硬件架构设计 Dashboard<br><span style="font-size:0.6em; color:#7f8c8d;">Hardware Architecture & Pipelining</span></h1>
       
-      <h2>1. RDOQ 算法微观原理与 C-Model RD-Cost 计算机制</h2>
-      <p>在深入硬件优化前，必须厘清 RDOQ 的算法本质，并将其与宏观的 RDO 严格区分。在 C-Model 的 <code>simpleRdoQuant()</code> 函数中，RDOQ 执行的是最底层的<strong>“系数级贪婪寻优”</strong>。</p>
+      <h2>1. RDOQ 算法全景解析 (Algorithm Panorama)</h2>
+      <p>在深入硬件优化前，必须厘清 RDOQ 在 C-Model 中的算法本质。RDOQ 并非盲目尝试，而是一场从宏观扫描到微观计算，再到层级截断的精密“外科手术”。</p>
       
-      <div class="critical-alert">
-        <strong>核心概念厘清：RDO vs RDOQ</strong><br>
-        <span class="highlight">RDO (Mode Decision)</span>: 宏观层面的模式决策。评估整个块最终重建像素的 SAD/SSE 畸变与总体比特消耗。<br>
-        <span class="highlight">RDOQ (Quantization)</span>: 微观层面的量化优化。在选定 Mode 之后，针对每一个 DCT 频率系数，评估“量化为哪个具体整数（包括 0）”能获得最优的局部 Cost 表现。
+      <div class="algorithm-steps">
+        <h3>1.1 战场全貌：TU 内系数分布与“靶点”选择</h3>
+        <p style="color: #475569; margin-bottom: 15px;">当一个 Transform Unit (TU) 经过 DCT 变换后，其能量分布具有极强的规律性：</p>
+        <ul style="color: #334155; line-height: 1.8;">
+          <li><strong>低频区（左上角）</strong>：能量高度集中，系数值极大。这里的系数对画面质量起决定性作用，几乎不可能被 RDOQ 清零。</li>
+          <li><strong>高频区（右下角）</strong>：能量稀疏，散落着大量幅值极小（量化后 <code>Level = 1</code> 或 <code>2</code>）的系数。</li>
+        </ul>
+        <div class="critical-alert" style="margin-top: 15px;">
+          <strong>RDOQ 的核心猎杀目标：高频孤立小系数（毛刺）</strong><br>
+          为什么专挑它们下手？因为在 CABAC 熵编码中，编码一个孤立的 <code>Level=1</code> 系数，需要消耗极高的语法开销（需要编码 <code>sig_coeff_flag=1</code>、坐标位置、符号位等）。它们消耗了不成比例的巨量 bits，但对画质的贡献却微乎其微。RDOQ 的核心收益，正是通过评估代价，将这些“性价比极低”的边缘系数强制“斩杀”为 0，从而换取码率的暴跌。
+        </div>
       </div>
 
       <div class="algorithm-steps">
-        <h3>1. C-Model 的微观 PK 公式</h3>
-        <p style="color: #475569; margin-bottom: 15px;">在 C-Model 中，<code>RDOQCOST_S</code> 宏被展开为严格的整数定点数学形式。为了避免浏览器排版错乱，我们将其表示为如下公式：</p>
-        <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-          <img src="./rdoq_formula.png" alt="RDOQ Cost Formula" style="max-width: 100%; height: auto;">
-        </div>
-        <ul style="list-style-type: circle; margin-top: 10px; margin-bottom: 15px; color: #475569; font-size: 0.95em;">
-          <li><strong>$d = |C_{trans} - C_{inv\_quant}|$</strong>：原始变换系数与反量化重建系数的绝对差值。</li>
-          <li><strong>$scaleBits$</strong>：用于将平方误差 (SSE) 定点放大的位移常量。</li>
-          <li><strong>$bits$</strong>：由 <code>rdoq_coeff_est()</code> 模拟 CABAC 状态机得到的熵编码比特数估计。</li>
-          <li><strong>$\lambda$ 与 $shift$</strong>：拉格朗日乘子及其对应的定点化右移常量。</li>
+        <h3>1.2 微观手术：候选 Level 的精准产生</h3>
+        <p style="color: #475569; margin-bottom: 15px;">对于选定的系数 $C_{trans}$，RDOQ 不会遍历所有数字，而是基于普通标量量化 (SQ) 的结果进行局部试探：</p>
+        <ul style="color: #334155; line-height: 1.8;">
+          <li>首先执行普通量化：$L_{SQ} = \text{round}(C_{trans} / Q_{step})$。</li>
+          <li>随后，RDOQ 引擎通常只会产生 2 到 3 个候选 Level 参与 PK：<strong>$\{L_{SQ}, L_{SQ}-1, 0\}$</strong>。</li>
+          <li><strong>调整逻辑</strong>：它只会尝试将系数“减弱”或“抹零”，绝不会尝试“增强”（因为增强既增加误差又增加码率）。通过这种策略，庞大的搜索空间被收敛为极简的贪婪比对。</li>
         </ul>
       </div>
 
       <div class="algorithm-steps">
-        <h3>2. 分数比特 (Fractional Bits) 的流水线式估算原理</h3>
-        <p style="color: #475569; margin-bottom: 15px;">在上面的公式中，最核心的变量就是 <code>cabac_bits</code>。它绝对不是单纯的整数（比如 1、2、3），而是 C-Model 通过 <code>rdoq_coeff_est()</code> 函数模拟真实的 CABAC 状态机，根据上下文概率模型（Context Models）算出来的“分数比特”。它的累加过程如下：</p>
+        <h3>1.3 码率度量：从 CABAC 语法元素到 BinCost</h3>
+        <p style="color: #475569; margin-bottom: 15px;">在评估某个候选 Level 时，<code>Cost = Distortion + Rate</code>。其中畸变 (D) 很容易通过差值的平方求得，但码率 (R) 则需要极其精确的估算。</p>
+        
         <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
           <img src="./rdoq_cabac_pipeline.png" alt="CABAC Fractional Bits Estimation Pipeline" style="max-width: 100%; height: auto;">
+        </div>
+        
+        <p style="color: #475569; margin-bottom: 15px;">如上图所示，C-Model 的 <code>rdoq_coeff_est()</code> 函数会模拟真实的 CABAC 状态机更新，但不做实际的区间划分，而是查表获取理论上的<strong>“分数比特 (Fractional Bits)”</strong>。总比特消耗的计算公式为：</p>
+        <div style="background: #f1f5f9; padding: 10px 15px; border-radius: 6px; font-family: monospace; color: #0f172a; margin-bottom: 15px;">
+          Total Bits = bits(sig_coeff_flag) + bits(greater1) + bits(greater2) + bits(sign) + bits(level_rem)
+        </div>
+        
+        <p style="color: #475569; margin-bottom: 15px;">最终，这些比特将通过拉格朗日乘子 $\lambda$ 映射为整型 <code>bincost</code>，带入到微观 PK 公式中：</p>
+        <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+          <img src="./rdoq_formula.png" alt="RDOQ Cost Formula" style="max-width: 100%; height: auto;">
         </div>
       </div>
 
@@ -328,6 +342,21 @@ hljs.highlightAll();
         }
       </script>
       <!-- 互动示例组件结束 -->
+
+      <div class="algorithm-steps">
+        <h3>1.4 宏观终局：一个 TU 的 RDOQ 在什么情况下执行完毕？</h3>
+        <p style="color: #475569; margin-bottom: 15px;">微观的系数 PK 并非毫无章法地乱序执行。在一个完整的 Transform Unit (TU) 内部，RDOQ 遵循极其严格的**逆向扫描与层级截断**流程：</p>
+        <ol style="color: #334155; line-height: 1.8;">
+          <li><strong>寻找末尾 (Last Position)</strong>：首先通过快速扫描定位到绝对值最大的高频末尾非零系数，确定 RDOQ 的起点。</li>
+          <li><strong>4x4 CG 逆向扫描</strong>：TU 被划分为多个 4x4 系数组 (Coefficient Group, CG)。扫描从最后一个非零 CG 开始，逆序向 DC (左上角) 推进。在每个 CG 内部，再以逆序对每个系数执行 <code>1.2 节</code> 中描述的微观 PK。</li>
+          <li><strong>系数组级 PK (Sub-Block Flag)</strong>：当一个 4x4 CG 内部所有系数的微观 PK 结束后，RDOQ 会进行一次“越级审批”。它会计算“强制把整个 4x4 块清零”的 Cost，如果比“保留胜出系数”的 Cost 还要低，就会无情地设置 <code>coded_sub_block_flag = 0</code>，直接秒杀整个 4x4 块。</li>
+          <li><strong>TU 级终极决断 (Root CBF)</strong>：随着扫描一直推进到 DC 系数 (0,0) 位置，所有系数都完成了寻优。最后，引擎会执行终极审批：如果把整个 TU 强行清零的 Cost 最小，则触发 <code>cbf = 0</code>。</li>
+        </ol>
+        <div class="success" style="margin-top: 15px;">
+          <strong>计算完毕标志：</strong><br>
+          只有当逆向扫描完整到达 <code>(0,0)</code> 的 DC 系数，并且完成了 <strong>系数级 $\rightarrow$ CG级 $\rightarrow$ TU级</strong> 的三层代价审核与最终锁定后，当前 TU 的 RDOQ 过程才宣告正式“计算完毕”，并将最终量化残差与 Bincost 交付给下一级流水线。
+        </div>
+      </div>
 
       <h2>2. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
       <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
