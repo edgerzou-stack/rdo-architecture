@@ -225,29 +225,17 @@ hljs.highlightAll();
       </div>
 
       <div class="algorithm-steps">
-        <h3>1. C-Model 的微观 PK 公式 (Python 伪代码解析)</h3>
-        <p style="color: #475569; margin-bottom: 15px;">为了避免数学公式带来的抽象感和排版错乱，我们直接用底层代码逻辑来表述 RDOQ 是如何计算代价的：</p>
-        <pre><code class="language-python">def calculate_rdoq_cost(trans_coeff, inv_quant_level, cabac_bits, scale_bits, lambda_val, shift):
-    """
-    计算单个 DCT 系数量化到某一个 Level (inv_quant_level) 时的率失真代价 (Cost)
-    :param trans_coeff: 原始变换系数 (未量化)
-    :param inv_quant_level: 候选量化值反量化后的重建系数
-    :param cabac_bits: 经过高度放大的 CABAC 分数比特估算值
-    """
-    
-    # 【1. 计算畸变 Distortion (D)】
-    # D 衡量的是量化引入的像素误差。C-Model 取差值后求平方，并利用 scale_bits 进行定点放大，保证整数精度
-    d = abs(trans_coeff - inv_quant_level)
-    D = (d ** 2) << scale_bits
-    
-    # 【2. 计算码率 Cost (R)】
-    # R 衡量的是为了传输这个量化系数，CABAC 会消耗多少比特
-    # cabac_bits 是高精度的分数位（例如 1 bit = 32768），乘以拉格朗日乘子后右移恢复到与 D 相同的量级
-    R = (lambda_val * cabac_bits) >> shift
-    
-    # 【3. 总代价】
-    # 贪婪 PK 机制就是寻找使 D + R 绝对最小的那个量化 Level
-    return D + R</code></pre>
+        <h3>1. C-Model 的微观 PK 公式</h3>
+        <p style="color: #475569; margin-bottom: 15px;">在 C-Model 中，<code>RDOQCOST_S</code> 宏被展开为严格的整数定点数学形式。为了避免浏览器排版错乱，我们将其表示为如下公式：</p>
+        <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+          <img src="./rdoq_formula.png" alt="RDOQ Cost Formula" style="max-width: 100%; height: auto;">
+        </div>
+        <ul style="list-style-type: circle; margin-top: 10px; margin-bottom: 15px; color: #475569; font-size: 0.95em;">
+          <li><strong>$d = |C_{trans} - C_{inv\_quant}|$</strong>：原始变换系数与反量化重建系数的绝对差值。</li>
+          <li><strong>$scaleBits$</strong>：用于将平方误差 (SSE) 定点放大的位移常量。</li>
+          <li><strong>$bits$</strong>：由 <code>rdoq_coeff_est()</code> 模拟 CABAC 状态机得到的熵编码比特数估计。</li>
+          <li><strong>$\lambda$ 与 $shift$</strong>：拉格朗日乘子及其对应的定点化右移常量。</li>
+        </ul>
       </div>
 
       <div class="algorithm-steps">
