@@ -538,13 +538,34 @@ hljs.highlightAll();
           <code>ctxInc = ctxIndMap[posY][posX];</code><br>
           <span style="color: #94a3b8;">/* ctxIndMap = {0,1,4,5, 2,3,4,5, 6,6,8,8, 7,7,8,8} */</span></p>
 
-          <p><strong>Step 3. &ge; 8x8 大块的动态推导方程 (General Formula)</strong><br>
-          <code>ctxInc = BaseOffset + LumaCGOffset + cnt;</code></p>
+          <p><strong>Step 3. &ge; 8x8 大块的动态推导方程 (Strict General Formula)</strong><br>
+          对于 8x8 及以上尺寸的 TU，动态增量由三个分量严格累加而成：<br>
+          <code style="display: block; background: #e2e8f0; padding: 10px; margin-top: 8px; border-radius: 4px; font-weight: bold;">ctxInc = BaseOffset + LumaCGOffset + cnt;</code>
+          </p>
           
-          <ul style="margin-top: 5px;">
-            <li><strong>BaseOffset</strong>: 由尺寸、扫描模式、通道类型划定基准区 (9, 15, 21, 或 12)。</li>
-            <li><strong>LumaCGOffset</strong>: 若为 Luma 通道且跳出 DC 系数组 <code>CG(0,0)</code>，则加 3，否则为 0。</li>
-            <li><strong>cnt (微观位置补偿)</strong>: 取决于当前系数在 4x4 CG 内的局部坐标 <code>(xSub, ySub)</code> 以及周边非零状态掩码 <code>patternSigCtx</code>。通过这三者将空间能量精确坍缩为 0, 1, 2 三个微观概率档位。</li>
+          <ul style="margin-top: 10px; line-height: 1.7;">
+            <li><strong>BaseOffset</strong>: 由尺寸、扫描模式、通道类型共同决定的基准偏移量：<br>
+            <code style="background: #e2e8f0; padding: 2px 6px; font-size: 0.9em; border-radius: 4px;">Int offset = (log2BlockSize == 3) ? (scanIdx == SCAN_DIAG ? 9 : 15) : (textureType == TEXT_LUMA ? 21 : 12);</code></li>
+            
+            <li style="margin-top: 10px;"><strong>LumaCGOffset</strong>: 若为 Luma 亮度通道，且当前跳出 DC 所在的 <code>CG(0,0)</code> 系数组时，增加 3 的偏移补偿：<br>
+            <code style="background: #e2e8f0; padding: 2px 6px; font-size: 0.9em; border-radius: 4px;">((textureType == TEXT_LUMA && ((posX>>2) + (posY>>2)) > 0) ? 3 : 0)</code></li>
+            
+            <li style="margin-top: 10px;"><strong>cnt (微观位置与相邻状态补偿)</strong>: 取决于当前系数在 4x4 CG 内的局部坐标 <code>(posXinSubset, posYinSubset)</code>，以及周边已编码相邻系数的状态掩码 <code>patternSigCtx</code>。C-Model 的精确坍缩逻辑如下：
+<pre style="background: #e2e8f0; padding: 15px; border-radius: 6px; margin-top: 10px; overflow-x: auto; font-family: monospace; font-size: 0.9em; line-height: 1.4; border-left: 4px solid #94a3b8;">
+Int posXinSubset = posX - ((posX>>2)<<2); // 即 posX & 3
+Int posYinSubset = posY - ((posY>>2)<<2); // 即 posY & 3
+
+if(patternSigCtx == 0) {
+  cnt = (posXinSubset + posYinSubset <= 2) ? ((posXinSubset + posYinSubset == 0) ? 2 : 1) : 0;
+} else if(patternSigCtx == 1) {
+  cnt = (posYinSubset <= 1) ? ((posYinSubset == 0) ? 2 : 1) : 0;
+} else if(patternSigCtx == 2) {
+  cnt = (posXinSubset <= 1) ? ((posXinSubset == 0) ? 2 : 1) : 0;
+} else {
+  cnt = 2;
+}
+</pre>
+            </li>
           </ul>
         </div>
 
