@@ -231,8 +231,8 @@ hljs.highlightAll();
           <li><strong>高频区（右下角）</strong>：能量稀疏，散落着大量幅值极小（量化后 <code>Level = 1</code> 或 <code>2</code>）的系数。</li>
         </ul>
         <div class="critical-alert" style="margin-top: 15px;">
-          <strong>RDOQ 的核心猎杀目标：高频孤立小系数（毛刺）</strong><br>
-          为什么专挑它们下手？因为在 CABAC 熵编码中，编码一个孤立的 <code>Level=1</code> 系数，需要消耗极高的语法开销（需要编码 <code>sig_coeff_flag=1</code>、坐标位置、符号位等）。它们消耗了不成比例的巨量 bits，但对画质的贡献却微乎其微。RDOQ 的核心收益，正是通过评估代价，将这些“性价比极低”的边缘系数强制“斩杀”为 0，从而换取码率的暴跌。
+          <strong>RDOQ 的核心优化目标：孤立高频系数（离散高频分量）</strong><br>
+          为何优先处理此类系数？因为在 CABAC 熵编码中，编码一个孤立的 <code>Level=1</code> 系数，需要消耗极高的语法开销（需要编码 <code>sig_coeff_flag=1</code>、坐标位置、符号位等）。它们消耗了不成比例的巨量 bits，但对画质的贡献却微乎其微。RDOQ 的核心收益，正是通过评估代价，将这些“性价比极低”的边缘系数强制量化为 0，从而换取码率的显著降低。
         </div>
       </div>
 
@@ -248,7 +248,7 @@ hljs.highlightAll();
           <strong>举个例子 (Example)：候选 Level 是怎么选的？</strong><br>
           假设我们有一个高频系数 <i>C<sub>trans</sub> = 26</i>，并且当前量化步长 <i>Q<sub>step</sub> = 10</i>。<br>
           1. <strong>基准量化：</strong> 26 / 10 = 2.6，四舍五入后得到基准 <code>L<sub>SQ</sub> = 3</code>。<br>
-          2. <strong>产生候选：</strong> RDOQ 引擎会圈定三个候选人参与对决：<code>Level = 3</code> (保持)、<code>Level = 2</code> (减弱)、<code>Level = 0</code> (强行抹零)。<br>
+          2. <strong>产生候选：</strong> RDOQ 引擎会选定三个候选量化值参与代价比较：<code>Level = 3</code> (保持)、<code>Level = 2</code> (减弱)、<code>Level = 0</code> (强制量化为 0)。<br>
           如果是像上图那样更极端的 <i>C<sub>trans</sub> = 11</i>，<code>L<sub>SQ</sub> = 1</code>，那么候选就只有 <code>Level = 1</code> 和 <code>Level = 0</code> 了。正是由于这种收敛机制，庞大的搜索空间被转化为极简的“二选一”或“三选一”贪婪比对。
         </div>
       </div>
@@ -288,7 +288,7 @@ hljs.highlightAll();
       <!-- 互动示例组件开始 -->
       <div class="interactive-card" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin: 30px 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
         <div style="background: var(--secondary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="margin: 0; color: white; border: none; font-size: 16px; font-weight: bold;">互动示例：微观系数的生死决断</div>
+          <div style="margin: 0; color: white; border: none; font-size: 16px; font-weight: bold;">互动示例：微观系数的量化判决</div>
           <span style="font-size: 14px; opacity: 0.8;">Interactive RDOQ Sandbox</span>
         </div>
         <div style="padding: 25px; display: flex; flex-direction: column; gap: 20px;">
@@ -312,7 +312,7 @@ hljs.highlightAll();
               </div>
 
               <div id="rdoq-step-2" class="rdoq-step" style="display: none; background: #fff; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
-                <h4 style="margin-top: 0; color: #b45309;">Step 2: 评估强行抹零 (Level = 0)</h4>
+                <h4 style="margin-top: 0; color: #b45309;">Step 2: 评估强制量化为零 (Level = 0)</h4>
                 <ul style="color: #334155; line-height: 1.8;">
                   <li><strong>畸变 (D):</strong> 差值 d = |15 - 0| = 15。(误差变大了！)<br> D = 15² × 1024 = <strong>230,400</strong></li>
                   <li><strong>码率 (R):</strong> CABAC 只需要编码 <code>sig=0</code>，耗约 0.2 bits。(码率暴跌！)<br> R ≈ 0.2 × λ = <strong>12,000</strong></li>
@@ -321,11 +321,11 @@ hljs.highlightAll();
               </div>
 
               <div id="rdoq-step-3" class="rdoq-step" style="display: none; background: #ecfdf5; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;">
-                <h4 style="margin-top: 0; color: #047857;">Step 3: 贪婪 PK 裁决 (The Verdict)</h4>
+                <h4 style="margin-top: 0; color: #047857;">Step 3: 贪婪判决 (Greedy Decision)</h4>
                 <div style="text-align: center; font-size: 1.1em; padding: 10px;">
                   Cost(0) <strong>242,400</strong> &lt; Cost(1) <strong>273,904</strong>
                 </div>
-                <p style="color: #065f46; margin-bottom: 0;"><strong>结论：</strong>虽然强行变成 0 会导致像素误差 (D) 变大，但省下的编码比特 (R) 实在太多了！RDOQ 引擎贪婪地选择 <strong style="color: #dc2626;">Level = 0</strong>，成功将这个边缘系数“斩杀”！这就是 RDOQ 压榨压缩率的灵魂所在。</p>
+                <p style="color: #065f46; margin-bottom: 0;"><strong>结论：</strong>虽然强制量化为 0 会导致像素误差 (D) 变大，但节约的编码比特 (R) 非常显著！RDOQ 引擎基于贪婪策略选择 <strong style="color: #dc2626;">Level = 0</strong>，成功将该系数截断为 0。这也是 RDOQ 提升压缩率的核心机制。</p>
               </div>
 
               <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
@@ -369,13 +369,14 @@ hljs.highlightAll();
       <!-- 互动示例组件结束 -->
 
       <div class="algorithm-steps">
-        <h3>1.4 宏观终局：一个 TU 的 RDOQ 在什么情况下执行完毕？</h3>
-        <p style="color: #475569; margin-bottom: 15px;">微观的系数 PK 并非毫无章法地乱序执行。在一个完整的 Transform Unit (TU) 内部，RDOQ 遵循极其严格的**逆向扫描与层级截断**流程：</p>
+        <h3>1.4 宏观扫描终局：TU 级执行流程与依赖关系</h3>
+        <p style="color: #475569; margin-bottom: 15px;">微观的系数代价值比较并非毫无章法地乱序执行。在一个完整的 Transform Unit (TU) 内部，RDOQ 遵循极其严格的<strong>逆向对角扫描 (Reverse Diagonal Scan) 与层级截断</strong>流程：</p>
         <ol style="color: #334155; line-height: 1.8;">
-          <li><strong>寻找末尾 (Last Position)</strong>：首先通过快速扫描定位到绝对值最大的高频末尾非零系数，确定 RDOQ 的起点。</li>
-          <li><strong>4x4 CG 逆向扫描</strong>：TU 被划分为多个 4x4 系数组 (Coefficient Group, CG)。扫描从最后一个非零 CG 开始，逆序向 DC (左上角) 推进。在每个 CG 内部，再以逆序对每个系数执行 <code>1.2 节</code> 中描述的微观 PK。</li>
-          <li><strong>系数组级 PK (Sub-Block Flag)</strong>：当一个 4x4 CG 内部所有系数的微观 PK 结束后，RDOQ 会进行一次“越级审批”。它会计算“强制把整个 4x4 块清零”的 Cost，如果比“保留胜出系数”的 Cost 还要低，就会无情地设置 <code>coded_sub_block_flag = 0</code>，直接秒杀整个 4x4 块。</li>
-          <li><strong>TU 级终极决断 (Root CBF)</strong>：随着扫描一直推进到 DC 系数 (0,0) 位置，所有系数都完成了寻优。最后，引擎会执行终极审批：如果把整个 TU 强行清零的 Cost 最小，则触发 <code>cbf = 0</code>。</li>
+          <li><strong>寻找末尾 (Last Position)</strong>：首先通过顺向扫描定位到频率最高的末尾非零系数，确定 RDOQ 的起点。</li>
+          <li><strong>严格串行的逆向扫描</strong>：扫描从末尾非零系数开始，沿着对角线方向逆序向 DC (左上角) 推进。<br>
+            <span style="color: #0369a1; font-weight: 500;">答疑细节：</span>对于 1.1 节分布图中的右侧 <code>1</code> (坐标 4,5) 和下方 <code>1</code> (坐标 6,2)，谁先被调整？答案是：基于逆向对角线规则，更靠外侧的 <code>(4,5)</code> 会<strong>先被处理</strong>。并且在 C-Model 软件中，它们<strong>绝对不能同时调整</strong>，因为处理 <code>(6,2)</code> 时所需的 CABAC 概率模型上下文 (Context)，严重依赖于前一个系数 <code>(4,5)</code> 的最终调整结果。这种极度串行的时序依赖，正是硬件设计的最大梦魇。</li>
+          <li><strong>系数组级判决 (Sub-Block Flag)</strong>：TU 被划分为多个 4x4 系数组 (CG)。当一个 4x4 CG 内部所有系数串行处理完毕后，引擎会计算“将整个 4x4 块强制量化为零”的总体代价，如果比保留内部系数的代价更低，则设置 <code>coded_sub_block_flag = 0</code>，从而在 CG 级别提前截断。</li>
+          <li><strong>TU 级终极判决 (Root CBF)</strong>：当逆向扫描最终到达 DC 系数 (0,0) 位置，所有系数寻优结束。引擎评估将整个 TU 强制清零的代价。如果代价最小，则触发 <code>cbf = 0</code>。</li>
         </ol>
         <div class="success" style="margin-top: 15px;">
           <strong>计算完毕标志：</strong><br>
