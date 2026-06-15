@@ -480,6 +480,18 @@ hljs.highlightAll();
                 <img src="./rdoq_ctx_derivation_flow_py.png" alt="Context Derivation Flow" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
               </div>
               
+              <div style="background: #fffbeb; border-left: 5px solid #f59e0b; padding: 15px; margin-bottom: 25px; border-radius: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);">
+                <strong style="color: #b45309; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  架构巨坑警告：Context_Array 到底多久更新一次？
+                </strong>
+                <p style="margin-top: 10px; margin-bottom: 0; color: #92400e; font-size: 0.95em; line-height: 1.6;">
+                  初学者极易误以为 Context_Array 只在 Slice/CTU 级别（即所谓的“初始化”）才更新一次，这是一个致命误区！必须严格区分 <strong>真实熵编码 (True CABAC)</strong> 与 <strong>RDOQ 预估 (RDOQ Estimation)</strong>：<br>
+                  <strong style="color: #b45309; display: inline-block; margin-top: 6px;">1. 真实 CABAC 阶段：</strong>它是 <strong>“像素/标志位 (Bin)” 级别</strong> 的闭环更新！每编码完 <strong>1 个比特</strong>，SRAM 里的状态机 <code>m_ucState</code> 就会根据刚刚编出的是 0 还是 1 立刻自我迭代覆写。这就是 CABAC 高压缩率的灵魂——极致的自适应。<br>
+                  <strong style="color: #b45309; display: inline-block; margin-top: 6px;">2. RDOQ 预估阶段 (本图核心)：</strong>由于 RDOQ 是在做“假设性”代价计算（如果我把这个像素抹零，代价是多少？），如果在评估候选值时更新了 SRAM，就会污染后续真实的概率模型。因此，在 RDOQ 硬件流水线中，通常采用 <strong>冻结模型 (Frozen Context)</strong>：只读不写，使用 Slice 初始化的初值贯穿整个 CU；或者更精细的 <strong>缓存副本备份 (Shadow Copy)</strong>：在每个 TU 评估结束后进行状态回滚 (Rollback)！
+                </p>
+              </div>
+              
               <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">1. 动态增量 ctxInc 计算公式 (以 sig_coeff_flag 为例)</p>
               <div style="background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; color: #334155; margin-bottom: 20px; overflow-x: auto;">
                 <div style="font-size: 1.1em; color: #0f172a; margin-bottom: 15px;">
