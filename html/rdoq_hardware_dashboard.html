@@ -270,13 +270,33 @@ hljs.highlightAll();
         </div>
 
         <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-          <h4 style="margin-top: 0; color: #0369a1; margin-bottom: 10px;">核心解密：上下文分数比特 (Fractional Bits) 到底是怎么算出来的？</h4>
+          <h4 style="margin-top: 0; color: #0369a1; margin-bottom: 10px;">核心解密：上下文分数比特 (Fractional Bits) 与 128 级熵值查表 (Entropy LUT) 的底层逻辑</h4>
           <p style="margin: 0; color: #334155; line-height: 1.6;">
-            在 CABAC 中，每个上下文模型 (Context Model) 都在不断追踪特定语法的概率状态，表现为一个 0~127 的整数状态索引 <code>pStateIdx</code>（代表 LPS 出现的概率）。<br>
-            在 RDOQ 阶段，为了避免极度耗时的对数（$log_2$）和浮点运算，C-Model 预先计算好了一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
-            计算某个 Flag (值为 0 或 1) 的代价时，公式极其简单：<br>
-            <code>bit_cost = Entropy_LUT[ pStateIdx ^ flag_val ]</code><br><br>
-            <strong>注意：</strong>由于底层是纯整数运算，这里的比特代价被定点放大了。在 VVC/HEVC 的 C-Model 中，通常规定 <strong>1 个真实比特 = 32768 个分数比特</strong>。所以，所谓的 "1.2 bits"，在代码底层其实是直接查表得到的一个巨大的整数 <code>39321</code>！
+            在 CABAC 中，每个上下文模型 (Context Model) 都在不断追踪特定语法的概率状态，表现为一个 0~63 的整数状态索引 <code>pStateIdx</code>（代表 LPS 出现的概率），再加上 1 位的 <code>valMPS</code> 标志。两者组合构成了 128 个可能的上下文状态。<br>
+            为了在 RDOQ 中极速估算编码该语法的代价，必须避免极其耗时的对数（-log&sub2;(p)）和浮点运算。因此，C-Model 在初始化时，会预先通过香农熵公式计算好一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
+            <strong>查表的生成算法 (C++ 伪代码解析)：</strong>
+          </p>
+          <pre style="background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; font-family: 'Roboto Mono', monospace; font-size: 13px; overflow-x: auto; margin: 10px 0;"><code class="language-cpp">// 1. 计算概率衰减系数 alpha (约为 0.949)
+const double alpha = pow(0.01875 / 0.5, 1.0 / 63.0);
+
+// 2. 预生成 128 个状态的熵值代价
+for (int i = 0; i &lt; 64; i++) {
+    // 根据状态索引计算 LPS (极小概率符号) 和 MPS (极大概率符号) 的实际发生概率
+    double p_lps = 0.5 * pow(alpha, i);
+    double p_mps = 1.0 - p_lps;
+    
+    // 香农熵公式: H = -log2(P)。定点放大 32768 倍 (1 bit = 32768)
+    int cost_lps = (int)(-32768.0 * log2(p_lps) + 0.5);
+    int cost_mps = (int)(-32768.0 * log2(p_mps) + 0.5);
+    
+    // 填充 LUT：假设偶数索引存储 MPS 代价，奇数存储 LPS 代价
+    Entropy_LUT[i * 2]     = cost_mps;
+    Entropy_LUT[i * 2 + 1] = cost_lps;
+}</code></pre>
+          <p style="margin: 0; color: #334155; line-height: 1.6;">
+            在 RDOQ 执行期间，当需要计算编码某个 <code>flag_val</code>（0 或 1）的代价时，操作变得极其轻量化：只需执行一次位异或与数组寻址：<br>
+            <code style="background: #bae6fd; padding: 2px 6px; border-radius: 4px; color: #0369a1; font-weight: bold; margin: 5px 0; display: inline-block;">bit_cost = Entropy_LUT[ (pStateIdx &lt;&lt; 1) | (flag_val ^ valMPS) ]</code><br>
+            <strong>定点放大的魅力：</strong>通过预将浮点对数转化为定点整数（1 真实比特 = 32768 分数比特），原本复杂的概率计算被彻底降维。这就是为什么一个看似 1.2 bits 的代价，在硬件寄存器里其实是一个巨大的整数 <code>39321</code>！
           </p>
         </div>
         
