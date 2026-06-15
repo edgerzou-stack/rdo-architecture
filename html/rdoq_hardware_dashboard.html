@@ -525,6 +525,45 @@ hljs.highlightAll();
         </div>
       </div>
 
+      <div class="algorithm-steps" id="math-appendix-section">
+        <h3>1.5 硬核附录：CABAC 上下文依赖的精确数学推导</h3>
+        <p style="color: #475569; margin-bottom: 15px;">为了满足硬件架构师对时序和状态机的精准控制需求，以下严格摘录自 HM C-Model，对 CABAC 中最复杂的 <strong><code>ctxInc</code> 动态增量</strong>与 <strong><code>Context State</code> 初始化</strong>给出数学级别的解析。</p>
+
+        <h4 style="color: #3b82f6; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px;">A. 动态增量 ctxInc 计算 (sig_coeff_flag)</h4>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.95em; color: #334155;">
+          <p style="margin-top: 0;"><strong>Step 1. DC 系数极简特判 (DC Bypass)</strong><br>
+          如果当前处理的是左上角的直流系数，强制指向 Context 0：<br>
+          <code>if (posX + posY == 0) ctxInc = 0;</code></p>
+          
+          <p><strong>Step 2. 4x4 独立 TU 查表特判 (4x4 LUT)</strong><br>
+          对于 4x4 的微小 TU (<code>log2BlockSize == 2</code>)，直接采用硬编码二维阵列查表：<br>
+          <code>ctxInc = ctxIndMap[posY][posX];</code><br>
+          <span style="color: #94a3b8;">/* ctxIndMap = {0,1,4,5, 2,3,4,5, 6,6,8,8, 7,7,8,8} */</span></p>
+
+          <p><strong>Step 3. &ge; 8x8 大块的动态推导方程 (General Formula)</strong><br>
+          <code>ctxInc = BaseOffset + LumaCGOffset + cnt;</code></p>
+          
+          <ul style="margin-top: 5px;">
+            <li><strong>BaseOffset</strong>: 由尺寸、扫描模式、通道类型划定基准区 (9, 15, 21, 或 12)。</li>
+            <li><strong>LumaCGOffset</strong>: 若为 Luma 通道且跳出 DC 系数组 <code>CG(0,0)</code>，则加 3，否则为 0。</li>
+            <li><strong>cnt (微观位置补偿)</strong>: 取决于当前系数在 4x4 CG 内的局部坐标 <code>(xSub, ySub)</code> 以及周边非零状态掩码 <code>patternSigCtx</code>。通过这三者将空间能量精确坍缩为 0, 1, 2 三个微观概率档位。</li>
+          </ul>
+        </div>
+
+        <h4 style="color: #3b82f6; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; margin-top: 20px;">B. Context Array (m_ucState) 节点初始化公式</h4>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.95em; color: #334155;">
+          <p style="margin-top: 0;">在编码 Slice 之前，必须用规范查表得出的 8-bit <code>initValue</code> 和当前 <code>QP</code> 对上下文阵列节点进行初始化。C-Model 的推导公式如下：</p>
+          <p><code>slope = (initValue >> 4) * 5 - 45;</code><br>
+          <code>offset = ((initValue & 15) << 3) - 16;</code><br>
+          <code>initState = Clip3(1, 126, ((slope * QP) >> 4) + offset);</code></p>
+          
+          <p>最后，将内部状态概率索引 (<code>pStateIdx</code>) 和最可能符号 (<code>valMPS</code>) 融合为一个极度紧凑的 8-bit 状态变量存储到上下文寄存器阵列中：</p>
+          <p><code>valMPS = (initState >= 64) ? 1 : 0;</code><br>
+          <code>pStateIdx = (initState >= 64) ? (initState - 64) : (63 - initState);</code><br>
+          <strong style="color: #b91c1c;">m_ucState = (pStateIdx << 1) + valMPS;</strong></p>
+        </div>
+      </div>
+
       <h2>2. 收益分布与取舍策略 (RDOQ Pruning Strategy)</h2>
       <p>RDOQ 作为压缩率“微雕”工具，收益高度集中于边缘高频系数。工业界在架构层面必须做出极端的收益/吞吐权衡。</p>
       <div class="critical-alert">
