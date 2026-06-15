@@ -404,6 +404,18 @@ hljs.highlightAll();
                 <li><strong>并行悖论：</strong>如果硬件设计想把 <code>(x,y)</code> 和 <code>(x+1,y)</code> 放入同一个时钟周期内流水线并行计算，那么在算 <code>(x,y)</code> 的 CABAC 码率代价值时，<code>(x+1,y)</code> 的最终 RDOQ 判决结果<strong>还没出炉</strong>！硬件根本不知道 <code>patternSigCtx</code> 该不该包含这个邻居，从而导致查表的 <code>Fractional Bits Cost</code> 彻底跑飞。因此，必须老老实实等前一个系数的 RDOQ 彻底走完全流程，其最终状态固化后，才能推导下一个系数的 Context。这就是所谓<strong>“强依赖”</strong>的硬件灾难级来源！</li>
               </ul>
             </div>
+            <div class="geek-insight" style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 12px; margin-top: 10px; margin-bottom: 20px; border-radius: 6px; color: #166534; font-size: 0.95em; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.05);">
+              <strong style="display: flex; align-items: center; gap: 8px; font-size: 1.05em; color: #14532d; border-bottom: 1px dashed #bbf7d0; padding-bottom: 5px; margin-bottom: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                极客洞察：4x4 小块的“法外狂徒”特权与并行解耦
+              </strong>
+              <p style="margin: 0; line-height: 1.6;">
+                既然存在 Data Hazard，为什么之前我们在讨论 4x4 TU 时，说它的上下文索引 <code>ctxInc</code> 是通过一个<strong>纯固定数组 (Context_Array)</strong> 查出来的呢？<br>
+                答案是：<strong>这就是 HEVC/VVC 算法标准故意留给硬件优化的后门！</strong><br>
+                对于 4x4 TU（以及大尺寸 TU 中位于左上角的 DC CG），标准规定它们的 <code>ctxInc</code> <strong>只跟自身坐标 (x,y) 有关，彻底无视周边邻居状态</strong>，也就是说，在这些特定区域，<code>patternSigCtx</code> 这个强耦合变量是被强行抛弃的！<br>
+                <strong>硬件收益：</strong>正是因为这种空间依赖上的解耦，在处理 4x4 TU 时，这堵“数据冒险墙”就不存在了。如果我们在硬件 RDOQ 的开头预先冻结/缓存了 CABAC 的概率状态 (pStateIdx)，那么对于 4x4 TU，硬件<strong>完全可以做到多点、甚至 16 个点全并行的 RDOQ 极速计算！</strong>但一旦碰到 16x16 等大块里的普通 AC CG，就只能乖乖退化回被 <code>patternSigCtx</code> 支配的单点串行炼狱。
+              </p>
+            </div>
           </li>
           <li><strong>CG 级：4x4 块级阻断判决 (Sub-Block Flag)</strong><br>当一个 4x4 CG 内部的 16 个系数<strong>全部单点处理完毕</strong>后，系统会整体暂停，进行一次块级宏观算账：“如果我把刚才这 16 个系数连同这个 4x4 块的标志位直接全部抹零，总体代价会不会更低？” 如果是，则触发 <code>coded_sub_block_flag = 0</code>。</li>
           <li><strong>TU 级：终极判决 (Root CBF)</strong><br>当单点扫描最终抵达并处理完左上角的 DC 系数 <code>(0,0)</code>，整个大 TU 扫描宣告结束。引擎最后评估一次将整个 TU 清零的代价，如果更低，则触发 <code>cbf = 0</code>。</li>
