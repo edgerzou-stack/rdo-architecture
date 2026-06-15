@@ -238,7 +238,7 @@ MathJax = {
           <li><strong>RDOQ 核心 Cost 公式:</strong> <br>
           在 C-Model 中，<code>RDOQCOST_S</code> 宏被展开为严格的整数定点数学形式：
           <div style="font-size: 1.1em; text-align: center; margin: 15px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-            $$Cost = \underbrace{\left( d^2 \cdot 2^{scaleBits} \right)}_{\text{RDOQDIST_S}(d)} + \underbrace{\left\lfloor \frac{\lambda \cdot bits}{2^{shift}} \right\rfloor}_{\text{RDOQBINCOST_S}(bits)}$$
+            $$Cost = \underbrace{\left( d^2 \cdot 2^{\text{scaleBits}} \right)}_{\text{RDOQDIST_S}(d)} + \underbrace{\left\lfloor \frac{\lambda \cdot bits}{2^{\text{shift}}} \right\rfloor}_{\text{RDOQBINCOST_S}(bits)}$$
           </div>
           <ul style="list-style-type: circle; margin-top: 10px; margin-bottom: 15px; color: #475569; font-size: 0.95em;">
             <li><strong>$d = |C_{trans} - C_{inv\_quant}|$</strong>：原始变换系数与反量化重建系数的绝对差值。</li>
