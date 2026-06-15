@@ -284,7 +284,7 @@ hljs.highlightAll();
               </ol>
             </div>
 
-            为了在 RDOQ 中极速估算编码该语法的代价，必须避免极其耗时的对数（-log&sub2;(p)）和浮点运算。因此，C-Model 在初始化时，会预先通过香农熵公式计算好一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
+            为了在 RDOQ 中极速估算编码该语法的代价，必须避免极其耗时的对数（-log<sub>2</sub>(p)）和浮点运算。因此，C-Model 在初始化时，会预先通过香农熵公式计算好一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
             
             <div style="text-align: center; margin: 15px 0; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
               <img src="./rdoq_entropy_lut.png" alt="CABAC Entropy LUT Mathematical Curves" style="max-width: 100%; height: auto; border-radius: 6px;">
