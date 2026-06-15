@@ -464,50 +464,59 @@ hljs.highlightAll();
 
         <div style="background: #fefce8; border: 2px solid #eab308; padding: 20px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(234, 179, 8, 0.1);">
           <h4 style="margin-top: 0; color: #854d0e; margin-bottom: 15px; font-size: 1.15em; border-bottom: 2px dashed #fbbf24; padding-bottom: 8px;">
-            <span style="font-size: 1.3em;">⚙️</span> 关键前提：CABAC 码率代价的三步计算链路
+            <span style="font-size: 1.3em;">&#9881;&#65039;</span> &#20851;&#38190;&#21069;&#25552;&#65306;CABAC &#30721;&#29575;&#20195;&#20215;&#30340;&#22235;&#27493;&#35745;&#31639;&#38142;&#36335;
           </h4>
           <p style="color: #713f12; line-height: 1.6; margin-bottom: 15px;">
-            在计算上面公式中每一项的 <strong>Fractional Bits</strong> 时，硬件/C-Model 并非直接给出一个数字，而是必须严格按照以下<strong>三步串行链路</strong>逐步推导。这三步环环相扣，缺一不可：
+            &#22312;&#35745;&#31639;&#19978;&#38754;&#20844;&#24335;&#20013;&#27599;&#19968;&#39033;&#30340; <strong>Fractional Bits</strong> &#26102;&#65292;&#30828;&#20214;/C-Model &#24517;&#39035;&#20005;&#26684;&#25353;&#29031;&#20197;&#19979;<strong>&#22235;&#27493;&#20018;&#34892;&#38142;&#36335;</strong>&#36880;&#27493;&#25512;&#23548;&#12290;&#36825;&#22235;&#27493;&#29615;&#29615;&#30456;&#25187;&#65292;&#32570;&#19968;&#19981;&#21487;&#65306;
           </p>
           <div style="display: flex; align-items: stretch; gap: 0; justify-content: center; flex-wrap: wrap; margin: 10px 0;">
-            <div style="background: #eff6ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; max-width: 250px; text-align: center;">
-              <div style="font-size: 1.6em; margin-bottom: 5px;">①</div>
-              <strong style="color: #1e40af; font-size: 1.05em;">确定语法元素</strong><br>
-              <span style="color: #1e3a8a; font-size: 0.85em; line-height: 1.4; display: inline-block; margin-top: 5px;">
-                当前这个系数需要编码哪些标志？<br>
-                <code style="background: #dbeafe; padding: 1px 4px; border-radius: 2px;">sig_coeff_flag</code>?
-                <code style="background: #dbeafe; padding: 1px 4px; border-radius: 2px;">greater1_flag</code>?<br>
-                <code style="background: #dbeafe; padding: 1px 4px; border-radius: 2px;">sign_flag</code> (Bypass)?
+            <div style="background: #eff6ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 10px 12px; flex: 1; min-width: 150px; max-width: 200px; text-align: center;">
+              <div style="font-size: 1.5em; margin-bottom: 4px;">&#9312;</div>
+              <strong style="color: #1e40af; font-size: 0.95em;">&#30830;&#23450;&#35821;&#27861;&#20803;&#32032;&#30340;&#20540;</strong><br>
+              <span style="color: #1e3a8a; font-size: 0.8em; line-height: 1.4; display: inline-block; margin-top: 4px;">
+                &#26681;&#25454;&#20505;&#36873; Level &#30830;&#23450;&#27599;&#20010;&#26631;&#24535;&#30340;&#20540;&#65306;<br>
+                <code style="background: #dbeafe; padding: 1px 3px; border-radius: 2px; font-size: 0.95em;">sig = (L&gt;0)?1:0</code><br>
+                <code style="background: #dbeafe; padding: 1px 3px; border-radius: 2px; font-size: 0.95em;">gr1 = (L&gt;1)?1:0</code><br>
+                <code style="background: #dbeafe; padding: 1px 3px; border-radius: 2px; font-size: 0.95em;">sign &#8594; Bypass</code>
               </span>
             </div>
-            <div style="display: flex; align-items: center; padding: 0 6px; font-size: 1.5em; color: #f59e0b; font-weight: bold;">→</div>
-            <div style="background: #fdf2f8; border: 2px solid #ec4899; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; max-width: 250px; text-align: center;">
-              <div style="font-size: 1.6em; margin-bottom: 5px;">②</div>
-              <strong style="color: #be185d; font-size: 1.05em;">语法元素 → ctxInc 映射</strong><br>
-              <span style="color: #831843; font-size: 0.85em; line-height: 1.4; display: inline-block; margin-top: 5px;">
-                每种语法元素有<strong>独立的映射规则</strong>：<br>
-                sig_flag 需 BaseOffset + cnt<br>
-                greater1_flag 用历史计数器<br>
-                sign_flag 走 Bypass 无需 ctx
+            <div style="display: flex; align-items: center; padding: 0 4px; font-size: 1.3em; color: #f59e0b; font-weight: bold;">&#8594;</div>
+            <div style="background: #fdf2f8; border: 2px solid #ec4899; border-radius: 8px; padding: 10px 12px; flex: 1; min-width: 150px; max-width: 200px; text-align: center;">
+              <div style="font-size: 1.5em; margin-bottom: 4px;">&#9313;</div>
+              <strong style="color: #be185d; font-size: 0.95em;">&#35821;&#27861;&#20803;&#32032; &#8594; ctxInc</strong><br>
+              <span style="color: #831843; font-size: 0.8em; line-height: 1.4; display: inline-block; margin-top: 4px;">
+                &#27599;&#31181;&#35821;&#27861;&#20803;&#32032;&#26377;<strong>&#29420;&#31435;&#30340;&#26144;&#23556;&#35268;&#21017;</strong>&#65306;<br>
+                sig_flag &#38656; BaseOffset + cnt<br>
+                gr1_flag &#29992;&#21382;&#21490;&#35745;&#25968;&#22120;<br>
+                sign_flag &#36208; Bypass &#26080;&#38656; ctx
               </span>
             </div>
-            <div style="display: flex; align-items: center; padding: 0 6px; font-size: 1.5em; color: #f59e0b; font-weight: bold;">→</div>
-            <div style="background: #ecfdf5; border: 2px solid #10b981; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; max-width: 250px; text-align: center;">
-              <div style="font-size: 1.6em; margin-bottom: 5px;">③</div>
-              <strong style="color: #065f46; font-size: 1.05em;">查表获取 Cost</strong><br>
-              <span style="color: #064e3b; font-size: 0.85em; line-height: 1.4; display: inline-block; margin-top: 5px;">
-                用 ctxInc 作为地址<br>
-                → 从 <strong>Context_Array</strong> 读 m_ucState<br>
-                → 用 m_ucState 查 <strong>Entropy_LUT</strong><br>
-                → 得到 Fractional Bits!
+            <div style="display: flex; align-items: center; padding: 0 4px; font-size: 1.3em; color: #f59e0b; font-weight: bold;">&#8594;</div>
+            <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 10px 12px; flex: 1; min-width: 150px; max-width: 200px; text-align: center;">
+              <div style="font-size: 1.5em; margin-bottom: 4px;">&#9314;</div>
+              <strong style="color: #92400e; font-size: 0.95em;">&#26597; Context_Array</strong><br>
+              <span style="color: #78350f; font-size: 0.8em; line-height: 1.4; display: inline-block; margin-top: 4px;">
+                &#29992; ctxInc &#20316;&#20026; SRAM &#22320;&#22336;<br>
+                &#35835;&#20986; <strong>m_ucState</strong><br>
+                (&#21547; pStateIdx &#21644; valMPS)
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; padding: 0 4px; font-size: 1.3em; color: #f59e0b; font-weight: bold;">&#8594;</div>
+            <div style="background: #ecfdf5; border: 2px solid #10b981; border-radius: 8px; padding: 10px 12px; flex: 1; min-width: 150px; max-width: 200px; text-align: center;">
+              <div style="font-size: 1.5em; margin-bottom: 4px;">&#9315;</div>
+              <strong style="color: #065f46; font-size: 0.95em;">&#26597; Entropy_LUT</strong><br>
+              <span style="color: #064e3b; font-size: 0.8em; line-height: 1.4; display: inline-block; margin-top: 4px;">
+                &#29992; m_ucState + flag_val<br>
+                &#26500;&#36896;&#26597;&#34920;&#22320;&#22336;<br>
+                &#8594; &#35835;&#20986; <strong>Fractional Bits</strong>
               </span>
             </div>
           </div>
           <div style="background: #fef9c3; border-left: 4px solid #ca8a04; padding: 10px 14px; border-radius: 4px; margin-top: 15px;">
-            <strong style="color: #854d0e; font-size: 0.95em;">💡 为什么这个链路如此关键？</strong><br>
+            <strong style="color: #854d0e; font-size: 0.95em;">&#128161; &#20026;&#20160;&#20040;&#36825;&#20010;&#38142;&#36335;&#22914;&#27492;&#20851;&#38190;&#65311;</strong><br>
             <span style="color: #713f12; font-size: 0.9em; line-height: 1.6;">
-              <strong>硬件视角：</strong>这三步在流水线上必须严格串行执行——第②步的 ctxInc 计算依赖第①步确定的语法元素类型（不同语法元素走完全不同的寻址逻辑），第③步的 SRAM 读取又依赖第②步算出的地址。这条三级串行链路的<strong>总延迟</strong>就是单个系数 CABAC 码率估算的时序瓶颈。<br>
-              <strong>Bypass 捷径：</strong>并非所有语法元素都需要走完全部三步！像 <code>sign_flag</code> 在第①步就被识别为 Bypass 模式，直接输出固定代价 32768（1 bit），完全跳过第②③步，这是标准留给硬件的关键加速通道。
+              <strong>&#30828;&#20214;&#35270;&#35282;&#65306;</strong>&#36825;&#22235;&#27493;&#22312;&#27969;&#27700;&#32447;&#19978;&#24517;&#39035;&#20005;&#26684;&#20018;&#34892;&#25191;&#34892;&#8212;&#8212;&#31532;&#9313;&#27493;&#30340; ctxInc &#35745;&#31639;&#20381;&#36182;&#31532;&#9312;&#27493;&#30830;&#23450;&#30340;&#35821;&#27861;&#20803;&#32032;&#31867;&#22411;&#65288;&#19981;&#21516;&#35821;&#27861;&#20803;&#32032;&#36208;&#23436;&#20840;&#19981;&#21516;&#30340;&#23547;&#22336;&#36923;&#36753;&#65289;&#65292;&#31532;&#9314;&#27493;&#30340; SRAM &#35835;&#21462;&#20381;&#36182;&#31532;&#9313;&#27493;&#31639;&#20986;&#30340;&#22320;&#22336;&#65292;&#31532;&#9315;&#27493;&#30340; ROM &#26597;&#34920;&#21448;&#20381;&#36182;&#31532;&#9314;&#27493;&#35835;&#20986;&#30340; m_ucState&#12290;&#36825;&#26465;<strong>&#22235;&#32423;&#20018;&#34892;&#38142;&#36335;&#30340;&#24635;&#24310;&#36831;</strong>&#23601;&#26159;&#21333;&#20010;&#31995;&#25968; CABAC &#30721;&#29575;&#20272;&#31639;&#30340;&#26102;&#24207;&#29942;&#39048;&#12290;<br>
+              <strong>Bypass &#25463;&#24452;&#65306;</strong>&#24182;&#38750;&#25152;&#26377;&#35821;&#27861;&#20803;&#32032;&#37117;&#38656;&#35201;&#36208;&#23436;&#20840;&#37096;&#22235;&#27493;&#65281;&#20687; <code>sign_flag</code> &#22312;&#31532;&#9312;&#27493;&#23601;&#34987;&#35782;&#21035;&#20026; Bypass &#27169;&#24335;&#65292;&#30452;&#25509;&#36755;&#20986;&#22266;&#23450;&#20195;&#20215; 32768&#65288;1 bit&#65289;&#65292;&#23436;&#20840;&#36339;&#36807;&#31532;&#9313;&#9314;&#9315;&#27493;&#65292;&#36825;&#26159;&#26631;&#20934;&#30041;&#32473;&#30828;&#20214;&#30340;&#20851;&#38190;&#21152;&#36895;&#36890;&#36947;&#12290;
             </span>
           </div>
         </div>
