@@ -244,6 +244,9 @@ hljs.highlightAll();
           <li>随后，RDOQ 引擎通常只会产生 2 到 3 个候选 Level 参与 PK：<strong>{ L<sub>SQ</sub>, L<sub>SQ</sub>-1, 0 }</strong>。</li>
           <li><strong>调整逻辑</strong>：它只会尝试将系数“减弱”或“抹零”，绝不会尝试“增强”（因为增强既增加误差又增加码率）。</li>
         </ul>
+        <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+          <img src="./rdoq_candidate_selection.png" alt="Candidate Selection Graph" style="max-width: 100%; height: auto;">
+        </div>
         <div class="success" style="margin-top: 15px; margin-bottom: 10px;">
           <strong>举个例子 (Example)：候选 Level 是怎么选的？</strong><br>
           假设我们有一个高频系数 <i>C<sub>trans</sub> = 26</i>，并且当前量化步长 <i>Q<sub>step</sub> = 10</i>。<br>
