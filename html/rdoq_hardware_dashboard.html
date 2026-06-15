@@ -221,6 +221,11 @@ hljs.highlightAll();
       <div class="algorithm-steps">
         <h3>1.1 战场全貌：TU 内系数分布与“靶点”选择</h3>
         <p style="color: #475569; margin-bottom: 15px;">当一个 Transform Unit (TU) 经过 DCT 变换后，其能量分布具有极强的规律性：</p>
+        
+        <div style="text-align: center; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+          <img src="./rdoq_dct_distribution.png" alt="DCT Coefficient Distribution" style="max-width: 400px; height: auto;">
+        </div>
+        
         <ul style="color: #334155; line-height: 1.8;">
           <li><strong>低频区（左上角）</strong>：能量高度集中，系数值极大。这里的系数对画面质量起决定性作用，几乎不可能被 RDOQ 清零。</li>
           <li><strong>高频区（右下角）</strong>：能量稀疏，散落着大量幅值极小（量化后 <code>Level = 1</code> 或 <code>2</code>）的系数。</li>
@@ -232,13 +237,20 @@ hljs.highlightAll();
       </div>
 
       <div class="algorithm-steps">
-        <h3>1.2 微观手术：候选 Level 的精准产生</h3>
-        <p style="color: #475569; margin-bottom: 15px;">对于选定的系数 $C_{trans}$，RDOQ 不会遍历所有数字，而是基于普通标量量化 (SQ) 的结果进行局部试探：</p>
+        <h3>1.2 微观手术：候选 LEVEL 的精准产生</h3>
+        <p style="color: #475569; margin-bottom: 15px;">对于选定的变换系数 <i>C<sub>trans</sub></i>，RDOQ 不会遍历所有数字，而是基于普通标量量化 (SQ) 的结果进行局部试探：</p>
         <ul style="color: #334155; line-height: 1.8;">
-          <li>首先执行普通量化：$L_{SQ} = \text{round}(C_{trans} / Q_{step})$。</li>
-          <li>随后，RDOQ 引擎通常只会产生 2 到 3 个候选 Level 参与 PK：<strong>$\{L_{SQ}, L_{SQ}-1, 0\}$</strong>。</li>
-          <li><strong>调整逻辑</strong>：它只会尝试将系数“减弱”或“抹零”，绝不会尝试“增强”（因为增强既增加误差又增加码率）。通过这种策略，庞大的搜索空间被收敛为极简的贪婪比对。</li>
+          <li>首先执行普通量化：<b>L<sub>SQ</sub> = round(C<sub>trans</sub> / Q<sub>step</sub>)</b>。</li>
+          <li>随后，RDOQ 引擎通常只会产生 2 到 3 个候选 Level 参与 PK：<strong>{ L<sub>SQ</sub>, L<sub>SQ</sub>-1, 0 }</strong>。</li>
+          <li><strong>调整逻辑</strong>：它只会尝试将系数“减弱”或“抹零”，绝不会尝试“增强”（因为增强既增加误差又增加码率）。</li>
         </ul>
+        <div class="success" style="margin-top: 15px; margin-bottom: 10px;">
+          <strong>举个例子 (Example)：候选 Level 是怎么选的？</strong><br>
+          假设我们有一个高频系数 <i>C<sub>trans</sub> = 26</i>，并且当前量化步长 <i>Q<sub>step</sub> = 10</i>。<br>
+          1. <strong>基准量化：</strong> 26 / 10 = 2.6，四舍五入后得到基准 <code>L<sub>SQ</sub> = 3</code>。<br>
+          2. <strong>产生候选：</strong> RDOQ 引擎会圈定三个候选人参与对决：<code>Level = 3</code> (保持)、<code>Level = 2</code> (减弱)、<code>Level = 0</code> (强行抹零)。<br>
+          如果是像上图那样更极端的 <i>C<sub>trans</sub> = 11</i>，<code>L<sub>SQ</sub> = 1</code>，那么候选就只有 <code>Level = 1</code> 和 <code>Level = 0</code> 了。正是由于这种收敛机制，庞大的搜索空间被转化为极简的“二选一”或“三选一”贪婪比对。
+        </div>
       </div>
 
       <div class="algorithm-steps">
