@@ -573,6 +573,33 @@ hljs.highlightAll();
                   </span>
                 </div>
               </div>
+              </div>
+              
+              <p style="margin-top: 25px; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1.1em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">3. 其他核心语法元素的上下文或旁路机制 (Bypass)</p>
+              <div style="background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; color: #334155; margin-bottom: 10px; overflow-x: auto;">
+                <p style="margin-top: 0; margin-bottom: 15px;">正如你所敏锐察觉的，并非所有的语法元素都像 <code>sig_coeff_flag</code> 那么复杂！为了在压缩率和并行度之间取得平衡，HEVC/VVC 标准对后续的标志采用了不同的降维策略：</p>
+                <ul style="margin: 0; padding-left: 20px; line-height: 2;">
+                  <li><strong>greater1_flag 与 greater2_flag</strong>:
+                    <div style="font-size: 1.05em; color: #0f172a; margin-top: 10px; line-height: 2.2;">
+                      $$ \text{ctxInc}_{gr1} = (c_1 > 0) \ ? \ (c_1 > 1 \ ? \ 2 : 1) : 0 \quad \color{#64748b}{\text{(由同块内已编码的大于0的系数个数 } c_1 \text{ 决定)}} $$
+                      $$ \text{ctxInc}_{gr2} = (c_2 > 0) \ ? \ 1 : 0 \quad \color{#64748b}{\text{(由同块内已编码的大于1的系数个数 } c_2 \text{ 决定)}} $$
+                    </div>
+                    <span style="color: #475569; font-size: 0.9em; display: inline-block; margin-top: 5px; line-height: 1.5;">它们的核心思想是抛弃二维空间邻居，转而利用<strong>当前 TU/CG 内的历史编码统计值</strong>作为上下文。这种一维累加器极其容易被硬件维护，从而大幅缩减寻址路径！</span>
+                  </li>
+                  <li style="margin-top: 15px;"><strong>sign_flag (符号位)</strong>:
+                    <div style="font-size: 1.05em; color: #0f172a; margin-top: 10px;">
+                      $$ \text{Cost}_{sign} = 32768 \quad \color{#991b1b}{\text{(Bypass 模式：无 Context，恒定消耗 1 个真实比特)}} $$
+                    </div>
+                    <span style="color: #475569; font-size: 0.9em; display: inline-block; margin-top: 5px; line-height: 1.5;">由于正负号出现的概率极其接近 0.5，标准规定其直接走 <strong>Bypass（旁路）模式</strong>。硬件不需要去查 Context_Array，也不会更新任何状态机，直接暴力写入 1 比特代价，完美解除依赖！</span>
+                  </li>
+                  <li style="margin-top: 15px;"><strong>level_rem (剩余绝对值)</strong>:
+                    <div style="font-size: 1.05em; color: #0f172a; margin-top: 10px;">
+                      $$ \text{Cost}_{rem} = \text{GolombRice}( \text{Level} - \text{BaseLevel}, \ cRiceParam ) \times 32768 $$
+                    </div>
+                    <span style="color: #475569; font-size: 0.9em; display: inline-block; margin-top: 5px; line-height: 1.5;">对于极大系数，超出了前置 flag 表达范围的值也会进入 Bypass 模式。它使用哥伦布-莱斯编码 (Golomb-Rice)，根据当前维护的莱斯参数 <code>cRiceParam</code> 动态决定消耗多少比特，同样零上下文依赖。</span>
+                  </li>
+                </ul>
+              </div>
             </div>
 
             为了在 RDOQ 中极速估算编码该语法的代价，必须避免极其耗时的对数（-log<sub>2</sub>(p)）和浮点运算。因此，C-Model 在初始化时，会预先通过香农熵公式计算好一张长度为 128 的 <strong>熵值查表 (Entropy LUT)</strong>。<br><br>
