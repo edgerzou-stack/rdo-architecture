@@ -5,3 +5,5 @@
 !README.md
 !skills/*.md
 !*.png
+!*.svg
+!*.py

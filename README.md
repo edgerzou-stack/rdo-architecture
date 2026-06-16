@@ -39,6 +39,13 @@ You can directly access the interactive online documentation via the following l
 - **Chapter 2 — Hardware Optimization:** Pruning, Fast/Slow loop, static context, Two-Stage, Luma-Chroma bypass, 4×4 parallel decoupling
 - **Assets:** `rdoq_decision_tree.png`, `rdoq_dcost.png`, `rdoq_entropy_lut.png`, `rdoq_formula.png`, and supporting diagrams under `html/`
 
+### 🚀 5. [CABAC Intra/Inter Cost Hardware Parsing](https://edgerzou-stack.github.io/rdo-architecture/html/intra_inter_scabac_dashboard.html)
+- **Target Audience:** RTL Designers, Algorithm Engineers.
+- **Content:** Deep dive into HEVC Intra/Inter mode probability state machines, LUT lookups, and hardware architectures. 
+- **Highlights:**
+  - Python Graphviz pre-rendered SVG architecture topologies (eliminating client-side rendering artifacts and improving stability).
+  - Strict C-Model cost step-by-step verification without arbitrary assumptions.
+  - Objective exploration of hardware DDR bandwidth constraints vs algorithmic DPB reference lists.
 
 
 ## 🛠️ Repository Philosophy
