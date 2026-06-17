@@ -524,11 +524,40 @@
                 $$ \omega_{cur} = Q_{actual} \times B_{actual} $$
                 $$ \omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;"><strong>量化释义：</strong><br>
-            (1) <strong>水位更新</strong>：采用前置帧水位累加本帧物理消耗字节 $B_{actual}$，并减损信道恒定流出量。<br>
-            (2) <strong>反演中间标度</strong>：利用硬件执行产生的帧平均量化参数 $QP_{avg}$ 进行逆向传递映射，获取等效物理标度 $Q_{actual}$。<br>
-            (3) <strong>瞬态斜率解算</strong>：提取当前帧画面的实际状态机斜率 $\omega_{cur}$。<br>
-            (4) <strong>EMA 滤波校正</strong>：基于平滑因子 $\alpha$（如规范参数设为 $\frac{1}{8}$ 或 $0.125$），对历史常数 $\omega_{reg}^{(t-1)}$ 与瞬态观测值 $\omega_{cur}$ 进行低通融合，更新模型权值。</p>
+            <p style="font-size: 16px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
+
+            <p style="font-size: 16px; color: #555; margin-bottom: 10px; line-height: 1.7;">
+            <strong>(1) 水位更新</strong>：采用前置帧水位累加本帧物理消耗字节 $B_{actual}$，并减损信道恒定流出量 $\frac{R_{bitrate}}{F_{rate}}$（即单帧时隙内信道注入的比特数）。</p>
+
+            <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 (2) $Q_{actual}$ 的完整计算链路：$QP_{avg} \to Q_{scale}$</h4>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                <strong style="color: #93c5fd;">第一步：硬件汇报帧级平均 $QP_{avg}$</strong><br>
+                硬件编码器在完成当前帧所有 CU 的编码后，将每个 CU 实际使用的量化参数 $QP_{cu,j}$ 按<strong style="color: #93c5fd;">比特量加权平均</strong>汇总为帧级统计值：
+                </p>
+                <div style="padding: 10px; overflow-x: auto; color: #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
+                    $$ QP_{avg} = \frac{\sum_{j=1}^{M} B_{cu,j} \times QP_{cu,j}}{\sum_{j=1}^{M} B_{cu,j}} $$
+                </div>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.7;">
+                其中 $M$ 为当前帧的 CU 总数，$B_{cu,j}$ 为第 $j$ 个 CU 实际编码产生的比特数，$QP_{cu,j}$ 为该 CU 经过 AQ Delta 调整后实际使用的物理 QP 值。采用比特量加权（而非简单算术平均）的原因是：消耗比特多的 CU 对整体 R-Q 模型的贡献权重更大，简单算术平均会低估高复杂度区域的影响。
+                </p>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                <strong style="color: #93c5fd;">第二步：通过逆向传递函数映射为物理标度 $Q_{actual}$</strong><br>
+                软件接收到 $QP_{avg}$ 后，通过 HEVC 标准定义的 QP-to-Scale 传递函数进行逆向映射：
+                </p>
+                <div style="padding: 10px; overflow-x: auto; color: #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
+                    $$ Q_{actual} = f_{qp \to scale}(QP_{avg}) = 2^{\frac{QP_{avg} - 12}{6}} $$
+                </div>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
+                该传递函数与 <a href="#section-5" style="color: #60a5fa; text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 中使用的 $QP_{hdr} = 12 + 6 \times \log_2(Q_{scale})$ 互为严格逆运算。$Q_{actual}$ 的物理含义是量化步长的无量纲标度因子：QP 每增大 6，标度值翻倍（量化精度减半）。
+                </p>
+            </div>
+
+            <p style="font-size: 16px; color: #555; margin-bottom: 10px; line-height: 1.7;">
+            <strong>(3) 瞬态斜率解算</strong>：$\omega_{cur} = Q_{actual} \times B_{actual}$。该乘积的物理含义是：在当前帧的量化精度水平下，产生 $B_{actual}$ 比特所对应的场景复杂度度量。复杂度越高的画面，在相同 QP 下会消耗更多比特，因此 $\omega_{cur}$ 值越大。</p>
+
+            <p style="font-size: 16px; color: #555; margin-bottom: 5px; line-height: 1.7;">
+            <strong>(4) EMA 滤波校正</strong>：基于平滑因子 $\alpha$（如规范参数设为 $\frac{1}{8}$ 或 $0.125$），对历史常数 $\omega_{reg}^{(t-1)}$ 与瞬态观测值 $\omega_{cur}$ 进行低通融合，更新模型权值。该滤波后的 $\omega_{reg}$ 将被回传至 <a href="#section-5" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 的 R-Q 模型中，作为下一帧的复杂度预测基准，完成闭环。</p>
             </div>
             
             <h4 id="section-10" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.4.1 📉 沙盘案例 (Numeric Example)</h4>
