@@ -431,16 +431,21 @@
             // RC 模式调节 QP (始终接管)
             if (buffer < 25) {
                 qp += 3.5; 
-                logMsg(`水位极危! 强行拉高 QP (牺牲画质止血) -> ${qp.toFixed(1)}`, 'warn');
+                if (isComplexScene) logMsg(`水位极危! 强行拉高 QP (牺牲画质止血) -> ${qp.toFixed(1)}`, 'warn');
             } else if (buffer < 45) {
                 qp += 1.0; 
             } else if (buffer > 80) {
-                qp -= 2.0;
-                logMsg(`水位过高! 强行降低 QP (提升画质泄洪) -> ${qp.toFixed(1)}`, 'warn');
-            } else if (buffer > 60 && qp > 25) {
-                qp -= 0.5; 
-            }
-            
+                qp -= 2.5;
+                if (isStaticScene) logMsg(`水位过高! 强行降低 QP (提升画质泄洪) -> ${qp.toFixed(1)}`, 'warn');
+            } else if (buffer > 55) {
+                // 平滑恢复期，快速把 QP 拉回基准，避免误触 80% 警戒线
+                if (qp > 25) qp -= 2.0;
+                else qp -= 0.5;
+            } else if (buffer > 45 && buffer <= 55) {
+                // 绝对稳态区
+                if (qp > 26) qp -= 1.0;
+                else if (qp < 24) qp += 1.0;
+            }            
             qp = Math.min(51, Math.max(10, qp));
             currentExtract = currentExtract * Math.pow(0.5, (qp - 25) / 6.0);
             
