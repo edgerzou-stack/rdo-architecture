@@ -440,7 +440,7 @@
             • <strong>$\omega_{reg}$ 与 $b_{reg}$</strong>：表征当前画面复杂度函数的斜率与截距。鉴于 $\mathcal{T}_{pic}$ 处于分母位置，可用预算越小，解算的 $Q_{scale}$ 标度值将呈现非线性放大趋势。</p>
             </div>
             
-            <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 24px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.2.1 📉 严谨数据推演 (Numeric Example)</h4>
+            <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 26px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.2.1 📉 严谨数据推演 (Numeric Example)</h4>
             <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
                 <ul style="font-size: 18px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
                     <li style="margin-bottom: 12px;"><strong>【参数推导：模型系数 $\omega_{reg}$】</strong><br>在当前帧编码前，系统从物理层采集前一帧（索引 $n-1$）的实际编码总耗费 $B_{actual}^{(n-1)} = 40,000 \text{ bit}$ 与全局量化标度 $Q_{scale}^{(n-1)} \approx 4.2655$（对应物理 $QP \approx 24.5$）。由此计算得出前一帧的瞬时场景复杂度 $\omega_{cur} = B_{actual}^{(n-1)} \times Q_{scale}^{(n-1)} = 40,000 \times 4.2655 = 170,620$。随后状态机执行指数移动平均（EMA）滤波方程更新全局模型：$\omega_{reg}^{(n)} = \alpha \cdot \omega_{cur} + (1-\alpha) \cdot \omega_{reg}^{(n-1)}$。在快速动态响应模式下（设定追踪权重 $\alpha=1$），本帧预测斜率参数被严谨推算为 $\omega_{reg} = \mathbf{170,620}$。定义截距常数 $b_{reg} = 0$，且底层标度至物理 QP 的传递函数遵循：$QP_{hdr} = 12 + 6 \times \log_2(Q_{scale})$。</li>
