@@ -8,6 +8,175 @@
       MathJax = {
         tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
       };
+        // ==========================================
+        // 状态机流转动画逻辑 (State Machine Widget)
+        // ==========================================
+        const smBtn = document.getElementById('sm-btn');
+        const smPhase = document.getElementById('sm-phase');
+        const smBuffer = document.getElementById('sm-buffer');
+        const smTarget = document.getElementById('sm-target');
+        const smQpHdr = document.getElementById('sm-qphdr');
+        const smActual = document.getElementById('sm-actual');
+        const smCuGrid = document.getElementById('sm-cu-grid');
+        const smArrowFw = document.getElementById('sm-arrow-fw');
+        const smArrowBw = document.getElementById('sm-arrow-bw');
+        const smLogs = document.getElementById('sm-logs');
+        const smBeforeBox = document.getElementById('sm-before-box');
+        const smQuantBox = document.getElementById('sm-quant-box');
+        const smActualBox = document.getElementById('sm-actual-box');
+
+        // Init 16 CUs
+        for(let i=0; i<16; i++) {
+            const cu = document.createElement('div');
+            cu.className = 'sm-cu';
+            cu.style = 'background: #1e293b; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: transparent; transition: all 0.3s; font-family: monospace;';
+            cu.textContent = '25';
+            smCuGrid.appendChild(cu);
+        }
+
+        let smIsRunning = false;
+        let smInterval;
+        let smStep = 0;
+        let smFrameCount = 0;
+        let smBufLevel = 60;
+        let currentTarget = 0;
+        let currentQpHdr = 25;
+        let currentActual = 0;
+
+        function logSm(msg, color='#94a3b8') {
+            const div = document.createElement('div');
+            div.style.color = color;
+            div.innerHTML = `<span style="color:#475569;">[Frame ${String(smFrameCount).padStart(3,'0')}]</span> ${msg}`;
+            smLogs.appendChild(div);
+            smLogs.scrollTop = smLogs.scrollHeight;
+        }
+
+        function resetSmBox() {
+            smBeforeBox.style.borderColor = '#334155';
+            smQuantBox.style.borderColor = '#334155';
+            smActualBox.style.borderColor = '#334155';
+            smArrowFw.style.color = '#475569';
+            smArrowBw.style.color = '#475569';
+            smArrowFw.style.textShadow = 'none';
+            smArrowBw.style.textShadow = 'none';
+        }
+
+        function runSmStep() {
+            if(!smIsRunning) return;
+            resetSmBox();
+            
+            // Phase 1: Software BeforePicRc
+            if (smStep === 0) {
+                smFrameCount++;
+                smBufLevel += 5; // Inject
+                if(smBufLevel > 100) smBufLevel = 100;
+                smBuffer.style.width = smBufLevel + '%';
+                
+                // Target is loosely inversely proportional to buffer level (simple model)
+                currentTarget = Math.floor(((100 - smBufLevel) / 100) * 80000 + 10000); 
+                smTarget.textContent = currentTarget.toLocaleString();
+                smBeforeBox.style.borderColor = '#ea580c';
+                logSm(`SW 前馈: 侦测到水位 ${smBufLevel.toFixed(1)}%, 划定预算 ${currentTarget.toLocaleString()} bit`, '#fed7aa');
+                smStep++;
+            } 
+            // Phase 2: Software PicQuant
+            else if (smStep === 1) {
+                // R-Q Model derivation
+                if (smBufLevel > 70) currentQpHdr = Math.min(51, currentQpHdr + 2); // Buffer too high -> Increase QP
+                else if (smBufLevel < 40) currentQpHdr = Math.max(10, currentQpHdr - 2); // Buffer too low -> Decrease QP
+                else {
+                    if (currentQpHdr > 26) currentQpHdr--;
+                    else if (currentQpHdr < 24) currentQpHdr++;
+                }
+                
+                smQpHdr.textContent = currentQpHdr;
+                smQuantBox.style.borderColor = '#ca8a04';
+                logSm(`SW 推演: R-Q 模型计算出本帧基准 qpHdr = <span style="color:#facc15;">${currentQpHdr}</span>`, '#fef08a');
+                
+                // Trigger Hardware transmission
+                setTimeout(() => {
+                    smArrowFw.style.color = '#f472b6';
+                    smArrowFw.style.textShadow = '0 0 15px #f472b6';
+                    logSm(`SW -> HW: 寄存器下发配置 (qpHdr=${currentQpHdr}, qpMin=10, qpMax=51)`, '#f472b6');
+                }, 500);
+                
+                // Reset CUs
+                Array.from(smCuGrid.children).forEach(cu => {
+                    cu.style.background = '#1e293b';
+                    cu.style.color = 'transparent';
+                });
+                smPhase.textContent = '[硬件自适应编码中...]';
+                smStep++;
+            }
+            // Phase 3: Hardware CU Encode
+            else if (smStep === 2) {
+                let totalActual = 0;
+                const cus = Array.from(smCuGrid.children);
+                
+                cus.forEach(cu => {
+                    const isComplex = Math.random() > 0.6; // 40% chance complex texture
+                    let finalQp;
+                    if (isComplex) {
+                        finalQp = Math.min(51, currentQpHdr + Math.floor(Math.random()*6 + 2)); // Texture -> Higher QP
+                        cu.style.background = '#7f1d1d'; // Dark red
+                        cu.style.color = '#fca5a5';
+                        cu.textContent = finalQp;
+                        totalActual += Math.floor(currentTarget / 16 * 0.8);
+                    } else {
+                        finalQp = Math.max(10, currentQpHdr - Math.floor(Math.random()*4 + 1)); // Flat -> Lower QP
+                        cu.style.background = '#1e3a8a'; // Dark blue
+                        cu.style.color = '#93c5fd';
+                        cu.textContent = finalQp;
+                        totalActual += Math.floor(currentTarget / 16 * 1.3);
+                    }
+                });
+                
+                currentActual = totalActual;
+                smActual.textContent = currentActual.toLocaleString();
+                smActualBox.style.borderColor = '#a855f7';
+                
+                logSm(`HW 执行: 依据空间纹理独立微调 16个 CU 的 Delta QP (红=复杂区升高QP，蓝=平坦区降低QP)`, '#e9d5ff');
+                smStep++;
+            }
+            // Phase 4: Feedback to Software
+            else if (smStep === 3) {
+                smArrowBw.style.color = '#4ade80';
+                smArrowBw.style.textShadow = '0 0 15px #4ade80';
+                logSm(`HW -> SW: 硬件吐出真实流 ${currentActual.toLocaleString()} bit`, '#4ade80');
+                
+                // Update Buffer
+                // Assume 45000 bit is exactly 5% extraction
+                const extractPercent = (currentActual / 45000) * 5;
+                smBufLevel -= extractPercent;
+                if(smBufLevel < 0) smBufLevel = 0;
+                smBuffer.style.width = smBufLevel + '%';
+                if(smBufLevel > 80) smBuffer.style.background = '#eab308';
+                else if (smBufLevel < 20) smBuffer.style.background = '#ef4444';
+                else smBuffer.style.background = '#3b82f6';
+                
+                logSm(`SW 反馈: 扣除物理水位，校准 R-Q 模型`, '#86efac');
+                logSm(`----------------------------------------`, '#334155');
+                smPhase.textContent = '[帧级交互完成]';
+                smStep = 0;
+            }
+        }
+
+        smBtn.addEventListener('click', () => {
+            if (smIsRunning) {
+                clearInterval(smInterval);
+                smIsRunning = false;
+                smBtn.textContent = '[▶ 启动状态机推演]';
+                smBtn.style.background = '#8b5cf6';
+                smPhase.textContent = '[已暂停]';
+            } else {
+                smIsRunning = true;
+                smBtn.textContent = '[■ 停止推演]';
+                smBtn.style.background = '#ef4444';
+                smPhase.textContent = '[系统运行中...]';
+                smInterval = setInterval(runSmStep, 1500); // 1.5 seconds per step
+                runSmStep(); // run immediately
+            }
+        });
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
@@ -145,12 +314,77 @@
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
     </div>
 
+    <!-- State Machine Animation Widget -->
+    <div class="interactive-demo" style="margin: 30px 0; background: #0f172a; border-radius: 8px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6;">[▶ 启动状态机推演]</button>
+                <span style="color: #cbd5e1; font-size: 14px; font-weight: bold;">RC 闭环工作流 (1 帧/秒)</span>
+            </div>
+            <span id="sm-phase" style="font-weight: bold; color: #a78bfa; font-family: 'Roboto Mono', monospace;">[系统待机]</span>
+        </div>
+        
+        <div style="display: flex; padding: 20px; gap: 20px; align-items: center; overflow-x: auto;">
+            
+            <!-- Software Domain -->
+            <div style="flex: 1; border: 1px solid #3b82f6; border-radius: 6px; padding: 15px; position: relative; background: rgba(59, 130, 246, 0.05); min-width: 200px;">
+                <div style="position: absolute; top: -10px; left: 15px; background: #0f172a; color: #60a5fa; padding: 0 10px; font-size: 12px; font-weight: bold;">[Software] 架构管控层</div>
+                
+                <div style="margin-top: 10px;">
+                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Virtual Buffer 实时监控</div>
+                    <div style="width: 100%; background: #1e293b; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div id="sm-buffer" style="width: 60%; background: #3b82f6; height: 100%; border-radius: 5px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <div class="sm-box" id="sm-before-box" style="background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
+                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 1] 目标帧预算 (BeforePicRc)</span>
+                        <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">targetPicSize = <span id="sm-target" style="color: #fb923c;">0</span> bit</span>
+                    </div>
+                    <div style="text-align: center; color: #64748b; font-size: 18px; line-height: 1;">↓</div>
+                    <div class="sm-box" id="sm-quant-box" style="background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
+                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 2] 帧级基准 QP (PicQuant)</span>
+                        <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">qpHdr = <span id="sm-qphdr" style="color: #facc15; font-weight: bold; font-size: 16px;">25</span></span><br>
+                        <span style="font-size: 11px; color: #64748b;">(约束边界: qpMin=10, qpMax=51)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HW Boundary Arrow -->
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
+                <div id="sm-arrow-fw" style="color: #475569; font-size: 28px; transition: all 0.3s; font-weight: bold;">→</div>
+                <div id="sm-arrow-bw" style="color: #475569; font-size: 28px; transition: all 0.3s; font-weight: bold;">←</div>
+            </div>
+            
+            <!-- Hardware Domain -->
+            <div style="flex: 1; border: 1px solid #ec4899; border-radius: 6px; padding: 15px; position: relative; background: rgba(236, 72, 153, 0.05); min-width: 200px;">
+                <div style="position: absolute; top: -10px; left: 15px; background: #0f172a; color: #f472b6; padding: 0 10px; font-size: 12px; font-weight: bold;">[Hardware] 物理编码器</div>
+                
+                <div style="margin-top: 10px; text-align: center;">
+                    <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px;">[步骤 3] CU 级自适应 QP 微调 (AQ Delta)</span>
+                    <div id="sm-cu-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; height: 110px;">
+                        <!-- 16 CUs -->
+                    </div>
+                </div>
+                
+                <div class="sm-box" id="sm-actual-box" style="margin-top: 20px; background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
+                    <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 4] 物理产出 (AfterPicRc 回传)</span>
+                    <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">actualBitCnt = <span id="sm-actual" style="color: #c084fc;">0</span> bit</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="sm-logs" style="background: #020617; padding: 15px; font-family: 'Roboto Mono', monospace; font-size: 13px; height: 140px; overflow-y: auto; border-top: 1px solid #334155; color: #94a3b8; line-height: 1.6;">
+            <span style="color: #64748b;">// 点击左上角 [启动状态机推演] 观察软硬件的数据交互与握手过程</span>
+        </div>
+    </div>
+
     <p>为了让这个精密的状态机在极端条件下不崩溃，C-Model 在软件工程上实施了以下三大极客兜底策略：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
     <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的物理目标体积（Target Picture Size），其核心分配公式如下：</p>
-    <div class="highlight" style="font-family: 'Roboto Mono', monospace; background: #1e293b; padding: 15px; border-radius: 8px; color: #e2e8f0; margin-bottom: 15px;">
-        rc->targetPicSize = BasePicSize * rc->hRcCtx.gop_size * <br>
-        &nbsp;&nbsp;&nbsp;&nbsp;((float)rc->hRcCtx.weight[gop_size-1][gopPoc] / rc->hRcCtx.tWeight)
+    <div class="highlight" style="background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; overflow-x: auto; color: #e2e8f0; font-size: 18px;">
+        $$ \mathcal{T}_{pic} = \mathcal{T}_{base} \times N_{GOP} \times \left( \frac{\mathcal{W}_{GOP}[N-1][poc]}{\mathcal{W}_{total}} \right) $$
     </div>
     <p>公式解析：<code>tWeight</code> 是整个 GOP 的权重总和。该公式意味着每一帧按其 <code>weight</code> 占总权重的比例，来瓜分整个 GOP 的比特大盘。以经典的 <strong>GOP Size 4</strong> 结构为例：</p>
     <ul>
