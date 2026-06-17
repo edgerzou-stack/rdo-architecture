@@ -381,7 +381,24 @@
         </div>
     </div>
 
-    <p>为了让这个精密的状态机在极端条件下不崩溃，C-Model 在软件工程上实施了以下三大极客兜底策略：</p>
+    <h2>【宏观总览】动态 QP 到底在调什么？(VBV 驱动的 QP Tree 本质)</h2>
+    <p>在深入复杂的底层算法和公式之前，我们必须首先自顶向下地建立一个宏观概念：当软件代码计算出一个新的 QP 值时，它在物理层面上到底改变了什么？</p>
+    
+    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #8b5cf6; border-radius: 4px; margin-bottom: 20px;">
+        <h4 style="color: #c4b5fd; margin-top: 0; font-size: 16px;">1. 物理本质：平移整帧的 QP Tree (量化参数树)</h4>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">一帧画面并非共享单一的 QP。为了实现视觉心理学优化（AQ），硬件将画面切分为成百上千个 CU（编码单元），每个 CU 都有自己独立的微调 QP。这些 CU 的 QP 组合在一起，就像围绕着一个**“基准线”**分布的树冠（QP Tree）。平坦区域向下探底（更低 QP、更高清），复杂纹理向上延伸（更高 QP、更模糊）。<br><br><strong>软件层动态调整 QP 的本质，就是计算出这个“基准线（Base QP）”，从而把整棵 QP Tree 向上或向下平移。</strong></p>
+    </div>
+
+    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 20px;">
+        <h4 style="color: #93c5fd; margin-top: 0; font-size: 16px;">2. 因果链条：从 VBV 缓冲到 QP Tree 的降维打击</h4>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">那么这个基准线是如何确定的呢？它是被信道缓冲区（VBV）的当前水位“逼”出来的。整个控制回路的因果逻辑极其严密：<br><br>
+        <strong>(1) 监测水位</strong>：系统时刻紧盯 VBV 缓冲池。<br>
+        <strong>(2) 划定预算 (Budget)</strong>：如果水位告急（快溢出了），系统必须削减开销，给当前帧下达极低的比特预算（Target Picture Size）。<br>
+        <strong>(3) 推演基准线</strong>：为了达成这个苛刻的预算，R-Q 模型推演出一个极高的基准 QP（例如 QP=45）。<br>
+        <strong>(4) QP Tree 上移</strong>：整棵树被暴力抬高，连平坦区域的 CU 也只能拿到 QP=40，画面整体模糊，物理体积骤降，成功拯救 VBV 不被撑爆。</p>
+    </div>
+
+    <p>建立上述概念后，我们再深入探究 C-Model 是如何使用三大极客策略来精细操纵这个状态机的：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
     <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
     
@@ -394,12 +411,26 @@
     <div class="highlight" style="background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; overflow-x: auto; color: #e2e8f0; font-size: 18px;">
         $$ \mathcal{T}_{pic} = \mathcal{T}_{base} \times N_{GOP} \times \left( \frac{\mathcal{W}_{GOP}[N-1][poc]}{\mathcal{W}_{total}} \right) $$
     </div>
-    <p>公式解析：<code>tWeight</code> 是整个 GOP 的权重总和。该公式意味着每一帧按其 <code>weight</code> 占总权重的比例，来瓜分整个 GOP 的比特大盘。以经典的 <strong>GOP Size 4</strong> 结构为例：</p>
-    <ul>
-        <li><strong>I 帧与核心参考帧 (Base Layer)</strong>：作为整个 GOP 的绝对基石，算法会赋予其最高权重，例如 <code>weight[3][3] = 12</code>（甚至高达 23）。这意味着它切走了绝大部分的比特预算，以死保画质不崩溃（防止误差传递）。</li>
-        <li><strong>中层参考 B 帧 (Mid-layer B-frame)</strong>：只被部分后继帧参考，重要性减半。算法会赋予其次级权重，例如 <code>weight[3][1] = 5</code>，其获得的比特预算直接遭到“腰斩”。</li>
-        <li><strong>非参考 B 帧 (Non-reference B-frame)</strong>：处于预测链最末端，完全不被任何人参考。即使其画质烂成马赛克也不会“连累”别人。算法对它们极其无情，直接分配最低权重 <code>weight[3][0] = 3</code> 和 <code>weight[3][2] = 3</code>，将其预算榨干以节约带宽，达成整体 R-D 最优解。</li>
-    </ul>
+    <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+        <h4 style="color: #f8fafc; margin-top: 0; font-size: 15px;">📐 公式全变量硬核释义</h4>
+        <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+            <li><strong style="color: #38bdf8;">\(\mathcal{T}_{pic}\) (Target Picture Size)</strong>：系统最终下达给当前帧的绝对比特预算（单位：bit）。</li>
+            <li><strong style="color: #38bdf8;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：假设世界绝对和平，所有帧平分剩余带宽时，单帧的“平均零花钱”。</li>
+            <li><strong style="color: #38bdf8;">\(N_{GOP}\) (GOP Size)</strong>：当前 GOP 内包含的总帧数（例如 4 帧）。它将单帧平均零花钱乘大，化为“整个 GOP 的资金池”。</li>
+            <li><strong style="color: #38bdf8;">\(\mathcal{W}_{total}\) (Total Weight)</strong>：该 GOP 内所有帧的分配权重之和（分母）。</li>
+            <li><strong style="color: #38bdf8;">\(\mathcal{W}_{GOP}[N-1][poc]\) (Current Frame Weight)</strong>：硬编码矩阵中，赋予当前帧的专属权重（分子）。通过 \(\frac{分子}{分母}\) 算出当前帧切走资金池的百分比。</li>
+        </ul>
+    </div>
+
+    <div class="example-box" style="background: #1e293b; border-left: 4px solid #10b981; padding: 15px; margin: 15px 0; border-radius: 4px;">
+        <h4 style="color: #34d399; margin-top: 0; font-size: 16px;">📉 极客沙盘定量推演：GOP Size 4 (I-B-B-P) 的降维打击</h4>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 10px;">我们以经典的 GOP 4 结构为例，来看看分配 Budget 是如何具体化作对底层 <strong>QP Tree 基准线</strong>的物理推移的：</p>
+        <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+            <li><strong>I 帧与核心参考帧 (权重 12，独占 60% Budget)</strong>：作为整个 GOP 的绝对基石，算法赋予其海量预算。<strong>物理影响</strong>：R-Q 模型发现预算极其充沛，将其 QP Tree 的基准线大幅拉低至 <strong>QP=18</strong>。画面纹理极其细腻，死保基准画质不崩溃（防止误差传递）。</li>
+            <li><strong>中层参考 B 帧 (权重 5，切走 25% Budget)</strong>：只被部分后继帧参考。<strong>物理影响</strong>：预算遭“腰斩”，QP Tree 基准线被上移至 <strong>QP=30</strong>，画质开始出现妥协。</li>
+            <li><strong>非参考 B 帧 (权重 3，仅分得 15% Budget)</strong>：处于预测链最末端，不被任何人参考。即使画质烂成马赛克也不会“连累”别人。<strong>物理影响</strong>：预算被无情榨干，QP Tree 基准线被暴力推高至 <strong>QP=42</strong>。画面细节被严重抹除，换来的是极致的带宽节约，达成整体 R-D (Rate-Distortion) 最优解。</li>
+        </ul>
+    </div>
 
     <h3>策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
     <p>当系统开启 CRF (Constant Rate Factor) 模式时，C-Model 会调用 <code>crfQpMapBasedCplx()</code>。为了避免局部画面突变导致 QP 的剧烈震荡，算法结合了 <strong>Pass 1 (预分析/Lookahead)</strong> 数据并执行了严格的量化衰减：</p>
