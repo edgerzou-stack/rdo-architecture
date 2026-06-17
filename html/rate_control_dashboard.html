@@ -132,7 +132,12 @@
     <p>如上图所示，整个 RC 系统被物理切分为前馈与反馈两个极其重要的阶段。为了让这个闭环不崩溃，C-Model 在工程上实施了以下三大极客策略：</p>
     
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
-    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。以经典的 <strong>GOP Size 4</strong> 结构为例：</p>
+    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的物理目标体积（Target Picture Size），其核心分配公式如下：</p>
+    <div class="highlight" style="font-family: 'Roboto Mono', monospace; background: #1e293b; padding: 15px; border-radius: 8px; color: #e2e8f0; margin-bottom: 15px;">
+        rc->targetPicSize = BasePicSize * rc->hRcCtx.gop_size * <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;((float)rc->hRcCtx.weight[gop_size-1][gopPoc] / rc->hRcCtx.tWeight)
+    </div>
+    <p>公式解析：<code>tWeight</code> 是整个 GOP 的权重总和。该公式意味着每一帧按其 <code>weight</code> 占总权重的比例，来瓜分整个 GOP 的比特大盘。以经典的 <strong>GOP Size 4</strong> 结构为例：</p>
     <ul>
         <li><strong>I 帧与核心参考帧 (Base Layer)</strong>：作为整个 GOP 的绝对基石，算法会赋予其最高权重，例如 <code>weight[3][3] = 12</code>（甚至高达 23）。这意味着它切走了绝大部分的比特预算，以死保画质不崩溃（防止误差传递）。</li>
         <li><strong>中层参考 B 帧 (Mid-layer B-frame)</strong>：只被部分后继帧参考，重要性减半。算法会赋予其次级权重，例如 <code>weight[3][1] = 5</code>，其获得的比特预算直接遭到“腰斩”。</li>
