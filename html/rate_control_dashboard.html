@@ -315,7 +315,7 @@
         <h4 style="color: #a78bfa; margin-top: 0; font-size: 16px;">🔍 状态机深度解剖：软硬件的数据交互与 QP 控制本质</h4>
         <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #60a5fa; border-radius: 4px;">
-            <h5 style="color: #93c5fd; margin-top: 0; font-size: 15px;">[步骤 1] 帧级目标分配 (BeforePicRc)</h5>
+            <h3 style="color: #93c5fd; margin-top: 0; font-size: 16px;">2.1 [步骤 1] 帧级目标分配 (BeforePicRc)</h3>
             <p style="font-size: 14px; margin-bottom: 10px;">软件侦测 <code>Virtual Buffer</code> 剩余水位并结合 GOP 权重计算可用字节。计算公式如下：</p>
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ \mathcal{T}_{pic} = \max\left( \mathcal{C}_{min}, \mathcal{B}_{pic} - \mathcal{B}_{intra} + \frac{\Delta_{error}}{W_{rc}} \right) $$
@@ -327,7 +327,7 @@
         </div>
 
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #fbbf24; border-radius: 4px;">
-            <h5 style="color: #fcd34d; margin-top: 0; font-size: 15px;">[步骤 2] 初始 QP 推演 (PicQuant)</h5>
+            <h3 style="color: #fcd34d; margin-top: 0; font-size: 16px;">2.2 [步骤 2] 初始 QP 推演 (PicQuant)</h3>
             <p style="font-size: 14px; margin-bottom: 10px;">软件通过历史的 R-Q 线性回归模型，将 $\mathcal{T}_{pic}$ 反向推算为标度因子 $Q_{scale}$，再映射为物理基准 $QP_{hdr}$：</p>
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ Q_{scale} = \mathcal{T}_{pic} \times \omega_{reg} + b_{reg} $$
@@ -340,7 +340,7 @@
         </div>
 
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #f472b6; border-radius: 4px;">
-            <h5 style="color: #f9a8d4; margin-top: 0; font-size: 15px;">[步骤 3] 物理硬件配置与执行 (HW Encode)</h5>
+            <h3 style="color: #f9a8d4; margin-top: 0; font-size: 16px;">2.3 [步骤 3] 物理硬件配置与执行 (HW Encode)</h3>
             <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心理念：软件只定基调，硬件来打微操！</strong><br>软件将算出的 $QP_{hdr}$ 写入硬件寄存器（如 <code>swreg_pic_qp</code>）。硬件自适应量化（AQ）引擎会探测每个 CU 的空间纹理，算出微调变量 $\Delta QP_{cu}$。</p>
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ QP_{cu} = \mathrm{Clamp}(QP_{hdr} + \Delta QP_{cu}, \ QP_{min}, \ QP_{max}) $$
@@ -351,7 +351,7 @@
         </div>
 
         <div style="margin-bottom: 10px; padding: 15px; background: #1e293b; border-left: 3px solid #34d399; border-radius: 4px;">
-            <h5 style="color: #6ee7b7; margin-top: 0; font-size: 15px;">[步骤 4] 反馈收集与模型校准 (AfterPicRc)</h5>
+            <h3 style="color: #6ee7b7; margin-top: 0; font-size: 16px;">2.4 [步骤 4] 反馈收集与模型校准 (AfterPicRc)</h3>
             <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后吐出真实的物理消耗 $B_{actual}$，软件据此执行底层 EMA (指数移动平均) 滤波以校准 R-Q 模型：</p>
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ V_{level}^{(t)} = V_{level}^{(t-1)} + B_{actual} - \frac{R_{bitrate}}{F_{rate}} $$
