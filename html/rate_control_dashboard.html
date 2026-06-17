@@ -153,6 +153,42 @@
         <li><strong>最终归一化</strong>：算出的 <code>qScale</code> 会除以基准常数 <code>rateFactorConstant</code>，最终换算为底层物理 QP (<code>rc->qpHdr = qScale2qp(qScale)</code>)。</li>
     </ul>
 
+    <div class="example-box" style="background: #0f172a; border-left: 4px solid #3b82f6; padding: 15px; margin: 15px 0; border-radius: 4px;">
+        <h4 style="color: #60a5fa; margin-top: 0; font-size: 16px;">📉 极客案例推演：从绝对静止到瞬间爆炸的平滑过渡</h4>
+        <p style="color: #cbd5e1; font-size: 14px;">假设画面一直保持静止（成本仅 <strong>100</strong>），突然在 <strong>T0</strong> 时刻发生满屏爆炸，<code>pass1CurCost</code> 瞬间暴涨 10 倍（达到 <strong>1000</strong>）。若无平滑，QP 会瞬间暴跌引起流量雪崩。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
+        
+        <div style="display: flex; align-items: flex-end; gap: 15px; margin: 25px 0; height: 140px; border-bottom: 2px solid #334155; padding-bottom: 5px; overflow-x: auto;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                <div style="width: 45px; height: 12%; background: #475569; border-radius: 4px 4px 0 0;"></div>
+                <span style="font-size: 12px; color: #94a3b8; margin-top: 5px; text-align: center;">T-3<br>静止</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                <div style="width: 45px; height: 25%; background: #64748b; border-radius: 4px 4px 0 0;"></div>
+                <span style="font-size: 12px; color: #94a3b8; margin-top: 5px; text-align: center;">T-2<br>静止</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                <div style="width: 45px; height: 50%; background: #94a3b8; border-radius: 4px 4px 0 0;"></div>
+                <span style="font-size: 12px; color: #94a3b8; margin-top: 5px; text-align: center;">T-1<br>静止</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                <div style="width: 45px; height: 100%; background: #ef4444; border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></div>
+                <span style="font-size: 12px; color: #e2e8f0; margin-top: 5px; font-weight: bold; text-align: center;">T0<br>爆炸(1000)</span>
+            </div>
+            
+            <div style="margin-left: 30px; font-family: 'Roboto Mono', monospace; font-size: 13px; color: #94a3b8; align-self: center; background: #1e293b; padding: 12px; border-radius: 6px; border: 1px solid #334155; white-space: nowrap;">
+                <span style="color: #38bdf8;">// Step 1: EMA 低通滤波 (拖影平滑)</span><br>
+                <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + 1000) / 综合Count <br>
+                <span style="color: #a3a3a3;">-> 被 T-1~T-3 的低复杂度(100)严重稀释</span><br>
+                <span style="color: #4ade80;">-> 实际算出仅为约 500 (而非1000)</span><br><br>
+                
+                <span style="color: #38bdf8;">// Step 2: qCompress 非线性空间折叠</span><br>
+                <span style="color: #f8fafc;">qScale</span> = pow(<span style="color: #4ade80;">500</span>, 1 - <span style="color: #f472b6;">0.6</span>) <br>
+                <span style="color: #a3a3a3;">-> 增幅指数(0.4)把暴涨的复杂度无情压缩</span><br>
+                <span style="color: #4ade80;">-> QP 仅温和调整，完美避免码流瞬间崩塌！</span>
+            </div>
+        </div>
+    </div>
+
     <h3>策略三：防止系统饿死的强制熔断机制 (Frame Skip)</h3>
     <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 Buffer Underflow 怎么办？</p>
     <p>在 C-Model 的 <code>PicSkip(rc)</code> 函数中，有一道硬核的底线防护：如果 <code>bitAvailable < skipIncLimit</code>，即可用余额彻底耗尽，编码器会直接把 <code>rc->frameCoded</code> 强行置为 <code>ENCHW_NO</code>，也就是说<strong>直接丢弃这一帧，完全不编码，不发送</strong>。这在直播等极端场景中，是保护解码器不卡死崩溃的最后一道防火墙。</p>
