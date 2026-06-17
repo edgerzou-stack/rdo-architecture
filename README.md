@@ -47,6 +47,14 @@ You can directly access the interactive online documentation via the following l
   - Strict C-Model cost step-by-step verification without arbitrary assumptions.
   - Objective exploration of hardware DDR bandwidth constraints vs algorithmic DPB reference lists.
 
+### 🚰 6. [Rate Control & Virtual Buffer Architecture](https://edgerzou-stack.github.io/rdo-architecture/html/rate_control_dashboard.html)
+- **Target Audience:** RTL Designers, Firmware Engineers, System Architects.
+- **Content:** Demystifying the rate control (RC) closed-loop system, from HRD Virtual Buffer concepts to C-Model Bit Allocation (`targetPicSize`) and Linear Regression R-Q updates.
+- **Highlights:**
+  - Python Graphviz pre-rendered SVG dataflows illustrating RC allocation logic without Mermaid.
+  - Explanation of the "Intra Bit Stealing" phenomenon and scene change model resets.
+  - Conceptual "Water Pipe and Reservoir" economic analogy for RC.
+
 
 ## 🛠️ Repository Philosophy
 
