@@ -257,7 +257,7 @@
     <div class="top-nav" id="top-nav"></div>
     <h1>码率控制 (Rate Control) 底层架构拆解<br><span style="font-size:0.6em; color:#7f8c8d;">Algorithm & Hardware Co-Design</span></h1>
 
-    <h2>0. 概念背景：为何必须进行码率控制？</h2>
+    <h2>1. 概念背景与核心挑战：为何需要码率控制及 HRD 物理推演</h2>
     <p>在视频编码系统中，如果编码器“任性”地追求极致且恒定的客观画质（即采用 Constant QP 模式），会导致一个致命系统问题：<strong>视频码流的瞬时比特率（Bitrate）将产生不可控的剧烈波动</strong>。</p>
     
     <ul>
@@ -270,8 +270,7 @@
         当极度抖动的“生产端”遇到绝对刚性的“消费端”时，冲突便不可避免。码率控制（Rate Control）的作用，就是作为一个动态的全局协调者，在带宽红线、解码器物理缓存（DPB/VBV）与最终主观画质之间寻找最优解：<strong>通过在复杂场景中动态调高 QP（牺牲局部细节），来压制突发的大体积帧，实现“削峰填谷”，最终确保码流能够平稳、安全地穿越受限的物理信道。</strong>
     </div>
 
-    <h2>1. 核心挑战：HRD Virtual Buffer 物理推演</h2>
-    <p>在深入 C-Model 公式之前，我们通过一个<strong>实时动态推演微件</strong>来揭示码率控制（RC）的根本物理意义：在信道恒定注入的情况下，如何应对解码器的离散抽取。</p>
+    <p>在深入 C-Model 公式之前，我们通过一个<strong>实时动态推演微件</strong>来揭示码率控制（RC）的根本物理意义：在信道恒定注入的情况下，如何应对解码器的离散抽取（即 HRD Virtual Buffer 的水位挑战）。</p>
     
     <div class="hrd-widget">
         <div class="hrd-controls">
