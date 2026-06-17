@@ -319,9 +319,18 @@
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ \mathcal{T}_{pic} = \max\left( \mathcal{C}_{min}, \mathcal{B}_{pic} - \mathcal{B}_{intra} + \frac{\Delta_{error}}{W_{rc}} \right) $$
             </div>
-            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式释义：</strong>$\mathcal{B}_{pic}$ 是单帧理论均值，扣除 I 帧的超额欠款 $\mathcal{B}_{intra}$ 后，加上历史窗口内的累计误差分摊 $\frac{\Delta_{error}}{W_{rc}}$。$\mathcal{C}_{min}$ 为极小保底值（如 96 bits + CTB 数量）。</p>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
+            • <strong>$\mathcal{B}_{pic}$ (单帧静态均值)</strong>：由 <code>目标码率(Bitrate) / 帧率(FPS)</code> 严格计算得出。例如 10Mbps 码率在 25fps 下，每帧静态均值为 400Kb (即 50KB)。<br>
+            • <strong>$\mathcal{B}_{intra}$ (I帧超支惩罚)</strong>：I 帧为了保证独立解码和极高画质，往往会消耗静态均值的 5~10 倍体积。这笔巨大的“超支欠款”必须由后续的 P 帧在整个 GOP 周期内平摊偿还。<br>
+            • <strong>$\frac{\Delta_{error}}{W_{rc}}$ (历史误差平摊)</strong>：$\Delta_{error}$ 是当前真实 VBV 水位与目标水位的物理偏差量，$W_{rc}$ 是平滑窗口大小（通常是剩余 GOP 长度）。如果之前连续遇到复杂运动导致水位暴涨，此项将输出一个巨大的负数进行惩罚压缩。<br>
+            • <strong>$\mathcal{C}_{min}$ (极小保底值)</strong>：为防止算出的预算为负数或 0 导致硬件除零报错，系统强制设定的物理底线（通常是 <code>Header Bits + 宏块总数</code> 的极小值）。</p>
             <div style="background: rgba(96, 165, 250, 0.1); padding: 10px; border-radius: 4px;">
-                <p style="font-size: 13px; color: #93c5fd; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>假设单帧均值 $\mathcal{B}_{pic}=50KB$，但之前刚压完一个复杂的 I 帧导致欠款 $\mathcal{B}_{intra}=150KB$，且历史窗口误差 $\Delta_{error}$ 严重超载。经过公式结算，当前帧的预算 $\mathcal{T}_{pic}$ 可能会被无情压缩到仅剩 $10KB$，强迫后续步骤拉高 QP 偿还欠款。</p>
+                <p style="font-size: 13px; color: #93c5fd; margin: 0;"><strong>📉 严谨数据推演 (Numeric Example)：</strong><br>
+                【前提】设定用户配置为 10Mbps，25fps。则本帧理论均值 $\mathcal{B}_{pic} = \frac{10,000,000}{25 \times 8} = \mathbf{50KB}$。<br>
+                【扣款1】上一帧遇到场景切换，压了一个庞大的 I 帧（消耗了 250KB）。这笔 $200KB$ 的超支欠款需要在剩余的 20 帧 GOP 内平摊，因此本帧需要代扣 $\mathcal{B}_{intra} = \frac{200KB}{20} = \mathbf{10KB}$。<br>
+                【扣款2】系统查表发现当前 VBV 水位远超安全线，误差项算得本帧必须填补 $\frac{\Delta_{error}}{W_{rc}} = \mathbf{-30KB}$。<br>
+                【结算】本帧最终预算 $\mathcal{T}_{pic} = 50KB \text{ (均值)} - 10KB \text{ (I帧还款)} - 30KB \text{ (水位惩罚)} = \mathbf{10KB}$。<br>
+                原本 50KB 的宽裕预算被无情压缩至 10KB，底层状态机将在后续步骤中被迫拉高 QP 以求渡过难关。</p>
             </div>
         </div>
 
