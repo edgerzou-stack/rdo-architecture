@@ -400,7 +400,7 @@
             • <strong>$\mathcal{B}_{intra}$ (I帧超支补偿)</strong>：I 帧通常消耗数倍于均值的体积。此超额数据量必须由后续 P 帧在整个 GOP 周期内平摊补偿。<br>
             • <strong>$\frac{\Delta_{error}}{W_{rc}}$ (历史误差平摊)</strong>：$\Delta_{error}$ 为当前 VBV 实际水位与目标安全水位的偏差项；$W_{rc}$ 为平滑窗口大小（通常为剩余 GOP 长度）。<br>
             • <strong>$\mathcal{C}_{min}$ (极小保底值)</strong>：为防止预算截断至非正数导致的硬件除零错误，系统设定的强制性下限约束（通常基于 Header Bits 与宏块总数计算）。</p>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 22px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.1 动态安全水位 (Dynamic Target Buffer Level) 计算模型</h4>
+            <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 26px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.1 动态安全水位 (Dynamic Target Buffer Level) 计算模型</h4>
             <p style="font-size: 18px; color: #555; margin-bottom: 5px;">
             在 CBR 模式下，系统通常将基准安全线初始锚定在 VBV 容量的 <strong>50%~80%</strong>，以保留双向调节裕量。运行过程中的动态目标缓冲水位 $BL_{target}(t)$ 遵循以下等式：
             </p>
