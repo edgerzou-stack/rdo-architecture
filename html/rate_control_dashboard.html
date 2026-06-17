@@ -381,8 +381,9 @@
 
 
     <div style="margin-bottom: 25px;">
-        <h3 style="margin-top: 40px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">🔍 状态机深度解剖：软硬件的数据交互与 QP 控制本质</h3>
-        <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
+        <p style="font-size: 14px; margin-top: 40px; margin-bottom: 20px; line-height: 1.6;">
+            <strong>状态机交互机制概述：</strong>在码率控制（RC）模块的流水线架构中，核心逻辑可抽象为软件驱动的帧级全局目标规划与硬件驱动的宏块级（CU）自适应量化微调。跨层级的数据流转与物理寄存器映射流程具体如下：
+        </p>
         <div style="margin-bottom: 30px;">
             
     <h3 style="margin-top: 30px;">2.1 [步骤 1] 帧级目标分配 (BeforePicRc)</h3>
