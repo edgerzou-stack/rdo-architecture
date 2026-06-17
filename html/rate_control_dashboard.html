@@ -134,8 +134,8 @@
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
     <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个核心的数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code>。</p>
     <ul>
-        <li>处于基础时间层（Base Layer）的参考帧，由于会被后续大量帧参考，算法会给予极高的 <code>weight</code>，分配更多比特预算，保持高画质。</li>
-        <li>处于最高时间层（Highest Temporal Layer，例如不被任何人参考的 B 帧），算法会直接将其 <code>weight</code> 调低，大幅削减预算以节约带宽。</li>
+        <li><strong>I 帧与核心参考帧 (如 P 帧或参考 B 帧)</strong>：由于它们会被后续大量帧作为参考目标，一旦画质受损会引发极其严重的误差传递 (Error Propagation)。因此算法会给予它们极高的 <code>weight</code>，划拨更多比特预算以死保画质。</li>
+        <li><strong>非参考 B 帧 (Non-reference B-frame)</strong>：由于它们处于预测链的最末端，完全不被其他帧参考，即使画质较差也不会“连累”别人。因此算法会将其 <code>weight</code> 大幅调低，无情削减预算以节约带宽。</li>
     </ul>
 
     <h3>策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
