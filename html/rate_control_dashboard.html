@@ -132,10 +132,11 @@
     <p>如上图所示，整个 RC 系统被物理切分为前馈与反馈两个极其重要的阶段。为了让这个闭环不崩溃，C-Model 在工程上实施了以下三大极客策略：</p>
     
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
-    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个核心的数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code>。</p>
+    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。以经典的 <strong>GOP Size 4</strong> 结构为例：</p>
     <ul>
-        <li><strong>I 帧与核心参考帧 (如 P 帧或参考 B 帧)</strong>：由于它们会被后续大量帧作为参考目标，一旦画质受损会引发极其严重的误差传递 (Error Propagation)。因此算法会给予它们极高的 <code>weight</code>，划拨更多比特预算以死保画质。</li>
-        <li><strong>非参考 B 帧 (Non-reference B-frame)</strong>：由于它们处于预测链的最末端，完全不被其他帧参考，即使画质较差也不会“连累”别人。因此算法会将其 <code>weight</code> 大幅调低，无情削减预算以节约带宽。</li>
+        <li><strong>I 帧与核心参考帧 (Base Layer)</strong>：作为整个 GOP 的绝对基石，算法会赋予其最高权重，例如 <code>weight[3][3] = 12</code>（甚至高达 23）。这意味着它切走了绝大部分的比特预算，以死保画质不崩溃（防止误差传递）。</li>
+        <li><strong>中层参考 B 帧 (Mid-layer B-frame)</strong>：只被部分后继帧参考，重要性减半。算法会赋予其次级权重，例如 <code>weight[3][1] = 5</code>，其获得的比特预算直接遭到“腰斩”。</li>
+        <li><strong>非参考 B 帧 (Non-reference B-frame)</strong>：处于预测链最末端，完全不被任何人参考。即使其画质烂成马赛克也不会“连累”别人。算法对它们极其无情，直接分配最低权重 <code>weight[3][0] = 3</code> 和 <code>weight[3][2] = 3</code>，将其预算榨干以节约带宽，达成整体 R-D 最优解。</li>
     </ul>
 
     <h3>策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
