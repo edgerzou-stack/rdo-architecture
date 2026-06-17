@@ -209,6 +209,7 @@
         .sidebar a.active { background: #eff6ff; color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
         .sidebar li.level-2 a { padding-left: 12px; }
         .sidebar li.level-3 a { padding-left: 30px; font-size: 13px; color: #64748b; }
+        .sidebar li.level-4 a { padding-left: 48px; font-size: 12px; color: #94a3b8; }
         
         .main-content { flex-grow: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--card-bg); padding: 40px 60px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
@@ -606,7 +607,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         const tocList = document.getElementById('toc-list');
         const topNav = document.getElementById('top-nav');
-        const headers = document.querySelectorAll('.container h2:not(.toc-title), .container h3');
+        const headers = document.querySelectorAll('.container h2:not(.toc-title), .container h3, .container h4');
         const mainContent = document.getElementById('main-content');
         
         headers.forEach((header, index) => {
@@ -614,7 +615,13 @@
             header.id = id;
             
             const li = document.createElement('li');
-            li.className = header.tagName === 'H2' ? 'level-2' : 'level-3';
+            if (header.tagName === 'H2') {
+                li.className = 'level-2';
+            } else if (header.tagName === 'H3') {
+                li.className = 'level-3';
+            } else {
+                li.className = 'level-4';
+            }
             const a = document.createElement('a');
             a.href = '#' + id;
             a.textContent = header.textContent;
