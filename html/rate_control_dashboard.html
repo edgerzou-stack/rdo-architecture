@@ -349,12 +349,24 @@
 
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #f472b6; border-radius: 4px;">
             <h3 style="color: #f9a8d4; margin-top: 0; font-size: 16px;">2.3 [步骤 3] 物理硬件配置与执行 (HW Encode)</h3>
-            <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心理念：软件只定基调，硬件来打微操！</strong><br>软件将算出的 $QP_{hdr}$ 写入硬件寄存器（如 <code>swreg_pic_qp</code>）。硬件自适应量化（AQ）引擎会探测每个 CU 的空间纹理，算出微调变量 $\Delta QP_{cu}$。</p>
+            <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心理念：软件只定基调，硬件来打微操！</strong><br>软件将算出的 $QP_{hdr}$ 与自适应量化强度 $S_{aq}$ 写入硬件寄存器。硬件引擎在扫描每个 CU 时，会实时计算其空间方差（纹理复杂度），并以此推导出局部的 $\Delta QP_{cu}$：</p>
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
+                $$ V_{cu} = \frac{1}{N} \sum_{i=1}^{N} (p_i - \mu_{cu})^2 $$
+                $$ \Delta QP_{cu} = \mathrm{Round}\left( S_{aq} \times \log_2\left( \frac{V_{cu}}{\bar{V}_{frame}} \right) \right) $$
                 $$ QP_{cu} = \mathrm{Clamp}(QP_{hdr} + \Delta QP_{cu}, \ QP_{min}, \ QP_{max}) $$
             </div>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
+            • <strong>$V_{cu}$ (局部空间方差)</strong>：衡量当前 CU 内部像素 $p_i$ 相较于均值 $\mu_{cu}$ 的离散程度。马赛克/复杂草地的 $V_{cu}$ 极大，平坦天空的 $V_{cu}$ 极小。<br>
+            • <strong>$\bar{V}_{frame}$ (帧级参考方差)</strong>：当前帧或历史帧的平均复杂度水位，作为全局比较基准。<br>
+            • <strong>$S_{aq}$ (AQ 强度系数)</strong>：由软件配置（例如 2.0），控制 QP 偏移的激进程度。<br>
+            • <strong>$\log_2$ 相对映射函数</strong>：将相对复杂度转化为线性 QP 偏移量。当 $V_{cu} < \bar{V}_{frame}$ 时（平坦区），产生负的 $\Delta QP$；当 $V_{cu} > \bar{V}_{frame}$ 时（复杂区），产生正的 $\Delta QP$。</p>
             <div style="background: rgba(244, 114, 182, 0.1); padding: 10px; border-radius: 4px;">
-                <p style="font-size: 13px; color: #f9a8d4; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>基准 $QP_{hdr}$ = 45。当硬件扫到一片极其平坦的天空区域时，AQ 算法算出 $\Delta QP_{cu} = -5$ 以保护纯色画质，最终该 CU 的物理 $QP_{cu} = 40$；扫到复杂草地时，$\Delta QP_{cu} = +6$，该 CU 的 $QP_{cu} = 51$（直接糊掉）。</p>
+                <p style="font-size: 13px; color: #f9a8d4; margin: 0;"><strong>📉 严谨数据推演 (Numeric Example)：</strong><br>
+                【前提】软件下发基准 $QP_{hdr} = 30$，配置 AQ 强度 $S_{aq} = 2.0$，查表得参考方差 $\bar{V}_{frame} = 100$。<br>
+                【情景A：平坦天空】硬件扫描到一个纯蓝色 CU，计算出像素方差极低 $V_{cu} = 25$。<br>
+                $\Delta QP_{cu} = 2.0 \times \log_2(25 / 100) = 2.0 \times (-2) = \mathbf{-4}$。最终物理 $QP_{cu} = 30 - 4 = \mathbf{26}$（降低 QP，死保平坦区画质，防止色块断层）。<br>
+                【情景B：复杂草地】硬件扫描到纹理炸裂的草地 CU，计算出像素方差极高 $V_{cu} = 800$。<br>
+                $\Delta QP_{cu} = 2.0 \times \log_2(800 / 100) = 2.0 \times 3 = \mathbf{+6}$。最终物理 $QP_{cu} = 30 + 6 = \mathbf{36}$（拉高 QP，把宝贵的码率省下来让给平坦区）。</p>
             </div>
         </div>
 
