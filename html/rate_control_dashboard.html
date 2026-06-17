@@ -201,15 +201,15 @@
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); font-size: 18px; }
         .sidebar { width: 300px; background: white; border-right: 1px solid #e2e8f0; overflow-y: auto; padding: 30px; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.02); }
-        .sidebar h2.toc-title { font-size: 22px; color: #94a3b8; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; margin-top: 0; }
+        .sidebar h2.toc-title { font-size: 18px; color: #94a3b8; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; margin-top: 0; }
         .sidebar ul { list-style: none; padding: 0; margin: 0; }
         .sidebar li { margin-bottom: 8px; }
-        .sidebar a { color: #475569; text-decoration: none; display: block; padding: 8px 12px; border-radius: 6px; font-size: 22px; transition: all 0.2s; }
+        .sidebar a { color: #475569; text-decoration: none; display: block; padding: 8px 12px; border-radius: 6px; font-size: 18px; transition: all 0.2s; }
         .sidebar a:hover { color: var(--primary); }
         .sidebar a.active { background: #eff6ff; color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
         .sidebar li.level-2 a { padding-left: 12px; }
-        .sidebar li.level-3 a { padding-left: 30px; font-size: 20px; color: #64748b; }
-        .sidebar li.level-4 a { padding-left: 48px; font-size: 18px; color: #94a3b8; }
+        .sidebar li.level-3 a { padding-left: 30px; font-size: 16px; color: #64748b; }
+        .sidebar li.level-4 a { padding-left: 48px; font-size: 14px; color: #94a3b8; }
         
         .main-content { flex-grow: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--card-bg); padding: 40px 60px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
@@ -460,11 +460,47 @@
                 $$ \Delta QP_{cu} = \mathrm{Round}\left( S_{aq} \times \log_2\left( \frac{V_{cu}}{\bar{V}_{frame}} \right) \right) $$
                 $$ QP_{cu} = \mathrm{Clamp}(QP_{hdr} + \Delta QP_{cu}, \ QP_{min}, \ QP_{max}) $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
-            • <strong>$V_{cu}$ (局部空间方差)</strong>：反映当前 CU 内部像素分布特性的离散度。<br>
-            • <strong>$\bar{V}_{frame}$ (帧级参考方差)</strong>：历史帧平均复杂度水平，作为评估局部复杂度的全局比较基准。<br>
-            • <strong>$S_{aq}$ (AQ 强度系数)</strong>：由软件控制寄存器设定的权值，决定自适应量化调节的灵敏度。<br>
-            • <strong>映射逻辑</strong>：当 $V_{cu} < \bar{V}_{frame}$ 时（相对平滑区域），函数输出负向 $\Delta QP$ 偏移；当 $V_{cu} > \bar{V}_{frame}$ 时（相对高频区域），函数输出正向 $\Delta QP$ 偏移。</p>
+            <p style="font-size: 16px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
+
+            <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数一：$V_{cu}$（CU 局部空间方差）— 硬件实时计算</h4>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                $V_{cu}$ 是一个标准的<strong style="color: #93c5fd;">像素级样本方差</strong>，由硬件管线在逐 CU 处理时实时计算。其中 $p_i$ 为 CU 内第 $i$ 个<strong style="color: #93c5fd;">原始亮度像素值 (Luma)</strong>，$\mu_{cu} = \frac{1}{N}\sum_{i=1}^{N} p_i$ 为该 CU 内所有像素的算术均值，$N$ 为像素总数（如 16×16 CU 则 $N=256$）。
+                </p>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
+                在硬件实现中，为避免两遍扫描带来的延迟开销，通常采用<strong style="color: #93c5fd;">等价展开公式</strong>：$V_{cu} = E[X^2] - (E[X])^2 = \frac{1}{N}\sum p_i^2 - \left(\frac{1}{N}\sum p_i\right)^2$。硬件仅需一遍流水线扫描，同步累加 $\sum p_i$ 与 $\sum p_i^2$ 两个寄存器，即可在 CU 处理完毕时立即得出方差值，不引入额外时钟周期。
+                </p>
+            </div>
+
+            <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数二：$\bar{V}_{frame}$（帧级参考方差）— 软件帧间 EMA 滤波更新</h4>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                $\bar{V}_{frame}$ 并非固定常数，而是由软件层维护的、基于<strong style="color: #93c5fd;">前序帧全局方差的指数移动平均 (EMA) 滤波平滑值</strong>。软件在每一帧编码完成后，收集该帧内所有 CU 的方差均值，然后通过以下方程进行帧间更新：
+                </p>
+                <div style="padding: 10px; overflow-x: auto; color: #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
+                    $$ \bar{V}_{frame}^{(t)} = (1 - \beta) \cdot \bar{V}_{frame}^{(t-1)} + \beta \cdot \left(\frac{1}{M}\sum_{j=1}^{M} V_{cu,j}^{(t)}\right) $$
+                </div>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
+                其中 $M$ 为当前帧的 CU 总数，$V_{cu,j}^{(t)}$ 为第 $t$ 帧中第 $j$ 个 CU 的空间方差，$\beta$ 为平滑因子（典型值 $0.1 \sim 0.25$）。该滤波机制确保参考方差能够<strong style="color: #93c5fd;">追踪场景复杂度的长期漂移趋势</strong>，同时抑制单帧瞬态噪声引起的跳变。在沙盘案例中 $\bar{V}_{frame} = 128$ 即为经过多帧滤波收敛后、中等复杂度画面下的典型稳态方差水平。
+                </p>
+            </div>
+
+            <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数三：$S_{aq}$（AQ 强度系数）— 软件静态配置下发</h4>
+                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                $S_{aq}$ <strong style="color: #93c5fd;">不是动态计算的</strong>，而是由上层软件（编码器应用层 / 驱动层）根据编码模式配置后<strong style="color: #93c5fd;">写入硬件控制寄存器的静态权值</strong>。其来源通常为以下两种路径之一：
+                </p>
+                <ul style="font-size: 16px; color: #cbd5e1; margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li style="margin-bottom: 8px;"><strong style="color: #fbbf24;">路径A：用户显式指定</strong> — 编码器命令行参数（如 x265 的 <code style="color: #34d399;">--aq-strength 2.0</code>、FFmpeg 的 <code style="color: #34d399;">-aq-strength</code>）直接传入的数值。</li>
+                    <li style="margin-bottom: 8px;"><strong style="color: #fbbf24;">路径B：Preset 自动选择</strong> — 编码器根据当前 Preset（如 medium / slow / veryslow）与 Tune 模式（如 psnr / ssim / film）自动查表选择的经验推荐值。工业级编码器中典型取值范围为 $0.5 \leq S_{aq} \leq 3.0$。</li>
+                </ul>
+                <p style="font-size: 16px; color: #cbd5e1; margin-top: 8px; margin-bottom: 0; line-height: 1.7;">
+                $S_{aq}$ 的物理含义是 $\Delta QP$ 偏移的<strong style="color: #93c5fd;">增益系数</strong>：值越大，平滑区域与复杂区域之间的 QP 差异越大，即更激进地从人眼不敏感的平滑区域抽取比特预算，补贴给人眼敏感的纹理密集区域。
+                </p>
+            </div>
+
+            <p style="font-size: 16px; color: #555; margin-bottom: 5px;">
+            • <strong>映射逻辑</strong>：当 $V_{cu} < \bar{V}_{frame}$ 时（相对平滑区域），$\log_2$ 函数输出负值，产生负向 $\Delta QP$ 偏移（降低 QP，保留更多视觉细节）；当 $V_{cu} > \bar{V}_{frame}$ 时（相对高频区域），函数输出正值，产生正向 $\Delta QP$ 偏移（提高 QP，压缩高频冗余以节约码流）。</p>
             </div>
             
             <h4 id="section-8" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.3.1 📉 严谨数据推演 (Numeric Example)</h4>
