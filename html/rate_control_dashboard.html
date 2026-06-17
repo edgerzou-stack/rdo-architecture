@@ -206,7 +206,7 @@
         .sidebar li { margin-bottom: 8px; }
         .sidebar a { color: #475569; text-decoration: none; display: block; padding: 8px 12px; border-radius: 6px; font-size: 14px; transition: all 0.2s; }
         .sidebar a:hover { color: var(--primary); }
-        .sidebar a.active { color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
+        .sidebar a.active { background: #eff6ff; color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
         .sidebar li.level-2 a { padding-left: 12px; }
         .sidebar li.level-3 a { padding-left: 30px; font-size: 13px; color: #64748b; }
         
@@ -384,7 +384,9 @@
         <h3 style="margin-top: 40px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">🔍 状态机深度解剖：软硬件的数据交互与 QP 控制本质</h3>
         <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
         <div style="margin-bottom: 30px;">
-            <h3 style="margin-top: 30px;">2.1 [步骤 1] 帧级目标分配 (BeforePicRc)</h3>
+            
+    <h3 style="margin-top: 30px;">2.1 [步骤 1] 帧级目标分配 (BeforePicRc)</h3>
+            <div class="highlight" style="background-color: #e3f2fd; border-left-color: #1976d2;">
             <p style="font-size: 14px; margin-bottom: 10px;">软件侦测 <code>Virtual Buffer</code> 剩余水位并结合 GOP 权重计算可用字节。计算公式如下：</p>
             <div style="background: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; color: #333; border: 1px solid #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ \mathcal{T}_{pic} = \max\left( \mathcal{C}_{min}, \mathcal{B}_{pic} - \mathcal{B}_{intra} + \frac{\Delta_{error}}{W_{rc}} \right) $$
@@ -407,10 +409,13 @@
                 【结算】本帧最终预算 $\mathcal{T}_{pic} = 50KB \text{ (均值)} - 10KB \text{ (I帧还款)} - 30KB \text{ (水位惩罚)} = \mathbf{10KB}$。<br>
                 原本 50KB 的宽裕预算被无情压缩至 10KB，底层状态机将在后续步骤中被迫拉高 QP 以求渡过难关。</p>
             </div>
+            </div>
         </div>
 
         <div style="margin-bottom: 30px;">
-            <h3 style="margin-top: 30px;">2.2 [步骤 2] 初始 QP 推演 (PicQuant)</h3>
+            
+    <h3 style="margin-top: 30px;">2.2 [步骤 2] 初始 QP 推演 (PicQuant)</h3>
+            <div class="highlight" style="background-color: #fff8e1; border-left-color: #ffa000;">
             <p style="font-size: 14px; margin-bottom: 10px;">软件通过历史的 R-Q 反比函数模型（双曲线映射），将分配到的预算 $\mathcal{T}_{pic}$ 反向推算为标度因子 $Q_{scale}$，再映射为物理基准 $QP_{hdr}$：</p>
             <div style="background: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; color: #333; border: 1px solid #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ Q_{scale} = \frac{\omega_{reg}}{\mathcal{T}_{pic}} + b_{reg} $$
@@ -425,10 +430,13 @@
                 【情景B：预算拮据】承接上文，如果 $\mathcal{T}_{pic}$ 被无情压缩到了 $38,000 \text{ bit}$，则 $Q_{scale} = \frac{1,000,000}{38,000} \approx 26.3$。映射出的 $QP_{hdr} \approx \mathbf{26}$（画质中等）。<br>
                 【情景C：极端超载】如果 $\mathcal{T}_{pic}$ 暴降至 $10,000 \text{ bit}$，则 $Q_{scale} = 100$。由于触发了物理上限限制，最终将被强制截断：$QP_{hdr} = \mathbf{51}$（直接满脸马赛克）。</p>
             </div>
+            </div>
         </div>
 
         <div style="margin-bottom: 30px;">
-            <h3 style="margin-top: 30px;">2.3 [步骤 3] 物理硬件配置与执行 (HW Encode)</h3>
+            
+    <h3 style="margin-top: 30px;">2.3 [步骤 3] 物理硬件配置与执行 (HW Encode)</h3>
+            <div class="highlight" style="background-color: #fce4ec; border-left-color: #c2185b;">
             <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心理念：软件只定基调，硬件来打微操！</strong><br>软件将算出的 $QP_{hdr}$ 与自适应量化强度 $S_{aq}$ 写入硬件寄存器。硬件引擎在扫描每个 CU 时，会实时计算其空间方差（纹理复杂度），并以此推导出局部的 $\Delta QP_{cu}$：</p>
             <div style="background: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; color: #333; border: 1px solid #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ V_{cu} = \frac{1}{N} \sum_{i=1}^{N} (p_i - \mu_{cu})^2 $$
@@ -448,10 +456,12 @@
                 【情景B：复杂草地】硬件扫描到纹理炸裂的草地 CU，计算出像素方差极高 $V_{cu} = 800$。<br>
                 $\Delta QP_{cu} = 2.0 \times \log_2(800 / 100) = 2.0 \times 3 = \mathbf{+6}$。最终物理 $QP_{cu} = 30 + 6 = \mathbf{36}$（拉高 QP，把宝贵的码率省下来让给平坦区）。</p>
             </div>
+            </div>
         </div>
 
         <div style="margin-bottom: 30px;">
             <h3 style="margin-top: 30px;">2.4 [步骤 4] 反馈收集与模型校准 (AfterPicRc)</h3>
+            <div class="highlight" style="background-color: #e8f5e9; border-left-color: #2e7d32;">
             <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后吐出真实的物理消耗 $B_{actual}$，软件据此执行底层 EMA (指数移动平均) 滤波以校准 R-Q 模型：</p>
             <div style="background: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; color: #333; border: 1px solid #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
                 $$ V_{level}^{(t)} = V_{level}^{(t-1)} + B_{actual} - \frac{R_{bitrate}}{F_{rate}} $$
@@ -467,6 +477,7 @@
             <div style="padding: 10px 0; border-top: 1px dashed #cbd5e1; margin-top: 10px;">
                 <p style="font-size: 13px; margin: 0; font-weight: bold; color: #333;"><strong>📉 沙盘案例 (Numeric Example)：</strong>假设历史斜率 $\omega_{reg}=1.0$。突发爆炸场景使得本帧异常难压，导致算出的瞬态斜率 $\omega_{cur}$ 暴涨至 $9.0$。在 $\alpha=0.125$ 的 EMA 算法下，新的斜率会被更新为 $1.0 \times \frac{7}{8} + 9.0 \times \frac{1}{8} = 2.0$。这完美避免了模型被单一异常帧彻底带偏（防跳变），同时又敏感地吸收了画面变复杂的趋势（防迟滞），使得下一帧的推演更加精准。</p>
             </div>
+            </div>
         </div>
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
     </div>
@@ -475,7 +486,8 @@
     <h2 style="margin-top: 50px; border-top: 1px solid #334155; padding-top: 30px;">3. 极端场景的三大极客兜底策略 (Three Geek Fallback Strategies)</h2>
     <p>建立核心状态机模型后，我们再深入探究 C-Model 是如何使用三大极客策略，在极端恶劣条件下强制防崩溃的：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
-    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
+    <div class="highlight" style="background-color: #e3f2fd; border-left-color: #1976d2;">
+        <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
     
     <div class="highlight" style="background: #0f172a; padding: 10px 15px; border-left: 3px solid #10b981; border-radius: 4px; color: #555; margin-bottom: 15px; font-size: 14px;">
         <strong style="color: #34d399;">💡 术语解析 (Terminology)：什么是 Target Picture Size？</strong><br>
@@ -508,7 +520,8 @@
     </div>
 
     <h3>策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
-    <p>当系统开启 CRF (Constant Rate Factor) 模式时，为了避免局部画面突变（如突然爆炸）导致 QP 剧烈震荡，算法结合了 <strong>Pass 1 (预分析)</strong> 数据并执行了严格的量化衰减：</p>
+    <div class="highlight" style="background-color: #fff8e1; border-left-color: #ffa000;">
+        <p>当系统开启 CRF (Constant Rate Factor) 模式时，为了避免局部画面突变（如突然爆炸）导致 QP 剧烈震荡，算法结合了 <strong>Pass 1 (预分析)</strong> 数据并执行了严格的量化衰减：</p>
     <ul>
         <li><strong>时域指数衰减 (EMA)</strong>：每经过一帧，历史积累的复杂度权重无情减半。通过 \(\mathcal{W}_{cplx}^{(t)} = \mathcal{W}_{cplx}^{(t-1)} \times 0.5\) 抛弃远古历史。</li>
         <li><strong>平滑复杂度计算 (Blurred Complexity)</strong>：将当前帧代价 \(\mathcal{C}_{cur}\) 融入历史池，得到带时域衰减的低通滤波结果：\(\mathcal{C}_{blur} = \frac{\sum (C_i \times 0.5^i)}{\sum 0.5^i}\)。</li>
@@ -552,11 +565,16 @@
         </div>
     </div>
 
+    </div>
+
+    </div>
+
     <h3>策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
-    <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 VBV 欠载（Underflow）怎么办？</p>
+    <div class="highlight" style="background-color: #fce4ec; border-left-color: #c2185b;">
+        <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 VBV 欠载（Underflow）怎么办？</p>
     
     <p>在 C-Model 的 <code>PicSkip</code> 模块中，有一道硬核的底线防护：</p>
-    <div style="background: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; color: #333; border: 1px solid #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 15px;">
+    <div style="padding: 10px; overflow-x: auto; color: #333; font-size: 16px; text-align: center; margin-bottom: 15px;">
         $$ \text{If } \ \mathcal{V}_{avail} < \mathcal{B}_{skip\_limit} \implies \text{FrameCoded} = \mathrm{FALSE} $$
     </div>
     <p>即：如果当前 VBV 池可用余额 \(\mathcal{V}_{avail}\) 甚至低于发送一个全 Skip 块的极限保底开销 \(\mathcal{B}_{skip\_limit}\)，编码器会触发熔断，强行丢弃这一帧，完全不编码，不发送。</p>
@@ -570,6 +588,8 @@
         </ul>
     </div>
 </div>
+    </div>
+
 </div>
 
 <script>
