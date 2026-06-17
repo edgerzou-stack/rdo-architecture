@@ -382,7 +382,14 @@
 
     <p>为了让这个精密的状态机在极端条件下不崩溃，C-Model 在软件工程上实施了以下三大极客兜底策略：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
-    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的物理目标体积（Target Picture Size），其核心分配公式如下：</p>
+    <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
+    
+    <div class="highlight" style="background: #0f172a; padding: 10px 15px; border-left: 3px solid #10b981; border-radius: 4px; color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">
+        <strong style="color: #34d399;">💡 术语解析 (Terminology)：什么是 Target Picture Size？</strong><br>
+        正如您所理解的，它就是编码器在开工前，给当前这一帧下达的<strong>“比特预算上限 (Bit Budget)”</strong>。如果把带宽当成每个月有限的生活费，<code>Target Picture Size</code> 就是算法分配给“今天”的可用开销。后续的基准 QP 推演，乃至 CU 级的 Delta QP，全部都是为了保证最终编码出的物理体积（Actual BitCnt）能够精准地卡在这个“预算”以内，不超支。
+    </div>
+
+    <p>该预算的核心分配公式如下：</p>
     <div class="highlight" style="background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; overflow-x: auto; color: #e2e8f0; font-size: 18px;">
         $$ \mathcal{T}_{pic} = \mathcal{T}_{base} \times N_{GOP} \times \left( \frac{\mathcal{W}_{GOP}[N-1][poc]}{\mathcal{W}_{total}} \right) $$
     </div>
