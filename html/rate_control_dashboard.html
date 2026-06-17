@@ -413,13 +413,16 @@
             • <strong>$\sum_{i=1}^{N_t} \mathcal{B}_{pic}(i)$</strong>：前 $N_t$ 个已编码帧在理想状态下的目标消耗总量累加（即已编码帧数与理论均值的乘积）。<br>
             当实际水位 $BL_{actual}(t)$ 因历史帧连续超额消耗而发生正向大幅偏离时，差值项 $\Delta_{error} = BL_{actual}(t) - BL_{target}(t)$ 呈现较大正值，从而在模型中转化为负反馈项，迫使当前帧削减分配额度。
             </p>
-            <div style="padding: 10px 0; border-top: 1px dashed #cbd5e1; margin-top: 10px;">
-                <p style="font-size: 18px; margin: 0; font-weight: bold; color: #333;"><strong>📉 严谨数据推演 (Numeric Example)：</strong><br>
-                【初始条件】设备以 2Mbps 目标码率及 25fps 帧率运行。理论单帧分配均值 $\mathcal{B}_{pic} = \frac{2,000,000}{25} = \mathbf{80,000 \text{ bit}}$。<br>
-                【补偿项一：I帧平摊】前序 I 帧实际编码体积达 320,000 bit（超出静态均值 240,000 bit）。此超额部分基于剩余 20 帧 GOP 周期进行均摊补偿，本帧折减预算 $\mathcal{B}_{intra} = \frac{240,000}{20} = \mathbf{12,000 \text{ bit}}$。<br>
-                【补偿项二：水位反馈】设定 VBV 总物理容量 $S_{vbv} = 4,000,000 \text{ bit}$（即 2 秒缓冲裕量）。基准目标安全水位 $BL_{target} = 50\% \times S_{vbv} = 2,000,000 \text{ bit}$。状态机侦测到当前实际水位 $BL_{actual}$ 已攀升至总容量的 65.0%，即 $2,600,000 \text{ bit}$。计算绝对偏差项 $\Delta_{error} = BL_{target} - BL_{actual} = -600,000 \text{ bit}$。设定反馈平滑窗口 $W_{rc} = 20$ 帧，则本帧需额外施加的水位校正负反馈量严格计算为 $\frac{\Delta_{error}}{W_{rc}} = \frac{-600,000}{20} = \mathbf{-30,000 \text{ bit}}$。<br>
-                【目标生成】综合以上参数，本帧受限的可用预算 $\mathcal{T}_{pic} = 80,000 - 12,000 - 30,000 = \mathbf{38,000 \text{ bit}}$。<br>
-                在双重补偿机制的约束下，80,000 bit 的基准分配额度被削减至 38,000 bit。该受限目标值随即输出至量化推演模块，导致目标 QP 上升。</p>
+            </div>
+            
+            <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 26px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.2 📉 严谨数据推演 (Numeric Example)</h4>
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                <ul style="font-size: 18px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li style="margin-bottom: 12px;"><strong>【初始条件】</strong><br>设备以 2Mbps 目标码率及 25fps 帧率运行。理论单帧分配均值 $\mathcal{B}_{pic} = \frac{2,000,000}{25} = \mathbf{80,000 \text{ bit}}$。</li>
+                    <li style="margin-bottom: 12px;"><strong>【补偿项一：I帧平摊】</strong><br>前序 I 帧实际编码体积达 320,000 bit（超出静态均值 240,000 bit）。此超额部分基于剩余 20 帧 GOP 周期进行均摊补偿，本帧折减预算 $\mathcal{B}_{intra} = \frac{240,000}{20} = \mathbf{12,000 \text{ bit}}$。</li>
+                    <li style="margin-bottom: 12px;"><strong>【补偿项二：水位反馈】</strong><br>设定 VBV 总物理容量 $S_{vbv} = 4,000,000 \text{ bit}$（即 2 秒缓冲裕量）。基准目标安全水位 $BL_{target} = 50\% \times S_{vbv} = 2,000,000 \text{ bit}$。状态机侦测到当前实际水位 $BL_{actual}$ 已攀升至总容量的 65.0%，即 $2,600,000 \text{ bit}$。计算绝对偏差项 $\Delta_{error} = BL_{target} - BL_{actual} = -600,000 \text{ bit}$。设定反馈平滑窗口 $W_{rc} = 20$ 帧，则本帧需额外施加的水位校正负反馈量严格计算为 $\frac{\Delta_{error}}{W_{rc}} = \frac{-600,000}{20} = \mathbf{-30,000 \text{ bit}}$。</li>
+                    <li><strong>【目标生成】</strong><br>综合以上参数，本帧受限的可用预算 $\mathcal{T}_{pic} = 80,000 - 12,000 - 30,000 = \mathbf{38,000 \text{ bit}}$。在双重补偿机制的约束下，80,000 bit 的基准分配额度被削减至 38,000 bit。该受限目标值随即输出至量化推演模块，导致目标 QP 上升。</li>
+                </ul>
             </div>
             </div>
         </div>
