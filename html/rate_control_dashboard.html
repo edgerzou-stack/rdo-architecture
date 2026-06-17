@@ -392,7 +392,12 @@
             <p style="font-size: 13px; color: #555; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
             • <strong>$\mathcal{B}_{pic}$ (单帧静态均值)</strong>：由 <code>目标码率(Bitrate) / 帧率(FPS)</code> 严格计算得出。例如 10Mbps 码率在 25fps 下，每帧静态均值为 400Kb (即 50KB)。<br>
             • <strong>$\mathcal{B}_{intra}$ (I帧超支惩罚)</strong>：I 帧为了保证独立解码和极高画质，往往会消耗静态均值的 5~10 倍体积。这笔巨大的“超支欠款”必须由后续的 P 帧在整个 GOP 周期内平摊偿还。<br>
-            • <strong>$\frac{\Delta_{error}}{W_{rc}}$ (历史误差平摊)</strong>：$\Delta_{error}$ 是当前真实 VBV 水位与目标水位的物理偏差量，$W_{rc}$ 是平滑窗口大小（通常是剩余 GOP 长度）。如果之前连续遇到复杂运动导致水位暴涨，此项将输出一个巨大的负数进行惩罚压缩。<br>
+            • <strong>$\frac{\Delta_{error}}{W_{rc}}$ (历史误差平摊)</strong>：$\Delta_{error}$ 是当前真实 VBV 水位与**目标安全线 (Target Buffer Level)** 的物理偏差量，$W_{rc}$ 是平滑窗口大小（通常是剩余 GOP 长度）。<br>
+            <span style="display: block; margin-left: 15px; margin-top: 6px; margin-bottom: 6px; padding-left: 12px; border-left: 3px solid #cbd5e1; color: #64748b; font-size: 13px;">
+                <strong>※ 安全线是如何确定的？</strong>在 CBR (固定码率) 模式下，系统通常将基准安全线锚定在 VBV 总容量的 <strong>50%~80%</strong>，以留出双向缓冲的物理冗余。在实际运行中，它表现为一条严密的<strong>动态追踪曲线 (Tracking Curve)</strong>：<br>
+                <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569; font-size: 12px;">动态安全水位 = 初始缓冲水位 + (系统运行时间 × 信道注入带宽) - (已编码帧数 × 单帧理论均值)</code><br>
+                一旦真实水位因为历史帧的连续“超支”而大幅飙升越过这根理想曲线，$\Delta_{error}$ 就会输出巨大的负数，迫使当前帧“勒紧裤腰带”来还债。
+            </span>
             • <strong>$\mathcal{C}_{min}$ (极小保底值)</strong>：为防止算出的预算为负数或 0 导致硬件除零报错，系统强制设定的物理底线（通常是 <code>Header Bits + 宏块总数</code> 的极小值）。</p>
             <div style="padding: 10px 0; border-top: 1px dashed #cbd5e1; margin-top: 10px;">
                 <p style="font-size: 13px; margin: 0; font-weight: bold; color: #333;"><strong>📉 严谨数据推演 (Numeric Example)：</strong><br>
