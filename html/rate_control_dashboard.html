@@ -302,31 +302,48 @@
     <div class="highlight" style="background: #0f172a; padding: 15px; border-left: 4px solid #8b5cf6; border-radius: 4px; color: #cbd5e1; margin-bottom: 25px;">
         <h4 style="color: #a78bfa; margin-top: 0; font-size: 16px;">🔍 状态机深度解剖：软硬件的数据交互与 QP 控制本质</h4>
         <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
-        <ul style="font-size: 14px; font-family: 'Roboto Mono', monospace; line-height: 1.6;">
-            <li><strong>[步骤 1] 帧级目标分配 (BeforePicRc)：</strong><br>
-                软件通过侦测 <code>Virtual Buffer</code> 剩余水位并结合 GOP 权重，严谨计算当前帧的可用字节（<code>targetPicSize</code>）。其核心代码逻辑为：<br>
+        <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #60a5fa; border-radius: 4px;">
+            <h5 style="color: #93c5fd; margin-top: 0; font-size: 15px;">[步骤 1] 帧级目标分配 (BeforePicRc)</h5>
+            <p style="font-size: 14px; margin-bottom: 10px;">软件通过侦测 <code>Virtual Buffer</code> 剩余水位并结合 GOP 权重，严谨计算当前帧的可用字节（<code>targetPicSize</code>）。其核心代码逻辑为：</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
                 <code>targetPicSize = bitPerPic - intraBits + DIV(tmp, rcWindow)</code><br>
-                <code>targetPicSize = MAX(96 + ctbCount, targetPicSize)</code><br>
-                <span style="color: #64748b;">(即：基础分配量扣除 I 帧欠款，加上历史窗口误差摊销，并设定极小保底值)</span>
-            </li>
-            <li><strong>[步骤 2] 初始 QP 推演 (PicQuant)：</strong><br>
-                软件通过历史建立的 R-Q (Rate-Quantization) 线性回归模型，将目标分配体积反向推算为标度因子 <code>qScale</code>，再映射为基准 QP：<br>
+                <code>targetPicSize = MAX(96 + ctbCount, targetPicSize)</code>
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-top: 5px; margin-bottom: 0;">即：基础分配量扣除 I 帧欠款，加上历史窗口误差摊销，并设定极小保底值。</p>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #fbbf24; border-radius: 4px;">
+            <h5 style="color: #fcd34d; margin-top: 0; font-size: 15px;">[步骤 2] 初始 QP 推演 (PicQuant)</h5>
+            <p style="font-size: 14px; margin-bottom: 10px;">软件通过历史建立的 R-Q (Rate-Quantization) 线性回归模型，将目标分配体积反向推算为标度因子 <code>qScale</code>，再映射为基准 QP：</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
                 <code>qScale = targetPicSize * linReg.weight + linReg.offset</code><br>
-                <code>qpHdr = qScale2qp(qScale)</code><br>
-                <span style="color: #64748b;">(如果推演出的 QP 超出预设边界，将被强制截断到 qpMin 和 qpMax 之间)</span>
-            </li>
-            <li><strong>[步骤 3] 物理硬件配置与执行 (HW Encode)：</strong><br>
-                <span style="color: #f472b6;">▶ 核心解答：软件只定基调，硬件来打微操！</span><br>
-                软件将算出的 <code>qpHdr</code> 以及硬性约束边界 <code>qpMin / qpMax</code> 写入硬件寄存器（如 <code>swreg_pic_qp</code>）。<br>
-                在物理编码阶段，硬件 AQ（自适应量化）引擎接管控制权。它会探测图像每一个 CU 的空间纹理特征：如果是纯色平坦区，硬件会计算出一个负值的 <code>Delta QP</code>；如果是复杂纹理区，则计算一个正值的 <code>Delta QP</code>。<br>
-                最终每个 CU 的实际工作 QP = <code>Clamp(qpHdr + Delta QP, qpMin, qpMax)</code>。
-            </li>
-            <li><strong>[步骤 4] 反馈收集与模型校准 (AfterPicRc)：</strong><br>
-                硬件完工后汇报真实的物理尺寸 <code>actualBitCnt</code>。软件以此完成两项极其关键的闭环操作：<br>
-                <strong>(1) VBV 水位更新</strong>：<code>virtualBufferLevel += actualBitCnt - bitRate / frameRate</code><br>
-                <strong>(2) R-Q 模型自学习</strong>：通过真实的 <code>actualBitCnt</code> 反算真实的 <code>actualQScale</code>，然后利用指数移动平均 (EMA) 算法，实时修正下一次推演所用的 <code>linReg.weight</code> 和 <code>linReg.offset</code> 的斜率与截距，保证模型永远追随当前最新的画面特征。
-            </li>
-        </ul>
+                <code>qpHdr = qScale2qp(qScale)</code>
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-top: 5px; margin-bottom: 0;">如果推演出的 QP 超出预设边界，将被强制截断到 qpMin 和 qpMax 之间。</p>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #f472b6; border-radius: 4px;">
+            <h5 style="color: #f9a8d4; margin-top: 0; font-size: 15px;">[步骤 3] 物理硬件配置与执行 (HW Encode)</h5>
+            <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心解答：软件只定基调，硬件来打微操！</strong><br>
+            软件将算出的 <code>qpHdr</code> 以及硬性约束边界 <code>qpMin / qpMax</code> 写入硬件寄存器（如 <code>swreg_pic_qp</code>）。</p>
+            <p style="font-size: 14px; margin-bottom: 10px;">在物理编码阶段，硬件 AQ（自适应量化）引擎接管控制权。它会探测图像每一个 CU 的空间纹理特征：如果是纯色平坦区，硬件会计算出一个负值的 <code>Delta QP</code>；如果是复杂纹理区，则计算一个正值的 <code>Delta QP</code>。</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
+                最终每个 CU 的实际工作 QP = <code>Clamp(qpHdr + Delta QP, qpMin, qpMax)</code>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 10px; padding: 15px; background: #1e293b; border-left: 3px solid #34d399; border-radius: 4px;">
+            <h5 style="color: #6ee7b7; margin-top: 0; font-size: 15px;">[步骤 4] 反馈收集与模型校准 (AfterPicRc)</h5>
+            <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后汇报真实的物理尺寸 <code>actualBitCnt</code>。软件以此完成两项极其关键的闭环操作：</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px; margin-bottom: 10px;">
+                <strong>(1) VBV 水位更新：</strong><br>
+                <code>virtualBufferLevel += actualBitCnt - bitRate / frameRate</code>
+            </div>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
+                <strong>(2) R-Q 模型自学习：</strong><br>
+                通过真实的 <code>actualBitCnt</code> 反算真实的 <code>actualQScale</code>，然后利用指数移动平均 (EMA) 算法，实时修正下一次推演所用的 <code>linReg.weight</code> 和 <code>linReg.offset</code> 的斜率与截距，保证模型永远追随当前最新的画面特征。
+            </div>
+        </div>
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
     </div>
 
