@@ -166,7 +166,7 @@
             if (smIsRunning) {
                 clearInterval(smInterval);
                 smIsRunning = false;
-                smBtn.textContent = '[▶ 启动状态机推演]';
+                smBtn.textContent = '[▶ 自动推演]';
                 smBtn.style.background = '#8b5cf6';
                 smPhase.textContent = '[已暂停]';
             } else {
@@ -177,6 +177,18 @@
                 smInterval = setInterval(runSmStep, 1500); // 1.5 seconds per step
                 runSmStep(); // run immediately
             }
+        });
+
+        const smStepBtn = document.getElementById('sm-step-btn');
+        smStepBtn.addEventListener('click', () => {
+            if (smIsRunning) {
+                clearInterval(smInterval);
+                smIsRunning = false;
+                smBtn.textContent = '[▶ 自动推演]';
+                smBtn.style.background = '#8b5cf6';
+            }
+            smPhase.textContent = '[PPT 步进模式]';
+            runSmStep();
         });
     });
     </script>
@@ -292,7 +304,7 @@
         4. <strong>Rate Control 的意义</strong>：侦测到水位下降时，强制拉高 QP，压榨画面细节以换取帧体积的骤减，从而让信道注入速率超过抽取速率，硬生生把水位拉回安全线。
     </div>
 
-    <h2>2. RC 系统流转图与核心痛点</h2>
+    <h2>2. 核心状态机与软硬件协同 (Core State Machine & Soft/Hard Co-design)</h2>
     <p>在底层的 C-Model 中，码率控制绝非一个简单的 $D+\lambda R$ 公式，而是一个极其庞大的<strong>前馈分配与反馈修正闭环系统</strong>。</p>
 
     <div style="text-align: center;">
@@ -305,44 +317,50 @@
         <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #60a5fa; border-radius: 4px;">
             <h5 style="color: #93c5fd; margin-top: 0; font-size: 15px;">[步骤 1] 帧级目标分配 (BeforePicRc)</h5>
-            <p style="font-size: 14px; margin-bottom: 10px;">软件通过侦测 <code>Virtual Buffer</code> 剩余水位并结合 GOP 权重，严谨计算当前帧的可用字节（<code>targetPicSize</code>）。其核心代码逻辑为：</p>
-            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
-                <code>targetPicSize = bitPerPic - intraBits + DIV(tmp, rcWindow)</code><br>
-                <code>targetPicSize = MAX(96 + ctbCount, targetPicSize)</code>
+            <p style="font-size: 14px; margin-bottom: 10px;">软件侦测 <code>Virtual Buffer</code> 剩余水位并结合 GOP 权重计算可用字节。计算公式如下：</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
+                $$ \mathcal{T}_{pic} = \max\left( \mathcal{C}_{min}, \mathcal{B}_{pic} - \mathcal{B}_{intra} + \frac{\Delta_{error}}{W_{rc}} \right) $$
             </div>
-            <p style="font-size: 13px; color: #64748b; margin-top: 5px; margin-bottom: 0;">即：基础分配量扣除 I 帧欠款，加上历史窗口误差摊销，并设定极小保底值。</p>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式释义：</strong>$\mathcal{B}_{pic}$ 是单帧理论均值，扣除 I 帧的超额欠款 $\mathcal{B}_{intra}$ 后，加上历史窗口内的累计误差分摊 $\frac{\Delta_{error}}{W_{rc}}$。$\mathcal{C}_{min}$ 为极小保底值（如 96 bits + CTB 数量）。</p>
+            <div style="background: rgba(96, 165, 250, 0.1); padding: 10px; border-radius: 4px;">
+                <p style="font-size: 13px; color: #93c5fd; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>假设单帧均值 $\mathcal{B}_{pic}=50KB$，但之前刚压完一个复杂的 I 帧导致欠款 $\mathcal{B}_{intra}=150KB$，且历史窗口误差 $\Delta_{error}$ 严重超载。经过公式结算，当前帧的预算 $\mathcal{T}_{pic}$ 可能会被无情压缩到仅剩 $10KB$，强迫后续步骤拉高 QP 偿还欠款。</p>
+            </div>
         </div>
 
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #fbbf24; border-radius: 4px;">
             <h5 style="color: #fcd34d; margin-top: 0; font-size: 15px;">[步骤 2] 初始 QP 推演 (PicQuant)</h5>
-            <p style="font-size: 14px; margin-bottom: 10px;">软件通过历史建立的 R-Q (Rate-Quantization) 线性回归模型，将目标分配体积反向推算为标度因子 <code>qScale</code>，再映射为基准 QP：</p>
-            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
-                <code>qScale = targetPicSize * linReg.weight + linReg.offset</code><br>
-                <code>qpHdr = qScale2qp(qScale)</code>
+            <p style="font-size: 14px; margin-bottom: 10px;">软件通过历史的 R-Q 线性回归模型，将 $\mathcal{T}_{pic}$ 反向推算为标度因子 $Q_{scale}$，再映射为物理基准 $QP_{hdr}$：</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
+                $$ Q_{scale} = \mathcal{T}_{pic} \times \omega_{reg} + b_{reg} $$
+                $$ QP_{hdr} = f_{scale \to qp}(Q_{scale}) $$
             </div>
-            <p style="font-size: 13px; color: #64748b; margin-top: 5px; margin-bottom: 0;">如果推演出的 QP 超出预设边界，将被强制截断到 qpMin 和 qpMax 之间。</p>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式释义：</strong>$\omega_{reg}$ 和 $b_{reg}$ 分别代表当前画面复杂度的斜率与截距。计算出的 $QP_{hdr}$ 会被严格钳制在 $[QP_{min}, QP_{max}]$ 的物理边界内。</p>
+            <div style="background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 4px;">
+                <p style="font-size: 13px; color: #fcd34d; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>承接上一步，由于 $\mathcal{T}_{pic}$ 被压缩到了可怜的 $10KB$，代入当前斜率 $\omega_{reg}$ 后，算出的 $Q_{scale}$ 极小。映射到 QP 域后，$QP_{hdr}$ 可能会飙升至 45，为硬件划定了一个极其“拮据”的基调。</p>
+            </div>
         </div>
 
         <div style="margin-bottom: 20px; padding: 15px; background: #1e293b; border-left: 3px solid #f472b6; border-radius: 4px;">
             <h5 style="color: #f9a8d4; margin-top: 0; font-size: 15px;">[步骤 3] 物理硬件配置与执行 (HW Encode)</h5>
-            <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心解答：软件只定基调，硬件来打微操！</strong><br>
-            软件将算出的 <code>qpHdr</code> 以及硬性约束边界 <code>qpMin / qpMax</code> 写入硬件寄存器（如 <code>swreg_pic_qp</code>）。</p>
-            <p style="font-size: 14px; margin-bottom: 10px;">在物理编码阶段，硬件 AQ（自适应量化）引擎接管控制权。它会探测图像每一个 CU 的空间纹理特征：如果是纯色平坦区，硬件会计算出一个负值的 <code>Delta QP</code>；如果是复杂纹理区，则计算一个正值的 <code>Delta QP</code>。</p>
-            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
-                最终每个 CU 的实际工作 QP = <code>Clamp(qpHdr + Delta QP, qpMin, qpMax)</code>
+            <p style="font-size: 14px; margin-bottom: 10px;"><strong style="color: #f472b6;">▶ 核心理念：软件只定基调，硬件来打微操！</strong><br>软件将算出的 $QP_{hdr}$ 写入硬件寄存器（如 <code>swreg_pic_qp</code>）。硬件自适应量化（AQ）引擎会探测每个 CU 的空间纹理，算出微调变量 $\Delta QP_{cu}$。</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
+                $$ QP_{cu} = \mathrm{Clamp}(QP_{hdr} + \Delta QP_{cu}, \ QP_{min}, \ QP_{max}) $$
+            </div>
+            <div style="background: rgba(244, 114, 182, 0.1); padding: 10px; border-radius: 4px;">
+                <p style="font-size: 13px; color: #f9a8d4; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>基准 $QP_{hdr}$ = 45。当硬件扫到一片极其平坦的天空区域时，AQ 算法算出 $\Delta QP_{cu} = -5$ 以保护纯色画质，最终该 CU 的物理 $QP_{cu} = 40$；扫到复杂草地时，$\Delta QP_{cu} = +6$，该 CU 的 $QP_{cu} = 51$（直接糊掉）。</p>
             </div>
         </div>
 
         <div style="margin-bottom: 10px; padding: 15px; background: #1e293b; border-left: 3px solid #34d399; border-radius: 4px;">
             <h5 style="color: #6ee7b7; margin-top: 0; font-size: 15px;">[步骤 4] 反馈收集与模型校准 (AfterPicRc)</h5>
-            <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后汇报真实的物理尺寸 <code>actualBitCnt</code>。软件以此完成两项极其关键的闭环操作：</p>
-            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px; margin-bottom: 10px;">
-                <strong>(1) VBV 水位更新：</strong><br>
-                <code>virtualBufferLevel += actualBitCnt - bitRate / frameRate</code>
+            <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后吐出真实的物理消耗 $B_{actual}$。软件执行两项闭环校准：</p>
+            <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
+                $$ V_{level} = V_{level} + B_{actual} - \frac{R_{bitrate}}{F_{rate}} $$
+                $$ \omega_{reg} = \mathrm{EMA}(\omega_{reg\_prev}, \ \frac{Q_{actual}}{B_{actual}}, \ \alpha) $$
             </div>
-            <div style="background: #0f172a; padding: 10px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 13px;">
-                <strong>(2) R-Q 模型自学习：</strong><br>
-                通过真实的 <code>actualBitCnt</code> 反算真实的 <code>actualQScale</code>，然后利用指数移动平均 (EMA) 算法，实时修正下一次推演所用的 <code>linReg.weight</code> 和 <code>linReg.offset</code> 的斜率与截距，保证模型永远追随当前最新的画面特征。
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式释义：</strong>(1) VBV 水位 ($V_{level}$) 扣除恒定的信道流出速度，加上本次硬件实际产生的体积。(2) 通过真实的体积反推斜率，并通过指数移动平均 ($\mathrm{EMA}$) 以平滑因子 $\alpha$ 更新下一次使用的 $\omega_{reg}$。</p>
+            <div style="background: rgba(52, 211, 153, 0.1); padding: 10px; border-radius: 4px;">
+                <p style="font-size: 13px; color: #6ee7b7; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>虽然预算 $\mathcal{T}_{pic}$ 只给了 $10KB$，但由于画面极度复杂，硬件最终还是产生了 $B_{actual}=15KB$ 的体积。软件读取后，真实水位 $V_{level}$ 依然上升了。同时，模型意识到当前画面比预想的“难压”，$\omega_{reg}$ 斜率被 EMA 算法小幅调陡，使得下一帧的 QP 推演会更加保守（拉得更高）。</p>
             </div>
         </div>
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
@@ -351,9 +369,10 @@
     <!-- State Machine Animation Widget -->
     <div class="interactive-demo" style="margin: 30px 0; background: #0f172a; border-radius: 8px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
         <div style="background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6;">[▶ 启动状态机推演]</button>
-                <span style="color: #cbd5e1; font-size: 14px; font-weight: bold;">RC 闭环工作流 (1 帧/秒)</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6; padding: 6px 12px; font-size: 13px;">[▶ 自动推演]</button>
+                <button id="sm-step-btn" class="demo-btn" style="background: #0ea5e9; padding: 6px 12px; font-size: 13px;">[⏭ 单步推演 (PPT)]</button>
+                <span style="color: #cbd5e1; font-size: 14px; font-weight: bold; margin-left: 10px;">RC 闭环工作流</span>
             </div>
             <span id="sm-phase" style="font-weight: bold; color: #a78bfa; font-family: 'Roboto Mono', monospace;">[系统待机]</span>
         </div>
@@ -431,7 +450,8 @@
         <strong>(4) QP Tree 上移</strong>：整棵树被暴力抬高，连平坦区域的 CU 也只能拿到 QP=40，画面整体模糊，物理体积骤降，成功拯救 VBV 不被撑爆。</p>
     </div>
 
-    <p>建立上述概念后，我们再深入探究 C-Model 是如何使用三大极客策略来精细操纵这个状态机的：</p>
+    <h2 style="margin-top: 50px; border-top: 1px solid #334155; padding-top: 30px;">3. 极端场景的三大极客兜底策略 (Three Geek Fallback Strategies)</h2>
+    <p>建立核心状态机模型后，我们再深入探究 C-Model 是如何使用三大极客策略，在极端恶劣条件下强制防崩溃的：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
     <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
     
@@ -466,12 +486,12 @@
     </div>
 
     <h3>策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
-    <p>当系统开启 CRF (Constant Rate Factor) 模式时，C-Model 会调用 <code>crfQpMapBasedCplx()</code>。为了避免局部画面突变导致 QP 的剧烈震荡，算法结合了 <strong>Pass 1 (预分析/Lookahead)</strong> 数据并执行了严格的量化衰减：</p>
+    <p>当系统开启 CRF (Constant Rate Factor) 模式时，为了避免局部画面突变（如突然爆炸）导致 QP 剧烈震荡，算法结合了 <strong>Pass 1 (预分析)</strong> 数据并执行了严格的量化衰减：</p>
     <ul>
-        <li><strong>时域指数衰减 (Exponential Moving Average)</strong>：每经过一帧，历史积累的复杂度权重减半，即 <code>shortTermCplxCount *= 0.5</code> 和 <code>prevCplxSum *= 0.5</code>。</li>
-        <li><strong>平滑复杂度计算 (Blurred Complexity)</strong>：将当前帧的 Pass 1 消耗 (<code>pass1CurCost</code>) 累加上去，得到 <code>blurredComplexity = shortTermCplxSum / shortTermCplxCount</code>。这一步相当于做了一个带时间衰减因子的低通滤波。</li>
-        <li><strong>非线性 qScale 映射</strong>：核心公式为 <code>qScale = pow(blurredComplexity, 1 - 0.6)</code>。其中 <code>0.6</code> 为核心常数 <code>qCompress</code>。这种分数次幂运算保证了当画面复杂度指数级上升时，分配的码率增幅会被非线性“压制”，从而保护整体带宽。</li>
-        <li><strong>最终归一化</strong>：算出的 <code>qScale</code> 会除以基准常数 <code>rateFactorConstant</code>，最终换算为底层物理 QP (<code>rc->qpHdr = qScale2qp(qScale)</code>)。</li>
+        <li><strong>时域指数衰减 (EMA)</strong>：每经过一帧，历史积累的复杂度权重无情减半。通过 \(\mathcal{W}_{cplx}^{(t)} = \mathcal{W}_{cplx}^{(t-1)} \times 0.5\) 抛弃远古历史。</li>
+        <li><strong>平滑复杂度计算 (Blurred Complexity)</strong>：将当前帧代价 \(\mathcal{C}_{cur}\) 融入历史池，得到带时域衰减的低通滤波结果：\(\mathcal{C}_{blur} = \frac{\sum (C_i \times 0.5^i)}{\sum 0.5^i}\)。</li>
+        <li><strong>非线性 \(Q_{scale}\) 映射</strong>：核心折叠公式为 \(Q_{scale} = (\mathcal{C}_{blur})^{1 - q_{compress}}\)。其中 \(q_{compress}\) 是非线性折叠常数（通常为 \(0.6\)）。这种分数次幂运算保证了当画面复杂度指数级上升时，分配的码率增幅会被非线性“压制”，从而保护整体带宽。</li>
+        <li><strong>最终归一化</strong>：算出的 \(Q_{scale}\) 会除以基准常数 \(\mathcal{K}_{rate}\)，并映射为底层物理 QP。</li>
     </ul>
 
     <div class="example-box" style="background: #0f172a; border-left: 4px solid #3b82f6; padding: 15px; margin: 15px 0; border-radius: 4px;">
@@ -511,59 +531,22 @@
     </div>
 
     <h3>策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
-    <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 Buffer Underflow 怎么办？</p>
+    <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 VBV 欠载（Underflow）怎么办？</p>
     
-    <p>在 C-Model 的 <code>PicSkip(rc)</code> 函数中，有一道硬核的底线防护：如果 <code>bitAvailable < skipIncLimit</code>，即可用余额彻底耗尽，编码器会直接把 <code>rc->frameCoded</code> 强行置为 <code>ENCHW_NO</code>，也就是说<strong>直接丢弃这一帧，完全不编码，不发送</strong>。</p>
-    
+    <p>在 C-Model 的 <code>PicSkip</code> 模块中，有一道硬核的底线防护：</p>
+    <div style="background: #0f172a; padding: 15px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 15px;">
+        $$ \text{If } \ \mathcal{V}_{avail} < \mathcal{B}_{skip\_limit} \implies \text{FrameCoded} = \mathrm{FALSE} $$
+    </div>
+    <p>即：如果当前 VBV 池可用余额 \(\mathcal{V}_{avail}\) 甚至低于发送一个全 Skip 块的极限保底开销 \(\mathcal{B}_{skip\_limit}\)，编码器会触发熔断，强行丢弃这一帧，完全不编码，不发送。</p>
+
     <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #f59e0b; border-radius: 4px; color: #e2e8f0; margin: 15px 0;">
         <strong style="color: #fbbf24;">⚠️ 物理原理与代价权衡 (Trade-off Analysis)：</strong><br>
-        <p style="margin-bottom: 8px; font-size: 14px;">正如您所担忧的，直接丢弃一帧数据确实会导致终端播放画面出现明显的<strong>物理卡顿 (Stuttering/掉帧)</strong>。但在系统工程中，这是一个“两害相权取其轻”的残酷决定：</p>
+        <p style="margin-bottom: 8px; font-size: 14px; margin-top: 5px;">直接丢弃帧会导致终端播放画面出现明显的<strong>物理卡顿 (Stuttering)</strong>。但在系统工程中，这是一个舍车保帅的终极防线：</p>
         <ul style="margin-top: 0; font-size: 14px;">
-            <li><strong>如果不丢帧 (触发 Underflow 饿死)</strong>：解码器按照正常时序抽取数据时，发现 Buffer 被抽干了。此时不仅画面彻底卡死（Freeze），底层硬件解码流水线会直接崩溃报错，甚至会导致后续长达数秒的音视频严重不同步 (A/V Sync Loss)。</li>
-            <li><strong>果断丢帧 (触发 Frame Skip 止损)</strong>：当前帧被编码端物理抹除。解码端由于没有收到新帧，会<strong>自动复用前一帧画面 (Frame Repeat)</strong>，表现为视觉上的顿挫。但在这一帧的时间空隙里，信道源源不断注入的恒定比特被纯攒了下来（因为该帧抽取量为 0）。利用这个时间差，系统成功给濒临干涸的 Buffer 强行“续命回血”！</li>
+            <li><strong>如果不丢帧 (触发 Underflow)</strong>：解码器按照时序抽取数据时，发现 VBV 被抽干。此时不仅画面卡死，底层硬件解码流水线会直接崩溃报错，甚至导致长达数秒的音视频严重不同步 (A/V Sync Loss)。</li>
+            <li><strong>果断丢帧 (触发 Frame Skip)</strong>：编码端抹除该帧。解码端未收到新帧，<strong>自动复用前一帧画面 (Frame Repeat)</strong>，表现为视觉顿挫。但在这一帧的时间空隙里，信道源源不断注入的恒定比特被纯攒了下来（抽取量为 0）。利用这个时间差，系统成功给濒临干涸的 VBV 强行“续命回血”。</li>
         </ul>
-        <p style="margin-bottom: 0; color: #94a3b8; font-size: 13px;"><strong>极客论断：</strong>宁可牺牲体验让观众感到一瞬间的“掉帧卡顿”，也绝对不允许整个解码播放器发生不可逆的物理宕机。这就是架构设计中舍车保帅的终极防线。</p>
     </div>
-
-    <h2>3. 帧级目标比特分配 (BeforePicRc)</h2>
-    <p>在 `VideoEncBeforePicRc` 函数中，算法的第一步并不是盲目计算 QP，而是极其精打细算地盘点家底，得出当前帧究竟能花多少比特（`targetPicSize`）。</p>
-
-    <div style="text-align: center;">
-        <img src="rc_bit_allocation.svg" style="max-width: 100%; height: auto; display: block; margin: 20px auto;">
-    </div>
-    <div class="diagram-caption">图 2：GOP 内部的“劫富济贫”比特分配链</div>
-
-    <div class="success">
-        <strong>源码溯源：目标帧尺寸算式</strong><br>
-        在代码中，`targetPicSize` 的核心组装公式如下：<br>
-        <code>rc->targetPicSize = vb->bitPerPic - intraBits + DIV(tmp, rcWindow);</code><br>
-        <code>rc->targetPicSize = MAX(96 + rc->ctbRows * rc->ctbSize, rc->targetPicSize);</code>
-    </div>
-
-    <p>这个公式背后隐藏着极其深厚的算法-硬件协同设计哲学：</p>
-    <ol>
-        <li><strong>`vb->bitPerPic` (基础预算)</strong>：如果世界是和平的，每一帧平分带宽，这就是它的基础零花钱。</li>
-        <li><strong>`- intraBits` (I 帧劫持惩罚)</strong>：I 帧由于没有参考帧，体积必然极其庞大。在 C-Model 中，I 帧会提前透支后续 P 帧的预算。因此每一个 P 帧在计算自己预算时，都要默默扣掉一部分用来“替 I 帧还债”的 <code>intraBits</code>。</li>
-        <li><strong>`+ DIV(tmp, rcWindow)` (历史误差补偿)</strong>：之前的帧如果省吃俭用了（或超支了），其总误差被存在 `tmp` 里。我们不能要求当前这一帧“一口气还清所有债”，这会导致画面质量瞬间崩塌（QP 剧烈跳动）。因此我们把它平摊到一个滑动窗口 <code>rcWindow</code> 里慢慢消化。</li>
-        <li><strong>下限保护 (MAX 96...)</strong>：即便上一帧超支再严重，预算也不能扣成负数。代码强制保底（仅发送全 Skip 块所需的 96 bit 极小开销）。</li>
-    </ol>
-
-    <h2>4. R-Q 线性回归模型刷新 (AfterPicRc)</h2>
-    <p>当硬件物理编码（HW Encode）完成后，实际产生的比特流（`byteCnt`）可能和预测值大相径庭。此时 `VideoEncAfterPicRc` 登场，它必须为下一次预测做好模型维护。</p>
-
-    <div style="text-align: center;">
-        <img src="rc_linreg_update.svg" style="max-width: 100%; height: auto; display: block; margin: 20px auto;">
-    </div>
-    <div class="diagram-caption">图 3：硬件线性回归模型 (LinReg_s) 容错更新机制</div>
-
-    <p>在底层算法中，Rate (码率) 与 QP 之间呈现非线性倒数关系。C-Model 维护了一组线性回归参数 (`a1, a2`)，并采用了一套激进但可靠的容错状态机：</p>
-
-    <div class="highlight">
-        <strong>💡 突破点：场景切换的一剑封喉</strong><br>
-        如果编码器突然从静态黑板切到了爆炸场景，旧的 R-Q 历史模型将给出完全错误的 QP 指导，导致画面瞬间模糊或码率爆表。<br>
-        代码逻辑：<code>VideoEncAfterSceneChangeCheck(rc, ...)</code>。一旦探测到场景剧烈切换，C-Model 将毫不犹豫地执行 <code>EWLmemset</code> <strong>瞬间清空整个线性回归模型历史（重置 weight）</strong>，迫使系统在下一帧使用全新的基准重新收敛，避免被历史错误数据拖死。
-    </div>
-
 </div>
 </div>
 
