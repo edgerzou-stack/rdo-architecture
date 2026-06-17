@@ -400,11 +400,12 @@
             • <strong>$\mathcal{B}_{intra}$ (I帧超支补偿)</strong>：I 帧通常消耗数倍于均值的体积。此超额数据量必须由后续 P 帧在整个 GOP 周期内平摊补偿。<br>
             • <strong>$\frac{\Delta_{error}}{W_{rc}}$ (历史误差平摊)</strong>：$\Delta_{error}$ 为当前 VBV 实际水位与目标安全水位的偏差项；$W_{rc}$ 为平滑窗口大小（通常为剩余 GOP 长度）。<br>
             • <strong>$\mathcal{C}_{min}$ (极小保底值)</strong>：为防止预算截断至非正数导致的硬件除零错误，系统设定的强制性下限约束（通常基于 Header Bits 与宏块总数计算）。</p>
+            </div>
             <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 26px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.1 动态安全水位 (Dynamic Target Buffer Level) 计算模型</h4>
             <p style="font-size: 18px; color: #555; margin-bottom: 5px;">
             在 CBR 模式下，系统通常将基准安全线初始锚定在 VBV 容量的 <strong>50%~80%</strong>，以保留双向调节裕量。运行过程中的动态目标缓冲水位 $BL_{target}(t)$ 遵循以下等式：
             </p>
-            <div style="background: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; color: #333; border: 1px solid #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
+            <div style="background: transparent; padding: 15px 0; overflow-x: auto; color: #333; font-size: 20px; text-align: center; margin-bottom: 10px;">
                 $$ BL_{target}(t) = BL_{init} + \int_{0}^{t} R_{channel}(\tau) \, d\tau - \sum_{i=1}^{N_t} \mathcal{B}_{pic}(i) $$
             </div>
             <p style="font-size: 18px; color: #555; margin-bottom: 5px;"><strong>方程参数解析：</strong><br>
@@ -413,7 +414,6 @@
             • <strong>$\sum_{i=1}^{N_t} \mathcal{B}_{pic}(i)$</strong>：前 $N_t$ 个已编码帧在理想状态下的目标消耗总量累加（即已编码帧数与理论均值的乘积）。<br>
             当实际水位 $BL_{actual}(t)$ 因历史帧连续超额消耗而发生正向大幅偏离时，差值项 $\Delta_{error} = BL_{actual}(t) - BL_{target}(t)$ 呈现较大正值，从而在模型中转化为负反馈项，迫使当前帧削减分配额度。
             </p>
-            </div>
             
             <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 26px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.2 📉 严谨数据推演 (Numeric Example)</h4>
             <div style="background-color: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
