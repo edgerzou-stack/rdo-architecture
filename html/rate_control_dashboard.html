@@ -309,6 +309,95 @@
     </div>
     <div class="diagram-caption">图 1：C-Model 帧级码率控制核心双向闭环状态机</div>
 
+    <h3 style="color: #c4b5fd; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-top: 30px;">【宏观总览】动态 QP 到底在调什么？(VBV 驱动的 QP Tree 本质)</h3>
+    <p>在深入复杂的底层算法和公式之前，我们必须首先自顶向下地建立一个宏观概念：当软件代码计算出一个新的 QP 值时，它在物理层面上到底改变了什么？</p>
+    
+    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #8b5cf6; border-radius: 4px; margin-bottom: 20px;">
+        <h4 style="color: #c4b5fd; margin-top: 0; font-size: 16px;">1. 物理本质：平移整帧的 QP Tree (量化参数树)</h4>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">一帧画面并非共享单一的 QP。为了实现视觉心理学优化（AQ），硬件将画面切分为成百上千个 CU（编码单元），每个 CU 都有自己独立的微调 QP。这些 CU 的 QP 组合在一起，就像围绕着一个**“基准线”**分布的树冠（QP Tree）。平坦区域向下探底（更低 QP、更高清），复杂纹理向上延伸（更高 QP、更模糊）。<br><br><strong>软件层动态调整 QP 的本质，就是计算出这个“基准线（Base QP）”，从而把整棵 QP Tree 向上或向下平移。</strong></p>
+    </div>
+
+    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 20px;">
+        <h4 style="color: #93c5fd; margin-top: 0; font-size: 16px;">2. 因果链条：从 VBV 缓冲到 QP Tree 的降维打击</h4>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">那么这个基准线是如何确定的呢？它是被信道缓冲区（VBV）的当前水位“逼”出来的。整个控制回路的因果逻辑极其严密：<br><br>
+        <strong>(1) 监测水位</strong>：系统时刻紧盯 VBV 缓冲池。<br>
+        <strong>(2) 划定预算 (Budget)</strong>：如果水位告急（快溢出了），系统必须削减开销，给当前帧下达极低的比特预算（Target Picture Size）。<br>
+        <strong>(3) 推演基准线</strong>：为了达成这个苛刻的预算，R-Q 模型推演出一个极高的基准 QP（例如 QP=45）。<br>
+        <strong>(4) QP Tree 上移</strong>：整棵树被暴力抬高，连平坦区域的 CU 也只能拿到 QP=40，画面整体模糊，物理体积骤降，成功拯救 VBV 不被撑爆。</p>
+    </div>
+
+    <h3 style="margin-top: 30px; color: #38bdf8;">【交互式沙盘】软硬件协同闭环动态推演</h3>
+    <p style="margin-bottom: 20px;">为了更直观地展示上述的因果链条，下面提供了一个可交互的微件。您可以点击<strong>[▶ 自动推演]</strong>或<strong>[⏭ 单步推演 (PPT)]</strong>，亲眼观察 VBV 水位是如何实时“逼迫”软件下发苛刻的目标预算，进而拉高基准 QP，最终被硬件转化为 CU 级独立画质微调的：</p>
+    
+    <!-- State Machine Animation Widget -->
+    <div class="interactive-demo" style="margin: 30px 0; background: #0f172a; border-radius: 8px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6; padding: 6px 12px; font-size: 13px;">[▶ 自动推演]</button>
+                <button id="sm-step-btn" class="demo-btn" style="background: #0ea5e9; padding: 6px 12px; font-size: 13px;">[⏭ 单步推演 (PPT)]</button>
+                <span style="color: #cbd5e1; font-size: 14px; font-weight: bold; margin-left: 10px;">RC 闭环工作流</span>
+            </div>
+            <span id="sm-phase" style="font-weight: bold; color: #a78bfa; font-family: 'Roboto Mono', monospace;">[系统待机]</span>
+        </div>
+        
+        <div style="display: flex; padding: 20px; gap: 20px; align-items: center; overflow-x: auto;">
+            
+            <!-- Software Domain -->
+            <div style="flex: 1; border: 1px solid #3b82f6; border-radius: 6px; padding: 15px; position: relative; background: rgba(59, 130, 246, 0.05); min-width: 200px;">
+                <div style="position: absolute; top: -10px; left: 15px; background: #0f172a; color: #60a5fa; padding: 0 10px; font-size: 12px; font-weight: bold;">[Software] 架构管控层</div>
+                
+                <div style="margin-top: 10px;">
+                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Virtual Buffer 实时监控</div>
+                    <div style="width: 100%; background: #1e293b; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div id="sm-buffer" style="width: 60%; background: #3b82f6; height: 100%; border-radius: 5px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <div class="sm-box" id="sm-before-box" style="background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
+                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 1] 目标帧预算 (BeforePicRc)</span>
+                        <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">targetPicSize = <span id="sm-target" style="color: #fb923c;">0</span> bit</span>
+                    </div>
+                    <div style="text-align: center; color: #64748b; font-size: 18px; line-height: 1;">↓</div>
+                    <div class="sm-box" id="sm-quant-box" style="background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
+                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 2] 帧级基准 QP (PicQuant)</span>
+                        <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">qpHdr = <span id="sm-qphdr" style="color: #facc15; font-weight: bold; font-size: 16px;">25</span></span><br>
+                        <span style="font-size: 11px; color: #64748b;">(约束边界: qpMin=10, qpMax=51)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HW Boundary Arrow -->
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
+                <div id="sm-arrow-fw" style="color: #475569; font-size: 28px; transition: all 0.3s; font-weight: bold;">→</div>
+                <div id="sm-arrow-bw" style="color: #475569; font-size: 28px; transition: all 0.3s; font-weight: bold;">←</div>
+            </div>
+            
+            <!-- Hardware Domain -->
+            <div style="flex: 1; border: 1px solid #ec4899; border-radius: 6px; padding: 15px; position: relative; background: rgba(236, 72, 153, 0.05); min-width: 200px;">
+                <div style="position: absolute; top: -10px; left: 15px; background: #0f172a; color: #f472b6; padding: 0 10px; font-size: 12px; font-weight: bold;">[Hardware] 物理编码器</div>
+                
+                <div style="margin-top: 10px; text-align: center;">
+                    <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px;">[步骤 3] CU 级自适应 QP 微调 (AQ Delta)</span>
+                    <div id="sm-cu-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; height: 110px;">
+                        <!-- 16 CUs -->
+                    </div>
+                </div>
+                
+                <div class="sm-box" id="sm-actual-box" style="margin-top: 20px; background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
+                    <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 4] 物理产出 (AfterPicRc 回传)</span>
+                    <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">actualBitCnt = <span id="sm-actual" style="color: #c084fc;">0</span> bit</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="sm-logs" style="background: #020617; padding: 15px; font-family: 'Roboto Mono', monospace; font-size: 13px; height: 140px; overflow-y: auto; border-top: 1px solid #334155; color: #94a3b8; line-height: 1.6;">
+            <span style="color: #64748b;">// 点击左上角 [启动状态机推演] 观察软硬件的数据交互与握手过程</span>
+        </div>
+    </div>
+
+
+
     <div class="highlight" style="background: #0f172a; padding: 15px; border-left: 4px solid #8b5cf6; border-radius: 4px; color: #cbd5e1; margin-bottom: 25px;">
         <h4 style="color: #a78bfa; margin-top: 0; font-size: 16px;">🔍 状态机深度解剖：软硬件的数据交互与 QP 控制本质</h4>
         <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
@@ -395,90 +484,7 @@
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
     </div>
 
-    <!-- State Machine Animation Widget -->
-    <div class="interactive-demo" style="margin: 30px 0; background: #0f172a; border-radius: 8px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-        <div style="background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6; padding: 6px 12px; font-size: 13px;">[▶ 自动推演]</button>
-                <button id="sm-step-btn" class="demo-btn" style="background: #0ea5e9; padding: 6px 12px; font-size: 13px;">[⏭ 单步推演 (PPT)]</button>
-                <span style="color: #cbd5e1; font-size: 14px; font-weight: bold; margin-left: 10px;">RC 闭环工作流</span>
-            </div>
-            <span id="sm-phase" style="font-weight: bold; color: #a78bfa; font-family: 'Roboto Mono', monospace;">[系统待机]</span>
-        </div>
-        
-        <div style="display: flex; padding: 20px; gap: 20px; align-items: center; overflow-x: auto;">
-            
-            <!-- Software Domain -->
-            <div style="flex: 1; border: 1px solid #3b82f6; border-radius: 6px; padding: 15px; position: relative; background: rgba(59, 130, 246, 0.05); min-width: 200px;">
-                <div style="position: absolute; top: -10px; left: 15px; background: #0f172a; color: #60a5fa; padding: 0 10px; font-size: 12px; font-weight: bold;">[Software] 架构管控层</div>
-                
-                <div style="margin-top: 10px;">
-                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Virtual Buffer 实时监控</div>
-                    <div style="width: 100%; background: #1e293b; height: 10px; border-radius: 5px; overflow: hidden;">
-                        <div id="sm-buffer" style="width: 60%; background: #3b82f6; height: 100%; border-radius: 5px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-                    <div class="sm-box" id="sm-before-box" style="background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
-                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 1] 目标帧预算 (BeforePicRc)</span>
-                        <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">targetPicSize = <span id="sm-target" style="color: #fb923c;">0</span> bit</span>
-                    </div>
-                    <div style="text-align: center; color: #64748b; font-size: 18px; line-height: 1;">↓</div>
-                    <div class="sm-box" id="sm-quant-box" style="background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
-                        <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 2] 帧级基准 QP (PicQuant)</span>
-                        <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">qpHdr = <span id="sm-qphdr" style="color: #facc15; font-weight: bold; font-size: 16px;">25</span></span><br>
-                        <span style="font-size: 11px; color: #64748b;">(约束边界: qpMin=10, qpMax=51)</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- HW Boundary Arrow -->
-            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
-                <div id="sm-arrow-fw" style="color: #475569; font-size: 28px; transition: all 0.3s; font-weight: bold;">→</div>
-                <div id="sm-arrow-bw" style="color: #475569; font-size: 28px; transition: all 0.3s; font-weight: bold;">←</div>
-            </div>
-            
-            <!-- Hardware Domain -->
-            <div style="flex: 1; border: 1px solid #ec4899; border-radius: 6px; padding: 15px; position: relative; background: rgba(236, 72, 153, 0.05); min-width: 200px;">
-                <div style="position: absolute; top: -10px; left: 15px; background: #0f172a; color: #f472b6; padding: 0 10px; font-size: 12px; font-weight: bold;">[Hardware] 物理编码器</div>
-                
-                <div style="margin-top: 10px; text-align: center;">
-                    <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px;">[步骤 3] CU 级自适应 QP 微调 (AQ Delta)</span>
-                    <div id="sm-cu-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; height: 110px;">
-                        <!-- 16 CUs -->
-                    </div>
-                </div>
-                
-                <div class="sm-box" id="sm-actual-box" style="margin-top: 20px; background: #1e293b; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #334155; transition: all 0.3s;">
-                    <span style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">[步骤 4] 物理产出 (AfterPicRc 回传)</span>
-                    <span style="color: #e2e8f0; font-family: 'Roboto Mono', monospace; font-size: 14px;">actualBitCnt = <span id="sm-actual" style="color: #c084fc;">0</span> bit</span>
-                </div>
-            </div>
-        </div>
-        
-        <div id="sm-logs" style="background: #020617; padding: 15px; font-family: 'Roboto Mono', monospace; font-size: 13px; height: 140px; overflow-y: auto; border-top: 1px solid #334155; color: #94a3b8; line-height: 1.6;">
-            <span style="color: #64748b;">// 点击左上角 [启动状态机推演] 观察软硬件的数据交互与握手过程</span>
-        </div>
-    </div>
-
-    <h2>【宏观总览】动态 QP 到底在调什么？(VBV 驱动的 QP Tree 本质)</h2>
-    <p>在深入复杂的底层算法和公式之前，我们必须首先自顶向下地建立一个宏观概念：当软件代码计算出一个新的 QP 值时，它在物理层面上到底改变了什么？</p>
     
-    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #8b5cf6; border-radius: 4px; margin-bottom: 20px;">
-        <h4 style="color: #c4b5fd; margin-top: 0; font-size: 16px;">1. 物理本质：平移整帧的 QP Tree (量化参数树)</h4>
-        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">一帧画面并非共享单一的 QP。为了实现视觉心理学优化（AQ），硬件将画面切分为成百上千个 CU（编码单元），每个 CU 都有自己独立的微调 QP。这些 CU 的 QP 组合在一起，就像围绕着一个**“基准线”**分布的树冠（QP Tree）。平坦区域向下探底（更低 QP、更高清），复杂纹理向上延伸（更高 QP、更模糊）。<br><br><strong>软件层动态调整 QP 的本质，就是计算出这个“基准线（Base QP）”，从而把整棵 QP Tree 向上或向下平移。</strong></p>
-    </div>
-
-    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 20px;">
-        <h4 style="color: #93c5fd; margin-top: 0; font-size: 16px;">2. 因果链条：从 VBV 缓冲到 QP Tree 的降维打击</h4>
-        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">那么这个基准线是如何确定的呢？它是被信道缓冲区（VBV）的当前水位“逼”出来的。整个控制回路的因果逻辑极其严密：<br><br>
-        <strong>(1) 监测水位</strong>：系统时刻紧盯 VBV 缓冲池。<br>
-        <strong>(2) 划定预算 (Budget)</strong>：如果水位告急（快溢出了），系统必须削减开销，给当前帧下达极低的比特预算（Target Picture Size）。<br>
-        <strong>(3) 推演基准线</strong>：为了达成这个苛刻的预算，R-Q 模型推演出一个极高的基准 QP（例如 QP=45）。<br>
-        <strong>(4) QP Tree 上移</strong>：整棵树被暴力抬高，连平坦区域的 CU 也只能拿到 QP=40，画面整体模糊，物理体积骤降，成功拯救 VBV 不被撑爆。</p>
-    </div>
-
     <h2 style="margin-top: 50px; border-top: 1px solid #334155; padding-top: 30px;">3. 极端场景的三大极客兜底策略 (Three Geek Fallback Strategies)</h2>
     <p>建立核心状态机模型后，我们再深入探究 C-Model 是如何使用三大极客策略，在极端恶劣条件下强制防崩溃的：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
