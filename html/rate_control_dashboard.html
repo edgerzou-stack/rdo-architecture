@@ -129,8 +129,23 @@
     </div>
     <div class="diagram-caption">图 1：C-Model 帧级码率控制核心双向闭环状态机</div>
 
-    <p>如上图所示，整个 RC 系统被物理切分为前馈与反馈两个极其重要的阶段。为了让这个闭环不崩溃，C-Model 在工程上实施了以下三大极客策略：</p>
-    
+    <div class="highlight" style="background: #0f172a; padding: 15px; border-left: 4px solid #8b5cf6; border-radius: 4px; color: #cbd5e1; margin-bottom: 25px;">
+        <h4 style="color: #a78bfa; margin-top: 0; font-size: 16px;">🔍 状态机深度解剖：软硬件的数据交互与 QP 控制本质</h4>
+        <p style="font-size: 14px; margin-bottom: 10px;">您提到的“本质是在调整 CU 的 QP 吗？”直击了问题的核心！这个状态机的流转，本质上是<strong>软件层面的全局规划</strong>与<strong>硬件层面的 CU 级微调</strong>的精妙配合。具体数据流转与硬件映射如下：</p>
+        <ul style="font-size: 14px; font-family: 'Roboto Mono', monospace; line-height: 1.6;">
+            <li><strong>[步骤 1] 帧级目标分配 (BeforePicRc)：</strong>软件侦测 <code>Virtual Buffer</code> 的剩余水位，结合 GOP 权重，算出一个总预算 <code>rc->targetPicSize</code>（当前帧允许产生的最大比特数）。</li>
+            <li><strong>[步骤 2] 初始 QP 推演：</strong>软件通过历史的 R-Q 线性模型，将 <code>targetPicSize</code> 反推出一个<strong>帧级基础 QP (<code>rc->qpHdr</code>)</strong>。</li>
+            <li><strong>[步骤 3] 物理硬件配置 (HW Register Mapping)：</strong><br>
+                <span style="color: #f472b6;">▶ 核心解答：软件不仅给出了 <code>qpHdr</code>，还划定了 CU 调整的物理边界！</span><br>
+                软件会将 <code>qpHdr</code> 写入硬件寄存器（如 <code>swreg_pic_qp</code>），作为整帧的基准水位。但为了保护主观画质，软件不会去定死每一个 CU 的 QP，而是将 <code>rc->qpMin</code> 和 <code>rc->qpMax</code> 下发给硬件。<br>
+                在真正的物理编码阶段，<strong>硬件引擎 (HW Encode) 会接管控制权</strong>，根据画面局部的空间纹理复杂度（如 AQ 自适应量化算法），在这个 Min/Max 的紧箍咒范围内，<strong>自行对每一个 CU (Coding Unit) 的最终 QP 进行动态上下浮动 (Delta QP)</strong>。
+            </li>
+            <li><strong>[步骤 4] 硬件执行与反馈收集 (AfterPicRc)：</strong>硬件完成所有 CU 的编码后，汇总吐出一个真实的物理消耗 <code>actualBitCnt</code>。软件读取该值，一方面去真实扣除 <code>Virtual Buffer</code> 的水位，另一方面计算“预测值与真实值”的误差，用来校准下一步的 R-Q 线性模型（修正斜率 <code>linReg.weight</code>）。</li>
+        </ul>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
+    </div>
+
+    <p>为了让这个精密的状态机在极端条件下不崩溃，C-Model 在软件工程上实施了以下三大极客兜底策略：</p>
     <h3>策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
     <p>在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的物理目标体积（Target Picture Size），其核心分配公式如下：</p>
     <div class="highlight" style="font-family: 'Roboto Mono', monospace; background: #1e293b; padding: 15px; border-radius: 8px; color: #e2e8f0; margin-bottom: 15px;">
