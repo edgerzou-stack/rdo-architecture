@@ -1,7 +1,7 @@
 import graphviz
 
 dot = graphviz.Digraph('RC_State_Machine', format='svg')
-dot.attr(rankdir='LR', splines='polyline', fontname='Helvetica', nodesep='0.6', ranksep='0.8', pad='0.3')
+dot.attr(rankdir='TB', splines='polyline', fontname='Helvetica', nodesep='0.6', ranksep='0.8', pad='0.3')
 
 dot.node_attr.update(shape='box', style='rounded,filled', fontname='Helvetica', fontsize='13', margin='0.3,0.2')
 dot.edge_attr.update(fontname='Helvetica', fontsize='11', color='#475569', fontcolor='#1e293b', penwidth='1.5')
