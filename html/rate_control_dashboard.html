@@ -92,9 +92,9 @@
     
     <div class="hrd-widget">
         <div class="hrd-controls">
-            <button id="btn-start" class="hrd-btn">▶ 启动自动化推演 (Auto Demo)</button>
+            <button id="btn-start" class="hrd-btn">▶ 启动 RC 动态防御演示 (Auto Loop)</button>
             <div id="demo-phase" style="margin-left: 15px; font-weight: bold; font-size: 15px; display: none;">
-                <span style="color:#ef4444" id="phase-text">[阶段 1/3] 演示：无 RC (导致 Underflow 饿死)</span>
+                <span style="color:#22c55e" id="phase-text">🟢 Rate Control 动态接管中...</span>
             </div>
         </div>
         <div style="margin-bottom: 12px; font-size: 16px; font-weight: bold; color: #334155;">
@@ -276,10 +276,9 @@
         if(tocList.firstChild) tocList.firstChild.querySelector('a').classList.add('active');
         if(topNav && topNav.firstChild) topNav.firstChild.classList.add('active');
 
-        // HRD Simulator Logic (Automated Demo)
+        // HRD Simulator Logic (Continuous Loop)
         const btnStart = document.getElementById('btn-start');
         const demoPhase = document.getElementById('demo-phase');
-        const phaseText = document.getElementById('phase-text');
         const hrdFill = document.getElementById('hrd-fill');
         const hrdPercent = document.getElementById('hrd-percent');
         const hrdExtractRate = document.getElementById('hrd-extract-rate');
@@ -294,11 +293,6 @@
         let qp = 25;
         let ticks = 0;
         let baseExtract = 5.0;
-        
-        // Automation states
-        let rcEnabled = false;
-        let demoStage = 0; 
-        // 0: Init, 1: RC Off Underflow, 2: Wait, 3: RC Off Overflow, 4: Wait, 5: RC On Both
 
         function logMsg(msg, type='') {
             const div = document.createElement('div');
@@ -321,7 +315,7 @@
             else hrdFill.style.backgroundColor = '#22c55e'; 
         }
 
-        function resetSim(stageType) {
+        function resetSim() {
             buffer = 50;
             qp = 25;
             ticks = 0;
@@ -329,59 +323,34 @@
             isStaticScene = false;
             updateUI();
             
-            if (stageType === 1) { // RC Off Underflow
-                rcEnabled = false;
-                demoPhase.style.display = 'block';
-                phaseText.style.color = '#ef4444';
-                phaseText.textContent = '[阶段 1/3] 演示：无 RC (遭遇突发爆炸场景)';
-                hrdLogs.innerHTML = '';
-                logMsg('【实验一】无 RC 保护。测试抗饥饿能力。');
-            } else if (stageType === 3) { // RC Off Overflow
-                rcEnabled = false;
-                phaseText.style.color = '#ef4444';
-                phaseText.textContent = '[阶段 2/3] 演示：无 RC (遭遇绝对静止场景)';
-                hrdLogs.innerHTML += '<hr style="border-color:#334155;">';
-                logMsg('【实验二】无 RC 保护。测试抗溢出能力。');
-            } else if (stageType === 5) { // RC On Both
-                rcEnabled = true;
-                phaseText.style.color = '#22c55e';
-                phaseText.textContent = '[阶段 3/3] 演示：启用动态 QP (Rate Control)';
-                hrdLogs.innerHTML += '<hr style="border-color:#334155;">';
-                logMsg('【实验三】启用 RC 保护。应对复杂与静止双重极端场景。');
-            }
+            demoPhase.style.display = 'block';
+            hrdLogs.innerHTML = '';
+            logMsg('【动态推演启动】系统已开启 Rate Control，准备应对恶劣场景交替冲击。', 'safe');
         }
 
         function tick() {
             if(!isRunning) return;
             ticks++;
             
-            // Automation Scripting
-            if (demoStage === 1) { // RC Off -> Underflow
-                if (ticks === 3) {
-                    isComplexScene = true;
-                    logMsg('====== 突发爆炸复杂场景！提取体积剧增 ====== ', 'warn');
-                }
-            } else if (demoStage === 3) { // RC Off -> Overflow
-                if (ticks === 3) {
-                    isStaticScene = true;
-                    logMsg('====== 画面绝对静止！提取体积骤降 ====== ', 'warn');
-                }
-            } else if (demoStage === 5) { // RC On -> Both
-                if (ticks === 3) {
-                    isComplexScene = true;
-                    logMsg('====== 突发爆炸复杂场景！水位开始下降 ====== ', 'warn');
-                }
-                if (ticks === 13) {
-                    isComplexScene = false;
-                    isStaticScene = true;
-                    logMsg('====== 画面突然绝对静止！水位开始飙升 ======');
-                }
-                if (ticks === 25) {
-                    logMsg('【演示完成】Rate Control 成功防止了饿死与淹死！', 'safe');
-                    stopSim();
-                    btnStart.textContent = '重新完整演示';
-                    return;
-                }
+            let cycleTick = ticks % 60; // 每 60 Ticks 循环一次
+            
+            // Automation Scripting (Continuous Loop)
+            if (cycleTick === 5) {
+                isComplexScene = true;
+                isStaticScene = false;
+                hrdLogs.innerHTML += '<hr style="border-color:#334155;">';
+                logMsg('====== 突发复杂爆炸场景！水位面临干涸危机 ====== ', 'warn');
+            } else if (cycleTick === 18) {
+                isComplexScene = false;
+                logMsg('====== 爆炸场景结束，RC 努力恢复水位 ======');
+            } else if (cycleTick === 35) {
+                isComplexScene = false;
+                isStaticScene = true;
+                hrdLogs.innerHTML += '<hr style="border-color:#334155;">';
+                logMsg('====== 画面转为绝对静止！水位面临溢出危机 ====== ', 'warn');
+            } else if (cycleTick === 48) {
+                isStaticScene = false;
+                logMsg('====== 静止场景结束，RC 努力泄洪 ======');
             }
             
             // 1. 恒定网络注入
@@ -392,48 +361,28 @@
             if (isComplexScene) currentExtract = 18.0;
             else if (isStaticScene) currentExtract = 1.0;
             
-            // RC 模式调节 QP
-            if (rcEnabled) {
-                if (buffer < 25) {
-                    qp += 3.5; 
-                    logMsg(`水位极危! 强行拉高 QP (牺牲画质止血) -> ${qp.toFixed(1)}`, 'warn');
-                } else if (buffer < 45) {
-                    qp += 1.0; 
-                } else if (buffer > 80) {
-                    qp -= 2.0;
-                    logMsg(`水位过高! 强行降低 QP (提升画质泄洪) -> ${qp.toFixed(1)}`, 'warn');
-                } else if (buffer > 60 && qp > 25) {
-                    qp -= 0.5; 
-                }
-                
-                qp = Math.min(51, Math.max(10, qp));
-                currentExtract = currentExtract * Math.pow(0.5, (qp - 25) / 6.0);
-            } else {
-                qp = 25; 
+            // RC 模式调节 QP (始终接管)
+            if (buffer < 25) {
+                qp += 3.5; 
+                logMsg(`水位极危! 强行拉高 QP (牺牲画质止血) -> ${qp.toFixed(1)}`, 'warn');
+            } else if (buffer < 45) {
+                qp += 1.0; 
+            } else if (buffer > 80) {
+                qp -= 2.0;
+                logMsg(`水位过高! 强行降低 QP (提升画质泄洪) -> ${qp.toFixed(1)}`, 'warn');
+            } else if (buffer > 60 && qp > 25) {
+                qp -= 0.5; 
             }
+            
+            qp = Math.min(51, Math.max(10, qp));
+            currentExtract = currentExtract * Math.pow(0.5, (qp - 25) / 6.0);
             
             hrdExtractRate.textContent = `-${currentExtract.toFixed(1)}%`;
             buffer = buffer + inject - currentExtract;
             
-            if (buffer <= 0 && demoStage === 1) {
-                buffer = 0;
-                logMsg('【致命错误】Buffer Underflow! 解码器饿死卡顿死机。', 'err');
-                updateUI();
-                clearInterval(simInterval);
-                demoStage = 2;
-                logMsg('即将于 3 秒后演示【Overflow 淹死】...', 'warn');
-                setTimeout(() => { if(isRunning){ demoStage = 3; resetSim(3); simInterval = setInterval(tick, 600); } }, 3000);
-                return;
-            } else if (buffer >= 100 && demoStage === 3) {
-                buffer = 100;
-                logMsg('【致命错误】Buffer Overflow! 蓄水池溢出，发生网络丢包。', 'err');
-                updateUI();
-                clearInterval(simInterval);
-                demoStage = 4;
-                logMsg('即将于 3 秒后切换至【开启 Rate Control】进行终极防御测试...', 'warn');
-                setTimeout(() => { if(isRunning){ demoStage = 5; resetSim(5); simInterval = setInterval(tick, 600); } }, 3000);
-                return;
-            }
+            // 兜底保护 (理论上 RC 不会让其触发)
+            if (buffer <= 0) buffer = 0;
+            if (buffer >= 100) buffer = 100;
             
             updateUI();
         }
@@ -441,17 +390,15 @@
         function stopSim() {
             clearInterval(simInterval);
             isRunning = false;
-            demoStage = 0;
         }
 
         btnStart.addEventListener('click', () => {
             if (isRunning) {
                 stopSim();
-                btnStart.textContent = '▶ 启动自动化推演 (Auto Demo)';
+                btnStart.textContent = '▶ 启动 RC 动态防御演示 (Auto Loop)';
                 demoPhase.style.display = 'none';
             } else {
-                demoStage = 1;
-                resetSim(1);
+                resetSim();
                 isRunning = true;
                 btnStart.textContent = '停止演示';
                 simInterval = setInterval(tick, 600);
