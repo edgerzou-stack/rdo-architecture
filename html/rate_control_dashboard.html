@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>码率控制 (Rate Control) 底层架构拆解</title>
+    <script>
+      MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         :root {
             --primary: #0288d1;
@@ -71,11 +77,11 @@
         <strong>⚠️ 码率控制的底线任务：防止“饿死”与“淹死”</strong><br>
         如果编码器给的帧太大，池子水被舀光，解码器没数据可解就会卡顿（<span style="background: #fecaca; padding: 2px 6px; border-radius: 4px; color: #991b1b; font-weight: 700;">Buffer Underflow</span>，饿死）。<br>
         如果编码器给的帧太小，网络拼命注水导致池子溢出，数据丢失（<span style="background: #fecaca; padding: 2px 6px; border-radius: 4px; color: #991b1b; font-weight: 700;">Buffer Overflow</span>，淹死）。<br>
-        因此，编码器必须时刻监控蓄水池的“剩余水位”，动态勒紧或放松裤腰带（调节 QP），在**不把池子搞崩的前提下，尽可能把画质（ROI）做到最好**。
+        因此，编码器必须时刻监控蓄水池的“剩余水位”，动态勒紧或放松裤腰带（调节 QP），在<strong>不把池子搞崩的前提下，尽可能把画质（ROI）做到最好</strong>。
     </div>
 
     <h2>2. RC 系统流转图与核心痛点</h2>
-    <p>在底层的 C-Model 中，码率控制绝非一个简单的 $D+\lambda R$ 公式，而是一个极其庞大的**前馈分配与反馈修正闭环系统**。</p>
+    <p>在底层的 C-Model 中，码率控制绝非一个简单的 $D+\lambda R$ 公式，而是一个极其庞大的<strong>前馈分配与反馈修正闭环系统</strong>。</p>
 
     <div style="text-align: center;">
         <img src="rc_arch_flow.svg" style="max-width: 100%; height: auto; display: block; margin: 20px auto;">
