@@ -139,10 +139,12 @@
     </ul>
 
     <h3>策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
-    <p>当系统开启 CRF (Constant Rate Factor) 模式时，C-Model 会调用 <code>crfQpMapBasedCplx()</code>。它不像普通的 CBR 那样只看当前水位，而是结合了 <strong>Pass 1 (预分析/Lookahead)</strong> 的数据：</p>
+    <p>当系统开启 CRF (Constant Rate Factor) 模式时，C-Model 会调用 <code>crfQpMapBasedCplx()</code>。为了避免局部画面突变导致 QP 的剧烈震荡，算法结合了 <strong>Pass 1 (预分析/Lookahead)</strong> 数据并执行了严格的量化衰减：</p>
     <ul>
-        <li>利用 <code>pass1CurCost</code> 提取当前帧的前瞻复杂度。</li>
-        <li>通过 <code>shortTermCplxSum</code> 和 <code>prevCplxSum</code> 计算出一个平滑的 <strong><code>blurredComplexity</code> (模糊复杂度)</strong>，从而避免因为局部画面的突变导致 QP 的剧烈震荡。</li>
+        <li><strong>时域指数衰减 (Exponential Moving Average)</strong>：每经过一帧，历史积累的复杂度权重减半，即 <code>shortTermCplxCount *= 0.5</code> 和 <code>prevCplxSum *= 0.5</code>。</li>
+        <li><strong>平滑复杂度计算 (Blurred Complexity)</strong>：将当前帧的 Pass 1 消耗 (<code>pass1CurCost</code>) 累加上去，得到 <code>blurredComplexity = shortTermCplxSum / shortTermCplxCount</code>。这一步相当于做了一个带时间衰减因子的低通滤波。</li>
+        <li><strong>非线性 qScale 映射</strong>：核心公式为 <code>qScale = pow(blurredComplexity, 1 - 0.6)</code>。其中 <code>0.6</code> 为核心常数 <code>qCompress</code>。这种分数次幂运算保证了当画面复杂度指数级上升时，分配的码率增幅会被非线性“压制”，从而保护整体带宽。</li>
+        <li><strong>最终归一化</strong>：算出的 <code>qScale</code> 会除以基准常数 <code>rateFactorConstant</code>，最终换算为底层物理 QP (<code>rc->qpHdr = qScale2qp(qScale)</code>)。</li>
     </ul>
 
     <h3>策略三：防止系统饿死的强制熔断机制 (Frame Skip)</h3>
