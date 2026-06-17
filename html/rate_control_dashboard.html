@@ -189,9 +189,20 @@
         </div>
     </div>
 
-    <h3>策略三：防止系统饿死的强制熔断机制 (Frame Skip)</h3>
+    <h3>策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
     <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 Buffer Underflow 怎么办？</p>
-    <p>在 C-Model 的 <code>PicSkip(rc)</code> 函数中，有一道硬核的底线防护：如果 <code>bitAvailable < skipIncLimit</code>，即可用余额彻底耗尽，编码器会直接把 <code>rc->frameCoded</code> 强行置为 <code>ENCHW_NO</code>，也就是说<strong>直接丢弃这一帧，完全不编码，不发送</strong>。这在直播等极端场景中，是保护解码器不卡死崩溃的最后一道防火墙。</p>
+    
+    <p>在 C-Model 的 <code>PicSkip(rc)</code> 函数中，有一道硬核的底线防护：如果 <code>bitAvailable < skipIncLimit</code>，即可用余额彻底耗尽，编码器会直接把 <code>rc->frameCoded</code> 强行置为 <code>ENCHW_NO</code>，也就是说<strong>直接丢弃这一帧，完全不编码，不发送</strong>。</p>
+    
+    <div class="highlight" style="background: #1e293b; padding: 15px; border-left: 4px solid #f59e0b; border-radius: 4px; color: #e2e8f0; margin: 15px 0;">
+        <strong style="color: #fbbf24;">⚠️ 物理原理与代价权衡 (Trade-off Analysis)：</strong><br>
+        <p style="margin-bottom: 8px; font-size: 14px;">正如您所担忧的，直接丢弃一帧数据确实会导致终端播放画面出现明显的<strong>物理卡顿 (Stuttering/掉帧)</strong>。但在系统工程中，这是一个“两害相权取其轻”的残酷决定：</p>
+        <ul style="margin-top: 0; font-size: 14px;">
+            <li><strong>如果不丢帧 (触发 Underflow 饿死)</strong>：解码器按照正常时序抽取数据时，发现 Buffer 被抽干了。此时不仅画面彻底卡死（Freeze），底层硬件解码流水线会直接崩溃报错，甚至会导致后续长达数秒的音视频严重不同步 (A/V Sync Loss)。</li>
+            <li><strong>果断丢帧 (触发 Frame Skip 止损)</strong>：当前帧被编码端物理抹除。解码端由于没有收到新帧，会<strong>自动复用前一帧画面 (Frame Repeat)</strong>，表现为视觉上的顿挫。但在这一帧的时间空隙里，信道源源不断注入的恒定比特被纯攒了下来（因为该帧抽取量为 0）。利用这个时间差，系统成功给濒临干涸的 Buffer 强行“续命回血”！</li>
+        </ul>
+        <p style="margin-bottom: 0; color: #94a3b8; font-size: 13px;"><strong>极客论断：</strong>宁可牺牲体验让观众感到一瞬间的“掉帧卡顿”，也绝对不允许整个解码播放器发生不可逆的物理宕机。这就是架构设计中舍车保帅的终极防线。</p>
+    </div>
 
     <h2>3. 帧级目标比特分配 (BeforePicRc)</h2>
     <p>在 `VideoEncBeforePicRc` 函数中，算法的第一步并不是盲目计算 QP，而是极其精打细算地盘点家底，得出当前帧究竟能花多少比特（`targetPicSize`）。</p>
