@@ -46,6 +46,21 @@
         .top-nav-link { background: #f8fafc; color: var(--primary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; text-decoration: none; border: 1px solid #e2e8f0; transition: all 0.2s; }
         .top-nav-link:hover { background: #e0f2fe; }
         .top-nav-link.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* HRD Widget CSS */
+        .hrd-widget { border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; background: #fff; margin: 20px 0; font-family: monospace; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .hrd-controls { display: flex; gap: 15px; margin-bottom: 25px; align-items: center; }
+        .hrd-btn { padding: 10px 20px; border: none; border-radius: 6px; background: var(--primary); color: white; cursor: pointer; font-weight: 600; font-family: inherit; font-size: 14px; transition: background 0.2s; }
+        .hrd-btn:hover { background: var(--secondary); }
+        .hrd-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .hrd-btn.danger { background: #ef4444; }
+        .hrd-btn.danger:hover:not(:disabled) { background: #dc2626; }
+        .hrd-buffer-container { width: 100%; height: 45px; background: #f1f5f9; border-radius: 25px; overflow: hidden; position: relative; border: 2px solid #cbd5e1; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); }
+        .hrd-buffer-fill { height: 100%; background: #22c55e; width: 50%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s; }
+        .hrd-status { display: flex; justify-content: space-between; margin-top: 15px; font-size: 15px; color: #475569; font-weight: 600; background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .hrd-logs { height: 120px; background: #0f172a; color: #38bdf8; overflow-y: auto; padding: 15px; border-radius: 8px; font-size: 13px; margin-top: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .hrd-log-err { color: #f87171; font-weight: bold; }
+        .hrd-log-warn { color: #facc15; }
     </style>
 </head>
 <body>
@@ -59,25 +74,40 @@
     <div class="top-nav" id="top-nav"></div>
     <h1>码率控制 (Rate Control) 底层架构拆解<br><span style="font-size:0.6em; color:#7f8c8d;">Algorithm & Hardware Co-Design</span></h1>
 
-    <h2>1. 概念启蒙：什么是码率控制？为什么需要它？</h2>
-    <p>在深入 C-Model 的硬核公式之前，我们需要建立一个直观的“水管与蓄水池”物理模型，来解释码率控制（RC, Rate Control）的本质意义。</p>
+    <h2>1. 核心挑战：HRD Virtual Buffer 物理推演</h2>
+    <p>在深入 C-Model 公式之前，我们通过一个<strong>实时动态推演微件</strong>来揭示码率控制（RC）的根本物理意义：在信道恒定注入的情况下，如何应对解码器的离散抽取。</p>
     
-    <div class="highlight">
-        <strong>💡 核心挑战：视频编码天然是“大小不一”的</strong><br>
-        视频中有些帧包含剧烈运动（极难压缩，需要大量比特），有些帧是静止背景（极易压缩）。如果编码器“任性”地追求极致且恒定的画质（恒定 QP），输出的码流大小将剧烈抖动。
+    <div class="hrd-widget">
+        <div class="hrd-controls">
+            <button id="btn-start" class="hrd-btn">启动推演</button>
+            <button id="btn-scene" class="hrd-btn danger" disabled>触发复杂场景 (爆炸画面)</button>
+            <label style="display: flex; align-items: center; margin-left: auto; font-weight: bold; cursor: pointer; color: #334155; font-size: 15px;">
+                <input type="checkbox" id="rc-toggle" style="margin-right: 8px; width: 18px; height: 18px;">
+                启用动态 QP (Rate Control)
+            </label>
+        </div>
+        <div style="margin-bottom: 12px; font-size: 16px; font-weight: bold; color: #334155;">
+            Virtual Buffer (VBV) 剩余水位: <span id="hrd-percent" style="color: var(--primary); font-size: 18px;">50.0%</span>
+        </div>
+        <div class="hrd-buffer-container">
+            <div id="hrd-fill" class="hrd-buffer-fill"></div>
+        </div>
+        <div class="hrd-status">
+            <span>[+] 信道传输: 恒定 +5.0% / 帧</span>
+            <span>[-] 解码提取: <span id="hrd-extract-rate" style="color: #ef4444;">-5.0%</span> / 帧</span>
+            <span>编码端当前 QP: <span id="hrd-qp" style="color: var(--primary); font-size: 18px;">25</span></span>
+        </div>
+        <div class="hrd-logs" id="hrd-logs">
+            [System] HRD Simulator Ready. 信道恒定注入速率: 5.0% / tick.
+        </div>
     </div>
 
-    <p>想象一根传输视频流的网络网线是一根<strong>“口径固定的水管”</strong>（信道带宽限制，如 5Mbps）。如果某一秒视频画面爆炸，编码器瞬间喷出了 20Mb 的数据，水管就会堵塞，观众端就会发生严重卡顿。为了解决这个问题，我们在解码器端设置了一个<strong>“蓄水池”（HRD Virtual Buffer / VBV）</strong>：</p>
-    <ul>
-        <li><strong>水管（网络）</strong> 以恒定的速度往池子里注水。</li>
-        <li><strong>解码器</strong> 以不规则的速度从池子里“舀水”出来解码（大帧舀得多，小帧舀得少）。</li>
-    </ul>
-
-    <div class="critical-alert">
-        <strong>⚠️ 码率控制的底线任务：防止“饿死”与“淹死”</strong><br>
-        如果编码器给的帧太大，池子水被舀光，解码器没数据可解就会卡顿（<span style="background: #fecaca; padding: 2px 6px; border-radius: 4px; color: #991b1b; font-weight: 700;">Buffer Underflow</span>，饿死）。<br>
-        如果编码器给的帧太小，网络拼命注水导致池子溢出，数据丢失（<span style="background: #fecaca; padding: 2px 6px; border-radius: 4px; color: #991b1b; font-weight: 700;">Buffer Overflow</span>，淹死）。<br>
-        因此，编码器必须时刻监控蓄水池的“剩余水位”，动态勒紧或放松裤腰带（调节 QP），在<strong>不把池子搞崩的前提下，尽可能把画质（ROI）做到最好</strong>。
+    <div class="highlight">
+        <strong>💡 物理模型解析：</strong><br>
+        1. <strong>网络信道</strong>以恒定的速率（如 +5.0%）向 Buffer 中注入比特。<br>
+        2. <strong>解码器</strong>以固定的帧率（如 30fps）从 Buffer 中瞬间抽取一帧的数据块。<br>
+        3. <strong>Underflow (饿死)</strong>：如果在“无 RC 模式”下突发复杂场景，帧体积暴增，解码器一次性抽走巨量数据，水位瞬间归零，解码器由于没有完整帧可解而直接卡死。<br>
+        4. <strong>Rate Control 的意义</strong>：侦测到水位下降时，强制拉高 QP，压榨画面细节以换取帧体积的骤减，从而让信道注入速率超过抽取速率，硬生生把水位拉回安全线。
     </div>
 
     <h2>2. RC 系统流转图与核心痛点</h2>
@@ -217,6 +247,145 @@
         
         if(tocList.firstChild) tocList.firstChild.querySelector('a').classList.add('active');
         if(topNav && topNav.firstChild) topNav.firstChild.classList.add('active');
+
+        // HRD Simulator Logic
+        const btnStart = document.getElementById('btn-start');
+        const btnScene = document.getElementById('btn-scene');
+        const rcToggle = document.getElementById('rc-toggle');
+        const hrdFill = document.getElementById('hrd-fill');
+        const hrdPercent = document.getElementById('hrd-percent');
+        const hrdExtractRate = document.getElementById('hrd-extract-rate');
+        const hrdQp = document.getElementById('hrd-qp');
+        const hrdLogs = document.getElementById('hrd-logs');
+
+        let simInterval;
+        let buffer = 50; // 50% start
+        let isRunning = false;
+        let isComplexScene = false;
+        let qp = 25;
+        let ticks = 0;
+        let baseExtract = 5.0;
+
+        function logMsg(msg, type='') {
+            const div = document.createElement('div');
+            div.innerHTML = `<span style="color:#64748b;">[Tick ${String(ticks).padStart(3, '0')}]</span> ${msg}`;
+            if(type) div.className = 'hrd-log-' + type;
+            hrdLogs.appendChild(div);
+            hrdLogs.scrollTop = hrdLogs.scrollHeight;
+        }
+
+        function updateUI() {
+            if (buffer < 0) buffer = 0;
+            if (buffer > 100) buffer = 100;
+            
+            hrdFill.style.width = buffer + '%';
+            hrdPercent.textContent = buffer.toFixed(1) + '%';
+            hrdQp.textContent = qp.toFixed(1);
+            
+            if (buffer > 80) hrdFill.style.backgroundColor = '#eab308'; // warn (yellow)
+            else if (buffer < 20) hrdFill.style.backgroundColor = '#ef4444'; // danger (red)
+            else hrdFill.style.backgroundColor = '#22c55e'; // safe (green)
+        }
+
+        function tick() {
+            if(!isRunning) return;
+            ticks++;
+            
+            // 1. 恒定网络注入
+            let inject = 5.0; 
+            
+            // 2. 模拟解码抽取 (基于场景)
+            let currentExtract = isComplexScene ? 18.0 : baseExtract;
+            
+            // RC 模式调节 QP
+            if (rcToggle.checked) {
+                if (buffer < 25) {
+                    qp += 3.5; // 极度危险，暴力加 QP
+                    logMsg(`水位极危! 强行暴力拉高 QP -> ${qp.toFixed(1)}`, 'warn');
+                } else if (buffer < 45) {
+                    qp += 1.0; // 水位偏低，温和加 QP
+                    if(ticks % 2 === 0) logMsg(`水位偏低，温和拉高 QP -> ${qp.toFixed(1)}`);
+                } else if (buffer > 60 && qp > 25) {
+                    qp -= 0.5; // 水位安全，缓慢恢复 QP 提升画质
+                }
+                
+                // 限制 QP 范围 (比如 10 到 51)
+                qp = Math.min(51, Math.max(10, qp));
+                
+                // QP 对比特的影响: 每+6 QP，体积减半
+                currentExtract = currentExtract * Math.pow(0.5, (qp - 25) / 6.0);
+            } else {
+                qp = 25; // 恒定 QP
+            }
+            
+            hrdExtractRate.textContent = `-${currentExtract.toFixed(1)}%`;
+            
+            // 更新水位
+            buffer = buffer + inject - currentExtract;
+            
+            // 溢出与饿死检测
+            if (buffer <= 0) {
+                buffer = 0;
+                logMsg('【致命错误】Buffer Underflow! 解码器抽空数据，发生卡顿死机。', 'err');
+                stopSim();
+            } else if (buffer >= 100) {
+                buffer = 100;
+                logMsg('【致命错误】Buffer Overflow! 蓄水池溢出，网络丢包。', 'err');
+                stopSim();
+            }
+            
+            updateUI();
+        }
+
+        function stopSim() {
+            clearInterval(simInterval);
+            isRunning = false;
+            btnStart.textContent = '重置并重启推演';
+            btnStart.classList.add('danger');
+            btnScene.disabled = true;
+        }
+
+        btnStart.addEventListener('click', () => {
+            if (isRunning) {
+                clearInterval(simInterval);
+                isRunning = false;
+                btnStart.textContent = '恢复推演';
+                btnStart.classList.remove('danger');
+                btnScene.disabled = true;
+                logMsg('推演已暂停。');
+            } else {
+                if (buffer <= 0 || buffer >= 100) {
+                    // Reset
+                    buffer = 50;
+                    qp = 25;
+                    ticks = 0;
+                    isComplexScene = false;
+                    hrdLogs.innerHTML = '';
+                    logMsg('HRD Simulator 已重置。');
+                }
+                updateUI();
+                isRunning = true;
+                btnStart.textContent = '暂停推演';
+                btnStart.classList.remove('danger');
+                btnScene.disabled = false;
+                logMsg('推演开始运行...');
+                simInterval = setInterval(tick, 600);
+            }
+        });
+
+        btnScene.addEventListener('click', () => {
+            if(isComplexScene) return;
+            isComplexScene = true;
+            logMsg('====== 检测到爆炸场景！帧体积剧增 ====== ', 'warn');
+            btnScene.disabled = true;
+            btnScene.textContent = '复杂场景持续中...';
+            setTimeout(() => {
+                isComplexScene = false;
+                logMsg('====== 场景恢复平缓 ======');
+                if(isRunning) btnScene.disabled = false;
+                btnScene.textContent = '触发复杂场景 (爆炸画面)';
+            }, 3600); // 复杂场景持续 6 个 tick
+        });
     });
 </script>
 </body>
