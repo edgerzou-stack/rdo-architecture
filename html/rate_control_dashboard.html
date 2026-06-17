@@ -353,14 +353,20 @@
 
         <div style="margin-bottom: 10px; padding: 15px; background: #1e293b; border-left: 3px solid #34d399; border-radius: 4px;">
             <h5 style="color: #6ee7b7; margin-top: 0; font-size: 15px;">[步骤 4] 反馈收集与模型校准 (AfterPicRc)</h5>
-            <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后吐出真实的物理消耗 $B_{actual}$。软件执行两项闭环校准：</p>
+            <p style="font-size: 14px; margin-bottom: 10px;">硬件完工后吐出真实的物理消耗 $B_{actual}$，软件据此执行底层 EMA (指数移动平均) 滤波以校准 R-Q 模型：</p>
             <div style="background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; font-size: 16px; text-align: center; margin-bottom: 10px;">
-                $$ V_{level} = V_{level} + B_{actual} - \frac{R_{bitrate}}{F_{rate}} $$
-                $$ \omega_{reg} = \mathrm{EMA}(\omega_{reg\_prev}, \ \frac{Q_{actual}}{B_{actual}}, \ \alpha) $$
+                $$ V_{level}^{(t)} = V_{level}^{(t-1)} + B_{actual} - \frac{R_{bitrate}}{F_{rate}} $$
+                $$ Q_{actual} = f_{qp \to scale}(QP_{avg}) $$
+                $$ \omega_{cur} = \frac{Q_{actual}}{B_{actual}} $$
+                $$ \omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha $$
             </div>
-            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>公式释义：</strong>(1) VBV 水位 ($V_{level}$) 扣除恒定的信道流出速度，加上本次硬件实际产生的体积。(2) 通过真实的体积反推斜率，并通过指数移动平均 ($\mathrm{EMA}$) 以平滑因子 $\alpha$ 更新下一次使用的 $\omega_{reg}$。</p>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 5px;"><strong>量化释义：</strong><br>
+            (1) <strong>水位更新</strong>：用上一帧的水位加上本帧真实体积 $B_{actual}$，再扣除固定流出的信道数据量。<br>
+            (2) <strong>反算物理标度</strong>：将硬件执行后的平均 $QP_{avg}$ 反向映射回真实 $Q_{actual}$。<br>
+            (3) <strong>计算瞬态斜率</strong>：求出当前单帧画面的实际压强斜率 $\omega_{cur}$。<br>
+            (4) <strong>EMA 滤波校准</strong>：将历史斜率 $\omega_{reg}^{(t-1)}$ 与瞬态斜率 $\omega_{cur}$ 依据平滑因子 $\alpha$（底层代码中通常取 $\frac{1}{8}$ 或 $0.125$）进行融合更新。偏移量 $b_{reg}$ 的更新逻辑同理。</p>
             <div style="background: rgba(52, 211, 153, 0.1); padding: 10px; border-radius: 4px;">
-                <p style="font-size: 13px; color: #6ee7b7; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>虽然预算 $\mathcal{T}_{pic}$ 只给了 $10KB$，但由于画面极度复杂，硬件最终还是产生了 $B_{actual}=15KB$ 的体积。软件读取后，真实水位 $V_{level}$ 依然上升了。同时，模型意识到当前画面比预想的“难压”，$\omega_{reg}$ 斜率被 EMA 算法小幅调陡，使得下一帧的 QP 推演会更加保守（拉得更高）。</p>
+                <p style="font-size: 13px; color: #6ee7b7; margin: 0;"><strong>📉 沙盘案例 (Numeric Example)：</strong>假设历史斜率 $\omega_{reg}=1.0$。突发爆炸场景使得本帧异常难压，导致算出的瞬态斜率 $\omega_{cur}$ 暴涨至 $9.0$。在 $\alpha=0.125$ 的 EMA 算法下，新的斜率会被更新为 $1.0 \times \frac{7}{8} + 9.0 \times \frac{1}{8} = 2.0$。这完美避免了模型被单一异常帧彻底带偏（防跳变），同时又敏感地吸收了画面变复杂的趋势（防迟滞），使得下一帧的推演更加精准。</p>
             </div>
         </div>
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;"><strong>极客总结：</strong>在这个闭环中，软件 RC 是“战略司令部”（定目标、定基准 <code>qpHdr</code>、定边界 <code>qpMin/Max</code>），而硬件 CU 级控制是“前线指挥官”（基于局部图像特征，在既定预算和边界内打满伤害）。两者通过寄存器完美握手。</p>
