@@ -581,7 +581,12 @@
             <strong>(3) 瞬态斜率解算</strong>：$\omega_{cur} = Q_{actual} \times B_{actual}$。该乘积的物理含义是：在当前帧的量化精度水平下，产生 $B_{actual}$ 比特所对应的场景复杂度度量。复杂度越高的画面，在相同 QP 下会消耗更多比特，因此 $\omega_{cur}$ 值越大。</p>
 
             <p style="font-size: 18px; color: #555; margin-bottom: 5px; line-height: 1.7;">
-            <strong id="param-alpha">(4) EMA 滤波校正</strong>：基于平滑因子 $\alpha$（如规范参数设为 $\frac{1}{8}$ 或 $0.125$），对历史常数 $\omega_{reg}^{(t-1)}$ 与瞬态观测值 $\omega_{cur}$ 进行低通融合，更新模型权值。该滤波后的 $\omega_{reg}$ 将被回传至 <a href="#section-5" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 的 R-Q 模型中，作为下一帧的复杂度预测基准，完成闭环。</p>
+            <strong>(4) EMA 滤波校正</strong>：基于平滑因子 $\alpha$，对历史常数 $\omega_{reg}^{(t-1)}$ 与瞬态观测值 $\omega_{cur}$ 进行低通融合，更新模型权值。该滤波后的 $\omega_{reg}$ 将被回传至 <a href="#section-5" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 的 R-Q 模型中，作为下一帧的复杂度预测基准，完成闭环。</p>
+            
+            <p id="param-alpha" style="font-size: 18px; color: #555; margin-bottom: 0; line-height: 1.7; padding: 15px; background: #f8fafc; border-left: 4px solid #94a3b8; border-radius: 4px;">
+            <strong style="color: #475569;">🔗 补充说明：平滑因子 $\alpha$ 的物理意义与确定</strong><br>
+            $\alpha$ 是控制 R-Q 模型更新速率的<strong>工程经验常数</strong>。若 $\alpha$ 太大，模型会随单帧瞬态剧烈波动导致码流失控；若 $\alpha$ 太小，模型对场景切换响应迟钝，造成切镜后画质长时间崩塌。工业界通常将其静态配置为硬件友好的 2 的负整数次幂（如 $\frac{1}{4}, \frac{1}{8}, \frac{1}{16}$），允许底层直接用极低开销的“移位运算”替代乘法。本模型中设定其为 $\mathbf{0.125}$，这与 <a href="#param-beta" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">2.3.1 节中的参考方差平滑因子 $\beta$</a> 采用了完全对称的系统级设计。
+            </p>
             </div>
             
             <h4 id="section-10" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.5.1 📉 沙盘案例 (Numeric Example)</h4>
@@ -595,7 +600,7 @@
                     硬件严格按照<strong style="color: #0288d1;">比特量加权平均公式</strong>，得出整帧实际等效的平均值：$QP_{avg} = \frac{\sum (B_{cu,j} \times QP_{cu,j})}{\sum B_{cu,j}} = \frac{250{,}000 \times 22 + 50{,}000 \times 10}{300{,}000} = \frac{5{,}500{,}000 + 500{,}000}{300{,}000} = \frac{6{,}000{,}000}{300{,}000} = \mathbf{20}$。</li>
                     <li style="margin-bottom: 16px;"><strong>【第一步：反演物理标度】</strong><br>将 $QP_{avg}$ 代入标准传递函数逆推等效物理标度：$Q_{actual} = 2^{\frac{QP_{avg} - 12}{6}} = 2^{\frac{20 - 12}{6}} = 2^{1.333} \approx 2.52$。</li>
                     <li style="margin-bottom: 16px;"><strong>【第二步：解算瞬态斜率】</strong><br>硬件管线反算出该突变场景的真实场景复杂度严谨值为：$\omega_{cur} = Q_{actual} \times B_{actual} = 2.52 \times 300{,}000 = \mathbf{756{,}000}$（可见瞬态复杂度较历史平均状态暴涨了 4 倍多）。</li>
-                    <li><strong>【第三步：EMA 平滑更新】</strong><br>在平滑因子 <a href="#param-alpha" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">$\alpha=0.125$</a> 的滤波抑制下，新模型状态被严谨计算为：$\omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha = 170{,}620 \times \frac{7}{8} + 756{,}000 \times \frac{1}{8} = 149{,}292.5 + 94{,}500 \approx \mathbf{243{,}793}$。<br>此低通滤波机制既吸收了新突发场景的高复杂度特征（基准从 17W 追踪攀升至 24W），又强烈压制了单帧飙升至 $756{,}000$ 的孤立噪声引发的跳变干扰，确保了 R-Q 模型的平顺。</li>
+                    <li><strong>【第三步：EMA 平滑更新】</strong><br>在<a href="#param-alpha" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">平滑因子 $\alpha$</a> $=0.125$ 的滤波抑制下，新模型状态被严谨计算为：$\omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha = 170{,}620 \times \frac{7}{8} + 756{,}000 \times \frac{1}{8} = 149{,}292.5 + 94{,}500 \approx \mathbf{243{,}793}$。<br>此低通滤波机制既吸收了新突发场景的高复杂度特征（基准从 17W 追踪攀升至 24W），又强烈压制了单帧飙升至 $756{,}000$ 的孤立噪声引发的跳变干扰，确保了 R-Q 模型的平顺。</li>
                 </ul>
             </div>
         </div>
