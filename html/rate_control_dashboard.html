@@ -1006,37 +1006,69 @@ graph TD
     <h4 id="section-16">3.2.1 📉 极客案例推演：从绝对静止到瞬间爆炸的平滑过渡</h4>
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
         <p style="color: #333; font-size: 18px; margin-bottom: 10px;"><strong>【参数推导：预分析复杂度反馈】</strong><br>设定初始测试序列输入为连续的静态帧序列，系统预分析器 (Pass 1) 输出的像素级运动补偿代价为 $\mathcal{C}_{cur} = 100$。突然在 <strong>T0</strong> 时刻发生满屏爆炸场景，<code>pass1CurCost</code> 实际测量反馈值暴涨 10 倍（达到 <strong>1000</strong>）。若无平滑，QP 会瞬间暴跌引起流量雪崩。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
+        <style>
+            @keyframes growBar {
+                0% { height: 0%; opacity: 0; }
+                100% { opacity: 1; }
+            }
+            @keyframes flashRed {
+                0% { height: 50%; background: #94a3b8; box-shadow: none; }
+                50% { height: 100%; background: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
+                100% { height: 100%; background: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+            }
+            @keyframes fadeInText {
+                0% { opacity: 0; transform: translateX(-10px); }
+                100% { opacity: 1; transform: translateX(0); }
+            }
+            
+            .bar-t3 { animation: growBar 0.5s ease-out forwards; animation-delay: 0.5s; height: 12%; opacity: 0; }
+            .bar-t2 { animation: growBar 0.5s ease-out forwards; animation-delay: 1.0s; height: 25%; opacity: 0; }
+            .bar-t1 { animation: growBar 0.5s ease-out forwards; animation-delay: 1.5s; height: 50%; opacity: 0; }
+            .bar-t0 { animation: flashRed 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 2.5s; height: 50%; background: #94a3b8; }
+            
+            .step1-code { animation: fadeInText 0.8s ease-out forwards; animation-delay: 3.5s; opacity: 0; }
+            .step2-code { animation: fadeInText 0.8s ease-out forwards; animation-delay: 4.5s; opacity: 0; }
+            
+            .play-btn {
+                margin-top: 10px; padding: 6px 12px; background: #0ea5e9; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
+            }
+            .play-btn:hover { background: #0284c7; }
+        </style>
         
-        <div style="display: flex; align-items: flex-end; gap: 15px; margin: 25px 0; height: 140px; border-bottom: 2px solid #334155; padding-bottom: 5px; overflow-x: auto;">
+        <div id="animation-container" style="display: flex; align-items: flex-end; gap: 15px; margin: 25px 0; height: 140px; border-bottom: 2px solid #334155; padding-bottom: 5px; overflow-x: auto;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div style="width: 45px; height: 12%; background: #475569; border-radius: 4px 4px 0 0;"></div>
+                <div class="bar-t3" style="width: 45px; background: #475569; border-radius: 4px 4px 0 0;"></div>
                 <span style="font-size: 14px; color: #94a3b8; margin-top: 5px; text-align: center;">T-3<br>静止</span>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div style="width: 45px; height: 25%; background: #64748b; border-radius: 4px 4px 0 0;"></div>
+                <div class="bar-t2" style="width: 45px; background: #64748b; border-radius: 4px 4px 0 0;"></div>
                 <span style="font-size: 14px; color: #94a3b8; margin-top: 5px; text-align: center;">T-2<br>静止</span>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div style="width: 45px; height: 50%; background: #94a3b8; border-radius: 4px 4px 0 0;"></div>
+                <div class="bar-t1" style="width: 45px; background: #94a3b8; border-radius: 4px 4px 0 0;"></div>
                 <span style="font-size: 14px; color: #94a3b8; margin-top: 5px; text-align: center;">T-1<br>静止</span>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div style="width: 45px; height: 100%; background: #ef4444; border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></div>
-                <span style="font-size: 14px;  margin-top: 5px; font-weight: bold; text-align: center;">T0<br>爆炸(1000)</span>
+                <div class="bar-t0" style="width: 45px; border-radius: 4px 4px 0 0;"></div>
+                <span style="font-size: 14px; margin-top: 5px; font-weight: bold; text-align: center;">T0<br>爆炸(1000)</span>
             </div>
             
-            <div style="margin-left: 30px; font-family: 'Roboto Mono', monospace; font-size: 18px; color: #94a3b8; align-self: center;  padding: 12px; border-radius: 6px; border: 1px solid #334155; white-space: nowrap;">
-                <span style="color: #38bdf8;">// Step 1: EMA 低通滤波 (拖影平滑)</span><br>
-                <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + 1000) / 综合Count <br>
-                <span style="color: #a3a3a3;">-> 被 T-1~T-3 的低复杂度(100)严重稀释</span><br>
-                <span style="color: #4ade80;">-> 实际算出仅为约 500 (而非1000)</span><br><br>
-                
-                <span style="color: #38bdf8;">// Step 2: qCompress 非线性空间折叠</span><br>
-                <span style="color: #f8fafc;">qScale</span> = pow(<span style="color: #4ade80;">500</span>, 1 - <span style="color: #f472b6;">0.6</span>) <br>
-                <span style="color: #a3a3a3;">-> 增幅指数(0.4)把暴涨的复杂度无情压缩</span><br>
-                <span style="color: #4ade80;">-> QP 仅温和调整，完美避免码流瞬间崩塌！</span>
+            <div style="margin-left: 30px; font-family: 'Roboto Mono', monospace; font-size: 18px; color: #94a3b8; align-self: center; padding: 12px; border-radius: 6px; border: 1px solid #334155; white-space: nowrap;">
+                <div class="step1-code">
+                    <span style="color: #38bdf8;">// Step 1: EMA 低通滤波 (拖影平滑)</span><br>
+                    <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + 1000) / 综合Count <br>
+                    <span style="color: #a3a3a3;">-> 被 T-1~T-3 的低复杂度(100)严重稀释</span><br>
+                    <span style="color: #4ade80;">-> 实际算出仅为约 500 (而非1000)</span><br><br>
+                </div>
+                <div class="step2-code">
+                    <span style="color: #38bdf8;">// Step 2: qCompress 非线性空间折叠</span><br>
+                    <span style="color: #f8fafc;">qScale</span> = pow(<span style="color: #4ade80;">500</span>, 1 - <span style="color: #f472b6;">0.6</span>) <br>
+                    <span style="color: #a3a3a3;">-> 增幅指数(0.4)把暴涨的复杂度无情压缩</span><br>
+                    <span style="color: #4ade80;">-> QP 仅温和调整，完美避免码流瞬间崩塌！</span>
+                </div>
             </div>
         </div>
+        <button class="play-btn" onclick="let c = document.getElementById('animation-container'); let clone = c.cloneNode(true); c.parentNode.replaceChild(clone, c);">🔄 重播动画 (Replay Animation)</button>
     </div>
 
     <h3 id="section-17">3.3 🛡️ 策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
