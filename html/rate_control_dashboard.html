@@ -465,7 +465,7 @@
             <p style="font-size: 18px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
 
             <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数一：$V_{cu}$（CU 局部空间方差）— 硬件实时计算</h4>
+                <div style="color: #f8fafc; margin-top: 0; font-size: 18px; font-weight: bold; margin-bottom: 10px;">📐 参数一：$V_{cu}$（CU 局部空间方差）— 硬件实时计算</div>
                 <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 $V_{cu}$ 是一个标准的<strong style="color: #93c5fd;">像素级样本方差</strong>，由硬件管线在逐 CU 处理时实时计算。其中 $p_i$ 为 CU 内第 $i$ 个<strong style="color: #93c5fd;">原始亮度像素值 (Luma)</strong>，$\mu_{cu} = \frac{1}{N}\sum_{i=1}^{N} p_i$ 为该 CU 内所有像素的算术均值，$N$ 为像素总数（如 16×16 CU 则 $N=256$）。
                 </p>
@@ -475,7 +475,7 @@
             </div>
 
             <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数二：$\bar{V}_{frame}$（帧级参考方差）— 软件帧间 EMA 滤波更新</h4>
+                <div style="color: #f8fafc; margin-top: 0; font-size: 18px; font-weight: bold; margin-bottom: 10px;">📐 参数二：$\bar{V}_{frame}$（帧级参考方差）— 软件帧间 EMA 滤波更新</div>
                 <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 $\bar{V}_{frame}$ 并非固定常数，而是由软件层维护的、基于<strong style="color: #93c5fd;">前序帧全局方差的指数移动平均 (EMA) 滤波平滑值</strong>。软件在每一帧编码完成后，收集该帧内所有 CU 的方差均值，然后通过以下方程进行帧间更新：
                 </p>
@@ -491,7 +491,7 @@
             </div>
 
             <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数三：$S_{aq}$（AQ 强度系数）— 软件静态配置下发</h4>
+                <div style="color: #f8fafc; margin-top: 0; font-size: 18px; font-weight: bold; margin-bottom: 10px;">📐 参数三：$S_{aq}$（AQ 强度系数）— 软件静态配置下发</div>
                 <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 $S_{aq}$ <strong style="color: #93c5fd;">不是动态计算的</strong>，而是由上层软件（编码器应用层 / 驱动层）根据编码模式配置后<strong style="color: #93c5fd;">写入硬件控制寄存器的静态权值</strong>。其来源通常为以下两种路径之一：
                 </p>
