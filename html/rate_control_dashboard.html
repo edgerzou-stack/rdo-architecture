@@ -991,6 +991,16 @@ graph TD
     </div>
 
     <h3 id="section-15">3.2 🧠 策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
+
+    <div style="background-color: #e0f2fe; border-left: 4px solid #0ea5e9; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+        <strong style="color: #0369a1;">💡 架构解惑：CRF 模式与前文 ABR 模式的互斥性（解决 QP 冲突疑问）</strong>
+        <p style="margin-top: 8px; margin-bottom: 0; font-size: 15px; color: #0c4a6e; line-height: 1.6;">
+        前文 <a href="#section-5" style="color: #0284c7; text-decoration: underline; text-underline-offset: 3px;">2.2 节</a> 和 <a href="#section-7" style="color: #0284c7; text-decoration: underline; text-underline-offset: 3px;">2.3 节</a> 中推导的 QP，是基于 <strong>ABR/CBR（目标码率）</strong> 模式。该模式的终极目标是“死守物理带宽”，QP 是由剩余带宽预算（零花钱）<strong>被动反推</strong>出来的。<br>
+        而本节介绍的 <strong>CRF（恒定质量）</strong> 模式，是工业级编码器（如 x264/x265）里的另一套<strong>互斥的</strong>主控逻辑！在纯 CRF 模式下，系统根本没有物理带宽上限（不设预算），终极目标是“死守画面视觉质量”。因此，这里的 QP 是直接基于画面物理复杂度（Lookahead SATD）<strong>主动推演</strong>出来的。<br>
+        <strong>结论：</strong> 这两套算 QP 的方法分别对应不同的业务场景（直播限宽 vs 离线压制），在底层控制流中是<strong>二选一开启</strong>的（或在 ABR 下仅作为预估参考），因此绝对不会发生逻辑冲突。
+        </p>
+    </div>
+
     <div class="highlight" style="background-color: #fff8e1; border-left-color: #ffa000;">
         <p style="font-size: 18px; margin-bottom: 10px;">当系统开启 CRF (Constant Rate Factor) 模式时，为了避免局部画面突变（如突然爆炸）导致 QP 剧烈震荡，算法结合了 <strong>Pass 1 (预分析)</strong> 数据并执行了严格的量化衰减：</p>
     </div>
