@@ -1129,6 +1129,9 @@ graph TD
         const mainContent = document.getElementById('main-content');
         
         headers.forEach((header, index) => {
+            const text = header.textContent.trim();
+            if (!/^\d/.test(text)) return; // Only include headers with chapter/section numbers
+
             const id = header.id || ('section-' + index);
             header.id = id;
             
