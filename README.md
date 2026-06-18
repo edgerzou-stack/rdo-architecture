@@ -1,3 +1,7 @@
+> [!WARNING]
+> **DEPRECATED**: 本独立仓库已全面废弃，并已整体迁移重组至统一的单体仓库 [edgerzou-stack/codec](https://github.com/edgerzou-stack/codec)。
+> 本仓库即将被归档（Read-only）。请移步新单体仓库获取最新架构文档与后续更新！
+
 # VVC RDO Architecture Design
 
 ![Architecture](https://img.shields.io/badge/Hardware-Architecture-3b82f6?style=for-the-badge)
