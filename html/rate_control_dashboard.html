@@ -1075,23 +1075,17 @@ graph TD
 </g>
 </g>
 </svg>
-    <div style="margin-top: 25px; padding: 20px; background-color: #1e293b; border-radius: 8px; color: #f8fafc; font-family: 'Roboto Mono', monospace; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <p style="color: #94a3b8; font-size: 14px; margin-top: 0; margin-bottom: 20px; font-style: italic;">注：以下伪代码推演过程，正是上一小节中 <strong>时域指数衰减</strong> 和 <strong>非线性 \(\mathcal{Q}_{scale}\) 映射</strong> 理论在底层 C 代码中的精准具象化执行：</p>
-        
-        <div style="margin-bottom: 20px;">
-            <span style="color: #38bdf8; font-weight: bold;">// Step 1: EMA 低通滤波 (映射上文 \(\mathcal{C}_{blur}\) 公式)</span><br>
-            <span style="color: #94a3b8; font-size: 14px;">// 突发爆炸复杂度(1000) 被过去积累的极低复杂度(100)强烈稀释</span><br>
-            <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + <span style="color: #ef4444;">1000</span>) / 综合Count <br>
-            <span style="color: #4ade80; margin-left: 20px;">-&gt; 实际滤波输出约 500 (而非 1000)</span>
-        </div>
+    <ul style="color: #475569; font-size: 17px; line-height: 1.6; margin-top: 20px; background: #fff; padding: 15px 15px 15px 35px; border: 1px solid #e2e8f0; border-radius: 4px;">
+        <li style="margin-bottom: 12px;"><strong>Step 1: EMA 低通滤波</strong><br>
+        当前突发爆炸帧的原始测量复杂度 $\mathcal{C}_{cur} = \mathbf{1000}$，而由于之前连续数帧处于绝对静止状态，历史帧积累了极低的复杂度（$\mathcal{C}_{t-1} = 100, \mathcal{C}_{t-2} = 100 \dots$）。代入上文 $\mathcal{C}_{blur}$ 滤波公式：<br>
+        $\mathcal{C}_{blur} = \frac{\sum(\mathcal{C}_i \times 0.5^i)}{\sum 0.5^i} = \frac{1000 \times 1 + 100 \times 0.5 + 100 \times 0.25 + \dots}{1 + 0.5 + 0.25 + \dots} \approx \frac{1000 + 100}{2} = \mathbf{550}$。<br>
+        <strong>物理意义</strong>：高达 1000 的瞬时突变噪声，被深厚的静态历史底蕴强制拖拽稀释到了 550，完成了时域级别的“拖影平滑”抗锯齿。</li>
 
-        <div>
-            <span style="color: #a78bfa; font-weight: bold;">// Step 2: qCompress 非线性空间折叠 (映射上文 \(\mathcal{Q}_{scale}\) 公式)</span><br>
-            <span style="color: #94a3b8; font-size: 14px;">// 增幅指数(0.4)把暴涨的复杂度再次无情压缩</span><br>
-            <span style="color: #f8fafc;">qScale</span> = pow(<span style="color: #4ade80;">500</span>, 1 - <span style="color: #f472b6;">0.6</span>) <br>
-            <span style="color: #4ade80; margin-left: 20px;">-&gt; 即 pow(500, 0.4)，QP 最终仅温和调整，完美避免瞬间雪崩！</span>
-        </div>
-    </div>
+        <li><strong>Step 2: qCompress 非线性空间折叠</strong><br>
+        将滤波后的平滑复杂度 $\mathcal{C}_{blur} = 550$ 与非线性折叠常数 $q_{compress} = 0.6$ 代入核心映射公式：<br>
+        $\mathcal{Q}_{scale} = (\mathcal{C}_{blur})^{1 - q_{compress}} = 550^{1 - 0.6} = 550^{0.4} \approx \mathbf{12.44}$。<br>
+        <strong>物理意义</strong>：对比若不进行压缩的线性爆发（$550^1 = 550$），指数 $0.4$ 的降维打击把暴涨的分配需求再次无情压平。最终输出的 QP 目标值仅发生温和上调，完美避免了码流分配瞬间雪崩崩溃！</li>
+    </ul>
 
     </div>
 
