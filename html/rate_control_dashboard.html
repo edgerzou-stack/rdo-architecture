@@ -1182,6 +1182,22 @@ graph TD
         if(tocList.firstChild) tocList.firstChild.querySelector('a').classList.add('active');
         if(topNav && topNav.firstChild) topNav.firstChild.classList.add('active');
 
+        // Fix for all internal anchor links within the scrollable main content
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            // Skip TOC/Nav links as they are already handled above
+            if (anchor.classList.contains('top-nav-link') || anchor.closest('.sidebar')) return;
+            anchor.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    e.preventDefault();
+                    mainContent.scrollTo({ top: targetElement.offsetTop - 40, behavior: 'smooth' });
+                    // Optional: Update the URL hash without jumping
+                    history.pushState(null, null, '#' + targetId);
+                }
+            });
+        });
+
         // HRD Simulator Logic (Continuous Loop)
         const btnStart = document.getElementById('btn-start');
         const demoPhase = document.getElementById('demo-phase');
