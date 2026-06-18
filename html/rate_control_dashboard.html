@@ -710,7 +710,7 @@ graph TD
 
     <h2 id="section-11" style="margin-top: 50px; border-top: 1px solid #334155; padding-top: 30px;">3. 极端场景的三大极客兜底策略 (Three Geek Fallback Strategies)</h2>
     <p>建立核心状态机模型后，我们再深入探究 C-Model 是如何使用三大极客策略，在极端恶劣条件下强制防崩溃的：</p>
-    <h3 id="section-12" style="margin-top: 45px; margin-bottom: 25px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px;">🚀 策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
+    <h3 id="section-12" style="margin-top: 45px; margin-bottom: 25px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px;">3.1 🚀 策略一：Hierarchical GOP 权重分配矩阵 (Temporal Layer Weighting)</h3>
     <div class="highlight" style="background-color: #e3f2fd; border-left-color: #1976d2;">
         <p style="font-size: 18px; margin-bottom: 10px;">在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
     </div>
@@ -745,7 +745,7 @@ graph TD
         </ul>
     </div>
 
-    <h3 id="section-15" style="margin-top: 45px; margin-bottom: 25px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px;">🧠 策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
+    <h3 id="section-15" style="margin-top: 45px; margin-bottom: 25px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px;">3.2 🧠 策略二：基于 Lookahead 的 CRF 复杂度评估 (CRF Blurred Complexity)</h3>
     <div class="highlight" style="background-color: #fff8e1; border-left-color: #ffa000;">
         <p style="font-size: 18px; margin-bottom: 10px;">当系统开启 CRF (Constant Rate Factor) 模式时，为了避免局部画面突变（如突然爆炸）导致 QP 剧烈震荡，算法结合了 <strong>Pass 1 (预分析)</strong> 数据并执行了严格的量化衰减：</p>
     </div>
@@ -792,7 +792,7 @@ graph TD
         </div>
     </div>
 
-    <h3 id="section-17" style="margin-top: 45px; margin-bottom: 25px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px;">🛡️ 策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
+    <h3 id="section-17" style="margin-top: 45px; margin-bottom: 25px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px;">3.3 🛡️ 策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
     <div class="highlight" style="background-color: #fce4ec; border-left-color: #c2185b;">
         <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 VBV 欠载（Underflow）怎么办？</p>
     
