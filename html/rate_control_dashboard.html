@@ -191,6 +191,8 @@
     });
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true });</script>
     <style>
         :root {
             --primary: #0288d1;
@@ -527,7 +529,42 @@
     <div style="margin-bottom: 30px;">
         <h3 id="section-hw-rdo" style="margin-top: 30px;">2.4 [步骤 3.2] 硬件 RDO 与量化执行 (HW RDO & Quantization)</h3>
         <div class="highlight" style="background-color: #fef3c7; border-left-color: #d97706;">
-            <p style="font-size: 18px; margin-bottom: 15px;"><strong style="color: #b45309;">▶ 执行机理概述：</strong><br>在 2.3 节中，硬件为当前 CU 计算出了最终的物理量化参数 $QP_{cu}$。接下来，底层硬件编码流水线将严格使用这个参数，执行真正的视音频数据压缩。正是这一阶段的物理执行结果，直接产生了后文所需的反馈统计数据：</p>
+            <p style="font-size: 18px; margin-bottom: 15px;"><strong style="color: #b45309;">▶ 钳位保护与硬件全景执行架构：</strong><br>
+            在 <a href="#section-7" style="color: #d97706; text-decoration: underline; text-underline-offset: 3px;">2.3 节</a>中，硬件通过 $QP_{hdr} + \Delta QP_{cu}$ 计算出了初步的空间自适应量化参数。但在真正应用之前，硬件首先会通过内置的<strong style="color: #b45309;">钳位器 (Clamp)</strong> 模块进行边界校验，确保最终物理量化参数 $QP_{cu}$ 严格落在合法阈值区间 $[QP_{min}, QP_{max}]$ 内，防止因过大的极化 $\Delta QP$ 导致底层算法越界报错。接下来，底层硬件编码流水线将严格使用这个已钳位保护的合法 $QP_{cu}$，执行全链路视音频数据压缩。全流程架构如下：</p>
+
+            <div class="mermaid" style="text-align: center; margin: 25px 0; background: white; padding: 25px; border-radius: 8px; border: 1px dashed #d97706;">
+graph TD
+    classDef sw fill:#e0f2fe,stroke:#0288d1,stroke-width:2px,color:#0f172a
+    classDef hw fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef op fill:#f1f5f9,stroke:#64748b,stroke-width:2px,color:#0f172a,shape:circle
+    classDef feedback fill:#ecfccb,stroke:#65a30d,stroke-width:2px,color:#3f6212
+
+    QPhdr["软件基准 QP<br>(QP_hdr)"]:::sw
+    DeltaQP["空间自适应偏移<br>(Delta QP_cu)"]:::sw
+    Add((+)):::op
+    Clamp["硬件钳位器 (Clamp)<br>强制限定于 [QP_min, QP_max]"]:::hw
+    
+    QPhdr --> Add
+    DeltaQP --> Add
+    Add --> Clamp
+    
+    QPcu{"合法的物理 QP_cu"}:::hw
+    Clamp --> QPcu
+    
+    RDO["RDO 模式决策引擎<br>转换 λ = f(QP)"]:::hw
+    Quant["频域残差量化引擎<br>转换 Q-Step = g(QP)"]:::hw
+    
+    QPcu -->|"决定代价评估权重"| RDO
+    QPcu -->|"决定残差抹零粒度"| Quant
+    
+    RDO -->|"输出最优预测模式<br>(Intra/Inter)"| CABAC
+    Quant -->|"输出稀疏残差系数<br>(经过 DCT 变换)"| CABAC
+    
+    CABAC["CABAC 熵编码引擎"]:::hw
+    CABAC -->|"精确统计写流总长度"| B_actual["反馈物理耗费<br>B_actual"]:::feedback
+    CABAC -->|"硬件按比特加权求均值"| QP_avg["反馈全局等效<br>QP_avg"]:::feedback
+            </div>
+
             <ul style="font-size: 18px; color: #333; line-height: 1.8; margin-bottom: 20px;">
                 <li style="margin-bottom: 15px;"><strong>阶段一：率失真优化 (Rate-Distortion Optimization)</strong><br>硬件遍历所有可能的编码模式（如各种 Intra 预测角度、Inter 运动矢量），将 $QP_{cu}$ 转换为拉格朗日乘子 $\lambda$。根据代价公式 $J_{cost} = D_{istortion} + \lambda \cdot R_{ate}$ 寻找最优解。$QP_{cu}$ 越大，$\lambda$ 越大，系统越倾向于选择“失真大但极其节省比特”的平滑模式（如 Skip 模式或大尺寸块）。</li>
                 <li style="margin-bottom: 15px;"><strong>阶段二：频域残差量化 (Residual Quantization)</strong><br>选定最优模式后，硬件生成像素预测残差，并进行 DCT 空间变换。随后，硬件将 $QP_{cu}$ 严格映射为真实的量化步长（Q-Step）。高频细节（如微小的纹理和噪点）会被这个 Q-Step 除以并向下取整，导致大部分系数被抹零。$QP_{cu}$ 越大，Q-Step 呈指数级放大，被抹杀的高频细节就越多，从而把数据量狠狠压缩。</li>
