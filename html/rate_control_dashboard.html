@@ -1220,23 +1220,29 @@ graph TD
         if(tocList.firstChild) tocList.firstChild.querySelector('a').classList.add('active');
         if(topNav && topNav.firstChild) topNav.firstChild.classList.add('active');
 
-        // Fix for all internal anchor links within the scrollable main content, including SVG
-        document.querySelectorAll('a').forEach(anchor => {
+        // Fix for all internal anchor links (Event Delegation to survive MathJax DOM redraws)
+        document.body.addEventListener('click', function(e) {
+            const anchor = e.target.closest('a');
+            if (!anchor) return;
+            
             const href = anchor.getAttribute('href') || anchor.getAttribute('xlink:href');
             if (!href || !href.startsWith('#')) return;
+            
             // Skip TOC/Nav links as they are already handled above
             if (anchor.classList.contains('top-nav-link') || anchor.closest('.sidebar')) return;
-            anchor.addEventListener('click', function(e) {
-                const targetId = href.substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    e.preventDefault();
-                    const scrollPos = mainContent.scrollTop + (targetElement.getBoundingClientRect().top - mainContent.getBoundingClientRect().top) - 40;
-                    mainContent.scrollTo({ top: scrollPos, behavior: 'smooth' });
-                    // Optional: Update the URL hash without jumping
+            
+            const targetId = href.substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                e.preventDefault();
+                const scrollPos = mainContent.scrollTop + (targetElement.getBoundingClientRect().top - mainContent.getBoundingClientRect().top) - 40;
+                mainContent.scrollTo({ top: scrollPos, behavior: 'smooth' });
+                // Optional: Update the URL hash without jumping (may fail on file:// protocol in Safari, wrapped in try-catch)
+                try {
                     history.pushState(null, null, '#' + targetId);
-                }
-            });
+                } catch (err) {}
+            }
         });
 
         // HRD Simulator Logic (Continuous Loop)
