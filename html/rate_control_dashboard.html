@@ -968,7 +968,7 @@ graph TD
         <h4 id="section-13">📐 公式全变量硬核释义</h4>
         <ul style="color: #333; font-size: 18px; line-height: 1.6;">
             <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{pic}\) (Target Picture Size)</strong>：系统最终下达给当前帧的绝对比特预算（单位：bit）。</li>
-            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：假设世界绝对和平，所有帧平分剩余带宽时，单帧的“平均零花钱”。</li>
+            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：信道基础预算。它的底层物理来源极其简单粗暴，即<strong>目标码率除以帧率</strong>（\(\mathcal{T}_{base} = \frac{\text{Target Bitrate}}{\text{FPS}}\)）。例如，用户设定目标码率为 1.2 Mbps，帧率为 24 fps，则 \(\mathcal{T}_{base} = \frac{1{,}200{,}000}{24} = 50{,}000 \text{ bit}\)。可以理解为假设所有帧平分带宽时，单帧能领到的“平均零花钱”。</li>
             <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(N_{GOP}\) (GOP Size)</strong>：当前 GOP 内包含的总帧数（例如 4 帧）。它将单帧平均零花钱乘大，化为“整个 GOP 的资金池”。</li>
             <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{W}_{total}\) (Total Weight)</strong>：该 GOP 内所有帧的分配权重之和（分母）。</li>
             <li><strong style="color: #0288d1;">\(\mathcal{W}_{GOP}[N-1][poc]\) (Current Frame Weight)</strong>：硬编码矩阵中，赋予当前帧的专属权重（分子）。通过 \(\frac{\text{分子}}{\text{分母}}\) 算出当前帧切走资金池的百分比。</li>
@@ -979,7 +979,7 @@ graph TD
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
         <p style="color: #333; font-size: 18px; margin-bottom: 15px;">为了将上述公式具象化，我们设定以下<strong>沙盘初始条件</strong>：</p>
         <ul style="color: #475569; font-size: 17px; line-height: 1.6; margin-bottom: 20px; background: #fff; padding: 15px 15px 15px 35px; border: 1px solid #e2e8f0; border-radius: 4px;">
-            <li>信道基础预算：$\mathcal{T}_{base} = \mathbf{50{,}000 \text{ bit}}$</li>
+            <li>信道基础预算：$\mathcal{T}_{base} = \mathbf{50{,}000 \text{ bit}}$ （对应 1.2 Mbps @ 24fps）</li>
             <li>GOP 结构：$N_{GOP} = \mathbf{4}$ （包含 1 个核心 P 帧，1 个中层参考 $B_1$ 帧，2 个非参考 $B_2$ 帧）</li>
             <li>硬编码权重表：$P$ 帧 $\mathcal{W}=12$，$B_1$ 帧 $\mathcal{W}=5$，$B_2$ 帧 $\mathcal{W}=3$。因此 $\mathcal{W}_{total} = 12 + 5 + 3 \times 2 = \mathbf{23}$</li>
             <li>GOP 资金池总量：$\mathcal{T}_{base} \times N_{GOP} = 50{,}000 \times 4 = \mathbf{200{,}000 \text{ bit}}$</li>
