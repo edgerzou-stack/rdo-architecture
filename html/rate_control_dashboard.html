@@ -653,23 +653,23 @@ graph TD
         <p style="font-size: 18px; margin-bottom: 10px;">在 <code>VideoEncBeforePicRc</code> 中，并非所有的 P/B 帧在分配比特时都是一视同仁的。C-Model 维护了一个极其精确的硬编码数据结构 <code>rc->hRcCtx.weight[gop_size-1][gopPoc]</code> 来执行量化分配。这个权重直接决定了当前帧的<strong>物理目标体积（Target Picture Size）</strong>。</p>
     </div>
     
-    <div class="highlight" style="background: #0f172a; padding: 10px 15px; border-left: 3px solid #10b981; border-radius: 4px; color: #555; margin-bottom: 15px; font-size: 18px;">
-        <strong style="color: #34d399;">💡 术语解析 (Terminology)：什么是 Target Picture Size？</strong><br>
-        <code>Target Picture Size</code> 即编码器在开始处理当前帧之前，通过帧级分配算法（BeforePicRc）计算出的<strong>“比特预算上限 (Bit Budget)”</strong>。它是后续所有量化推演的锚点。编码器必须确保：通过调整基准 QP 以及 CU 级的 Delta QP，最终产生的物理流体积（Actual BitCnt）能够被严格收敛并压制在该预算的容差范围内，从而防止底层 VBV（视频缓冲检验器）发生 Underflow 或 Overflow。
+    <div class="highlight" style="background: #ecfdf5; padding: 15px; border-left: 4px solid #10b981; border-radius: 6px; color: #333; margin-bottom: 20px; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <strong style="color: #047857; font-size: 19px;">💡 术语解析 (Terminology)：什么是 Target Picture Size？</strong><br>
+        <code style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px;">Target Picture Size</code> 即编码器在开始处理当前帧之前，通过帧级分配算法（BeforePicRc）计算出的<strong>“比特预算上限 (Bit Budget)”</strong>。它是后续所有量化推演的锚点。编码器必须确保：通过调整基准 QP 以及 CU 级的 Delta QP，最终产生的物理流体积（Actual BitCnt）能够被严格收敛并压制在该预算的容差范围内，从而防止底层 VBV（视频缓冲检验器）发生 Underflow 或 Overflow。
     </div>
 
     <p>该预算的核心分配公式如下：</p>
     <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #0288d1; border-radius: 4px; overflow-x: auto; color: #333; font-size: 18px; text-align: center; margin-bottom: 15px;">
         $$ \mathcal{T}_{pic} = \mathcal{T}_{base} \times N_{GOP} \times \left( \frac{\mathcal{W}_{GOP}[N-1][poc]}{\mathcal{W}_{total}} \right) $$
     </div>
-    <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-        <h4 id="section-13" style="color: #f8fafc; margin-top: 0; font-size: 20px;">📐 公式全变量硬核释义</h4>
-        <ul style="color: #555; font-size: 18px; line-height: 1.6;">
-            <li><strong style="color: #38bdf8;">\(\mathcal{T}_{pic}\) (Target Picture Size)</strong>：系统最终下达给当前帧的绝对比特预算（单位：bit）。</li>
-            <li><strong style="color: #38bdf8;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：假设世界绝对和平，所有帧平分剩余带宽时，单帧的“平均零花钱”。</li>
-            <li><strong style="color: #38bdf8;">\(N_{GOP}\) (GOP Size)</strong>：当前 GOP 内包含的总帧数（例如 4 帧）。它将单帧平均零花钱乘大，化为“整个 GOP 的资金池”。</li>
-            <li><strong style="color: #38bdf8;">\(\mathcal{W}_{total}\) (Total Weight)</strong>：该 GOP 内所有帧的分配权重之和（分母）。</li>
-            <li><strong style="color: #38bdf8;">\(\mathcal{W}_{GOP}[N-1][poc]\) (Current Frame Weight)</strong>：硬编码矩阵中，赋予当前帧的专属权重（分子）。通过 \(\frac{分子}{分母}\) 算出当前帧切走资金池的百分比。</li>
+    <div style="background: #f1f5f9; padding: 15px; border-left: 4px solid #64748b; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <h4 id="section-13" style="color: #0f172a; margin-top: 0; font-size: 20px;">📐 公式全变量硬核释义</h4>
+        <ul style="color: #333; font-size: 18px; line-height: 1.6;">
+            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{pic}\) (Target Picture Size)</strong>：系统最终下达给当前帧的绝对比特预算（单位：bit）。</li>
+            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：假设世界绝对和平，所有帧平分剩余带宽时，单帧的“平均零花钱”。</li>
+            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(N_{GOP}\) (GOP Size)</strong>：当前 GOP 内包含的总帧数（例如 4 帧）。它将单帧平均零花钱乘大，化为“整个 GOP 的资金池”。</li>
+            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{W}_{total}\) (Total Weight)</strong>：该 GOP 内所有帧的分配权重之和（分母）。</li>
+            <li><strong style="color: #0288d1;">\(\mathcal{W}_{GOP}[N-1][poc]\) (Current Frame Weight)</strong>：硬编码矩阵中，赋予当前帧的专属权重（分子）。通过 \(\frac{\text{分子}}{\text{分母}}\) 算出当前帧切走资金池的百分比。</li>
         </ul>
     </div>
 
