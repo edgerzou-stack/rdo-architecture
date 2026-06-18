@@ -1079,17 +1079,17 @@ graph TD
 </g>
 </svg>
     <div style="margin-top: 25px; padding: 20px; background-color: #1e293b; border-radius: 8px; color: #f8fafc; font-family: 'Roboto Mono', monospace; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <h5 style="color: #cbd5e1; margin-top: 0; margin-bottom: 15px; font-family: 'Inter', sans-serif; font-size: 16px; border-bottom: 1px solid #334155; padding-bottom: 10px;">📊 核心计算推演</h5>
+        <p style="color: #94a3b8; font-size: 14px; margin-top: 0; margin-bottom: 20px; font-style: italic;">注：以下伪代码推演过程，正是上一小节中 <strong>时域指数衰减</strong> 和 <strong>非线性 \(\mathcal{Q}_{scale}\) 映射</strong> 理论在底层 C 代码中的精准具象化执行：</p>
         
         <div style="margin-bottom: 20px;">
-            <span style="color: #38bdf8; font-weight: bold;">// Step 1: EMA 低通滤波 (历史拖影平滑)</span><br>
+            <span style="color: #38bdf8; font-weight: bold;">// Step 1: EMA 低通滤波 (映射上文 \(\mathcal{C}_{blur}\) 公式)</span><br>
             <span style="color: #94a3b8; font-size: 14px;">// 突发爆炸复杂度(1000) 被过去积累的极低复杂度(100)强烈稀释</span><br>
             <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + <span style="color: #ef4444;">1000</span>) / 综合Count <br>
             <span style="color: #4ade80; margin-left: 20px;">-&gt; 实际滤波输出约 500 (而非 1000)</span>
         </div>
 
         <div>
-            <span style="color: #a78bfa; font-weight: bold;">// Step 2: qCompress 非线性空间折叠</span><br>
+            <span style="color: #a78bfa; font-weight: bold;">// Step 2: qCompress 非线性空间折叠 (映射上文 \(\mathcal{Q}_{scale}\) 公式)</span><br>
             <span style="color: #94a3b8; font-size: 14px;">// 增幅指数(0.4)把暴涨的复杂度再次无情压缩</span><br>
             <span style="color: #f8fafc;">qScale</span> = pow(<span style="color: #4ade80;">500</span>, 1 - <span style="color: #f472b6;">0.6</span>) <br>
             <span style="color: #4ade80; margin-left: 20px;">-&gt; 即 pow(500, 0.4)，QP 最终仅温和调整，完美避免瞬间雪崩！</span>
