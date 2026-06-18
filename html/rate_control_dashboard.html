@@ -1077,7 +1077,7 @@ graph TD
 </svg>
     <ul style="color: #475569; font-size: 17px; line-height: 1.6; margin-top: 20px; background: #fff; padding: 15px 15px 15px 35px; border: 1px solid #e2e8f0; border-radius: 4px;">
         <li style="margin-bottom: 12px;"><strong>Step 1: EMA 低通滤波</strong><br>
-        当前突发爆炸帧的原始测量复杂度 $\mathcal{C}_{cur} = \mathbf{1000}$，而由于之前连续数帧处于绝对静止状态，历史帧积累了极低的复杂度（$\mathcal{C}_{t-1} = 100, \mathcal{C}_{t-2} = 100 \dots$）。代入上文 $\mathcal{C}_{blur}$ 滤波公式：<br>
+        当前突发爆炸帧的原始测量复杂度飙升至 $\mathcal{C}_{cur} = \mathbf{1000}$（其物理来源为预分析器 Lookahead 阶段，逐个宏块累加的绝对变换误差和：$\mathcal{C}_{cur} = \sum_{i=0}^{N_{MB}} \text{SATD}_i = 1000$）。而由于之前连续数帧处于绝对静止状态，历史帧积累了极低的运动补偿代价（$\mathcal{C}_{t-1} = 100, \mathcal{C}_{t-2} = 100 \dots$）。代入上文 $\mathcal{C}_{blur}$ 滤波公式：<br>
         $\mathcal{C}_{blur} = \frac{\sum(\mathcal{C}_i \times 0.5^i)}{\sum 0.5^i} = \frac{1000 \times 1 + 100 \times 0.5 + 100 \times 0.25 + \dots}{1 + 0.5 + 0.25 + \dots} \approx \frac{1000 + 100}{2} = \mathbf{550}$。<br>
         <strong>物理意义</strong>：高达 1000 的瞬时突变噪声，被深厚的静态历史底蕴强制拖拽稀释到了 550，完成了时域级别的“拖影平滑”抗锯齿。</li>
 
