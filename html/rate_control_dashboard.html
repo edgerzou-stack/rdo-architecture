@@ -728,14 +728,14 @@ graph TD
         至此，我们已经完整走通了 C-Model 码率控制在单一帧内的整个闭环。下面这张全局数据流转图，将前文沙盘中所有的数值严谨地映射到了物理管线的各个节点中，直观展示了从最初的宏观比特分配，到最终硬件物理落地，再到反演更新状态模型的全过程：
         </p>
         <div style="text-align: center; margin: 30px 0; background: white; padding: 20px; border-radius: 8px; border: 1px dashed #94a3b8; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <svg style="max-width: 100%; height: auto; display: block; margin: 0 auto;" width="644pt" height="625pt"
- viewBox="0.00 0.00 644.00 624.50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 620.5)">
+            <svg style="max-width: 100%; height: auto; display: block; margin: 0 auto;" width="644pt" height="633pt"
+ viewBox="0.00 0.00 644.00 632.50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 628.5)">
 <title>G</title>
-<polygon fill="white" stroke="none" points="-4,4 -4,-620.5 640,-620.5 640,4 -4,4"/>
+<polygon fill="white" stroke="none" points="-4,4 -4,-628.5 640,-628.5 640,4 -4,4"/>
 <g id="clust1" class="cluster">
 <title>cluster_sw</title>
-<polygon fill="#f0f9ff" stroke="#0288d1" stroke-dasharray="5,2" points="132,-376 132,-608.5 463,-608.5 463,-376 132,-376"/>
+<polygon fill="#f0f9ff" stroke="#0288d1" stroke-dasharray="5,2" points="135,-376 135,-616.5 478,-616.5 478,-376 135,-376"/>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_hw</title>
@@ -743,20 +743,20 @@ graph TD
 </g>
 <g id="clust4" class="cluster">
 <title>cluster_fb</title>
-<polygon fill="#f7fee7" stroke="#65a30d" stroke-dasharray="5,2" points="272,-10.62 272,-308.38 628,-308.38 628,-10.62 272,-10.62"/>
+<polygon fill="#f7fee7" stroke="#65a30d" stroke-dasharray="5,2" points="272,-10.62 272,-312.38 628,-312.38 628,-10.62 272,-10.62"/>
 </g>
 <!-- State1 -->
 <g id="node1" class="node">
 <title>State1</title>
 <g id="a_node1"><a xlink:href="#section-6" xlink:title="&lt;TABLE&gt;" target="_parent">
-<path fill="#f3e8ff" stroke="none" d="M151.62,-521.25C151.62,-521.25 264.38,-521.25 264.38,-521.25 270.38,-521.25 276.38,-527.25 276.38,-533.25 276.38,-533.25 276.38,-588.5 276.38,-588.5 276.38,-594.5 270.38,-600.5 264.38,-600.5 264.38,-600.5 151.62,-600.5 151.62,-600.5 145.62,-600.5 139.62,-594.5 139.62,-588.5 139.62,-588.5 139.62,-533.25 139.62,-533.25 139.62,-527.25 145.62,-521.25 151.62,-521.25"/>
-<polygon fill="none" stroke="#7e22ce" points="139.62,-558.25 139.62,-600.5 276.38,-600.5 276.38,-558.25 139.62,-558.25"/>
-<text text-anchor="start" x="150.62" y="-577.2" font-family="sans-serif" font-weight="bold" font-size="14.00">历史状态基准 (t&#45;1)</text>
-<polygon fill="none" stroke="#7e22ce" points="139.62,-521.25 139.62,-558.25 276.38,-558.25 276.38,-521.25 139.62,-521.25"/>
-<text text-anchor="start" x="151.38" y="-534.95" font-family="sans-serif" font-size="14.00">ω</text>
-<text text-anchor="start" x="161.88" y="-534.95" font-family="sans-serif" baseline-shift="sub" font-size="14.00">reg</text>
-<text text-anchor="start" x="179.12" y="-534.95" font-family="sans-serif" baseline-shift="super" font-size="14.00">(t&#45;1)</text>
-<text text-anchor="start" x="200.12" y="-534.95" font-family="sans-serif" font-size="14.00"> = 170,620</text>
+<path fill="#f3e8ff" stroke="none" d="M154.62,-525.25C154.62,-525.25 267.38,-525.25 267.38,-525.25 273.38,-525.25 279.38,-531.25 279.38,-537.25 279.38,-537.25 279.38,-592.5 279.38,-592.5 279.38,-598.5 273.38,-604.5 267.38,-604.5 267.38,-604.5 154.62,-604.5 154.62,-604.5 148.62,-604.5 142.62,-598.5 142.62,-592.5 142.62,-592.5 142.62,-537.25 142.62,-537.25 142.62,-531.25 148.62,-525.25 154.62,-525.25"/>
+<polygon fill="none" stroke="#7e22ce" points="142.62,-562.25 142.62,-604.5 279.38,-604.5 279.38,-562.25 142.62,-562.25"/>
+<text text-anchor="start" x="153.62" y="-581.2" font-family="sans-serif" font-weight="bold" font-size="14.00">历史状态基准 (t&#45;1)</text>
+<polygon fill="none" stroke="#7e22ce" points="142.62,-525.25 142.62,-562.25 279.38,-562.25 279.38,-525.25 142.62,-525.25"/>
+<text text-anchor="start" x="154.38" y="-538.95" font-family="sans-serif" font-size="14.00">ω</text>
+<text text-anchor="start" x="164.88" y="-538.95" font-family="sans-serif" baseline-shift="sub" font-size="14.00">reg</text>
+<text text-anchor="start" x="182.12" y="-538.95" font-family="sans-serif" baseline-shift="super" font-size="14.00">(t&#45;1)</text>
+<text text-anchor="start" x="203.12" y="-538.95" font-family="sans-serif" font-size="14.00"> = 170,620</text>
 </a>
 </g>
 </g>
@@ -764,44 +764,44 @@ graph TD
 <g id="node3" class="node">
 <title>S2</title>
 <g id="a_node3"><a xlink:href="#section-5" xlink:title="&lt;TABLE&gt;" target="_parent">
-<path fill="#e0f2fe" stroke="none" d="M183.25,-384C183.25,-384 266.75,-384 266.75,-384 272.75,-384 278.75,-390 278.75,-396 278.75,-396 278.75,-451.25 278.75,-451.25 278.75,-457.25 272.75,-463.25 266.75,-463.25 266.75,-463.25 183.25,-463.25 183.25,-463.25 177.25,-463.25 171.25,-457.25 171.25,-451.25 171.25,-451.25 171.25,-396 171.25,-396 171.25,-390 177.25,-384 183.25,-384"/>
-<polygon fill="none" stroke="#0288d1" points="171.25,-421 171.25,-463.25 278.75,-463.25 278.75,-421 171.25,-421"/>
-<text text-anchor="start" x="182.25" y="-439.95" font-family="sans-serif" font-weight="bold" font-size="14.00">初始 QP 推演</text>
-<polygon fill="none" stroke="#0288d1" points="171.25,-384 171.25,-421 278.75,-421 278.75,-384 171.25,-384"/>
-<text text-anchor="start" x="190.88" y="-397.7" font-family="sans-serif" font-size="14.00">QP</text>
-<text text-anchor="start" x="211.12" y="-397.7" font-family="sans-serif" baseline-shift="sub" font-size="14.00">hdr</text>
-<text text-anchor="start" x="228.38" y="-397.7" font-family="sans-serif" font-size="14.00"> = </text>
-<text text-anchor="start" x="244.12" y="-397.7" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#0288d1">25</text>
+<path fill="#e0f2fe" stroke="none" d="M186.25,-384C186.25,-384 269.75,-384 269.75,-384 275.75,-384 281.75,-390 281.75,-396 281.75,-396 281.75,-451.25 281.75,-451.25 281.75,-457.25 275.75,-463.25 269.75,-463.25 269.75,-463.25 186.25,-463.25 186.25,-463.25 180.25,-463.25 174.25,-457.25 174.25,-451.25 174.25,-451.25 174.25,-396 174.25,-396 174.25,-390 180.25,-384 186.25,-384"/>
+<polygon fill="none" stroke="#0288d1" points="174.25,-421 174.25,-463.25 281.75,-463.25 281.75,-421 174.25,-421"/>
+<text text-anchor="start" x="185.25" y="-439.95" font-family="sans-serif" font-weight="bold" font-size="14.00">初始 QP 推演</text>
+<polygon fill="none" stroke="#0288d1" points="174.25,-384 174.25,-421 281.75,-421 281.75,-384 174.25,-384"/>
+<text text-anchor="start" x="193.88" y="-397.7" font-family="sans-serif" font-size="14.00">QP</text>
+<text text-anchor="start" x="214.12" y="-397.7" font-family="sans-serif" baseline-shift="sub" font-size="14.00">hdr</text>
+<text text-anchor="start" x="231.38" y="-397.7" font-family="sans-serif" font-size="14.00"> = </text>
+<text text-anchor="start" x="247.12" y="-397.7" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#0288d1">25</text>
 </a>
 </g>
 </g>
 <!-- State1&#45;&gt;S2 -->
 <g id="edge2" class="edge">
 <title>State1&#45;&gt;S2</title>
-<path fill="none" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,2" d="M206.29,-521.54C206.29,-521.54 206.29,-475.23 206.29,-475.23"/>
-<polygon fill="#475569" stroke="#475569" stroke-width="1.5" points="209.79,-475.23 206.29,-465.23 202.79,-475.23 209.79,-475.23"/>
+<path fill="none" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,2" d="M209.29,-525.53C209.29,-525.53 209.29,-475.52 209.29,-475.52"/>
+<polygon fill="#475569" stroke="#475569" stroke-width="1.5" points="212.79,-475.52 209.29,-465.52 205.79,-475.52 212.79,-475.52"/>
 </g>
 <!-- S1 -->
 <g id="node2" class="node">
 <title>S1</title>
 <g id="a_node2"><a xlink:href="#section-2" xlink:title="&lt;TABLE&gt;" target="_parent">
-<path fill="#e0f2fe" stroke="none" d="M346.88,-521.25C346.88,-521.25 443.12,-521.25 443.12,-521.25 449.12,-521.25 455.12,-527.25 455.12,-533.25 455.12,-533.25 455.12,-588.5 455.12,-588.5 455.12,-594.5 449.12,-600.5 443.12,-600.5 443.12,-600.5 346.88,-600.5 346.88,-600.5 340.88,-600.5 334.88,-594.5 334.88,-588.5 334.88,-588.5 334.88,-533.25 334.88,-533.25 334.88,-527.25 340.88,-521.25 346.88,-521.25"/>
-<polygon fill="none" stroke="#0288d1" points="334.88,-558.25 334.88,-600.5 455.12,-600.5 455.12,-558.25 334.88,-558.25"/>
-<text text-anchor="start" x="366.5" y="-577.2" font-family="sans-serif" font-weight="bold" font-size="14.00">目标分配</text>
-<polygon fill="none" stroke="#0288d1" points="334.88,-521.25 334.88,-558.25 455.12,-558.25 455.12,-521.25 334.88,-521.25"/>
-<text text-anchor="start" x="345.88" y="-534.95" font-family="sans-serif" font-size="14.00">T</text>
-<text text-anchor="start" x="354.12" y="-534.95" font-family="sans-serif" baseline-shift="sub" font-size="14.00">pic</text>
-<text text-anchor="start" x="369.12" y="-534.95" font-family="sans-serif" font-size="14.00"> = </text>
-<text text-anchor="start" x="384.88" y="-534.95" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#0288d1">38,000</text>
-<text text-anchor="start" x="426.12" y="-534.95" font-family="sans-serif" font-size="14.00" fill="#0288d1"> bit</text>
+<path fill="#e0f2fe" stroke="none" d="M349.75,-521.25C349.75,-521.25 458.25,-521.25 458.25,-521.25 464.25,-521.25 470.25,-527.25 470.25,-533.25 470.25,-533.25 470.25,-596.5 470.25,-596.5 470.25,-602.5 464.25,-608.5 458.25,-608.5 458.25,-608.5 349.75,-608.5 349.75,-608.5 343.75,-608.5 337.75,-602.5 337.75,-596.5 337.75,-596.5 337.75,-533.25 337.75,-533.25 337.75,-527.25 343.75,-521.25 349.75,-521.25"/>
+<polygon fill="none" stroke="#0288d1" points="337.75,-566.25 337.75,-608.5 470.25,-608.5 470.25,-566.25 337.75,-566.25"/>
+<text text-anchor="start" x="375.5" y="-585.2" font-family="sans-serif" font-weight="bold" font-size="14.00">目标分配</text>
+<polygon fill="none" stroke="#0288d1" points="337.75,-521.25 337.75,-566.25 470.25,-566.25 470.25,-521.25 337.75,-521.25"/>
+<text text-anchor="start" x="352.75" y="-538.95" font-family="sans-serif" font-size="14.00">T</text>
+<text text-anchor="start" x="361" y="-538.95" font-family="sans-serif" baseline-shift="sub" font-size="14.00">pic</text>
+<text text-anchor="start" x="376" y="-538.95" font-family="sans-serif" font-size="14.00"> = </text>
+<text text-anchor="start" x="395.75" y="-538.95" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#0288d1">38,000</text>
+<text text-anchor="start" x="441" y="-537.95" font-family="sans-serif" font-size="14.00" fill="#0288d1">bit</text>
 </a>
 </g>
 </g>
 <!-- S1&#45;&gt;S2 -->
 <g id="edge1" class="edge">
 <title>S1&#45;&gt;S2</title>
-<path fill="none" stroke="#64748b" stroke-width="1.5" d="M380.19,-521.34C380.19,-485.09 380.19,-437 380.19,-437 380.19,-437 290.68,-437 290.68,-437"/>
-<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="290.68,-433.5 280.68,-437 290.68,-440.5 290.68,-433.5"/>
+<path fill="none" stroke="#64748b" stroke-width="1.5" d="M387.69,-521.58C387.69,-484.48 387.69,-437 387.69,-437 387.69,-437 293.89,-437 293.89,-437"/>
+<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="293.89,-433.5 283.89,-437 293.89,-440.5 293.89,-433.5"/>
 </g>
 <!-- S3 -->
 <g id="node4" class="node">
@@ -824,27 +824,27 @@ graph TD
 <!-- S2&#45;&gt;S3 -->
 <g id="edge7" class="edge">
 <title>S2&#45;&gt;S3</title>
-<path fill="none" stroke="#64748b" stroke-width="1.5" d="M196.75,-384.27C196.75,-384.27 196.75,-338.11 196.75,-338.11"/>
-<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="200.25,-338.11 196.75,-328.11 193.25,-338.11 200.25,-338.11"/>
+<path fill="none" stroke="#64748b" stroke-width="1.5" d="M198.25,-384.27C198.25,-384.27 198.25,-338.11 198.25,-338.11"/>
+<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="201.75,-338.11 198.25,-328.11 194.75,-338.11 201.75,-338.11"/>
 </g>
 <!-- OutCABAC -->
 <g id="node6" class="node">
 <title>OutCABAC</title>
 <g id="a_node6"><a xlink:href="#section-hw-rdo" xlink:title="&lt;TABLE&gt;" target="_parent">
-<path fill="#ecfccb" stroke="none" d="M292.5,-184.12C292.5,-184.12 413.5,-184.12 413.5,-184.12 419.5,-184.12 425.5,-190.12 425.5,-196.12 425.5,-196.12 425.5,-288.38 425.5,-288.38 425.5,-294.38 419.5,-300.38 413.5,-300.38 413.5,-300.38 292.5,-300.38 292.5,-300.38 286.5,-300.38 280.5,-294.38 280.5,-288.38 280.5,-288.38 280.5,-196.12 280.5,-196.12 280.5,-190.12 286.5,-184.12 292.5,-184.12"/>
-<polygon fill="none" stroke="#65a30d" points="280.5,-258.12 280.5,-300.38 425.5,-300.38 425.5,-258.12 280.5,-258.12"/>
-<text text-anchor="start" x="298.25" y="-277.07" font-family="sans-serif" font-weight="bold" font-size="14.00">CABAC 物理统计</text>
-<polygon fill="none" stroke="#65a30d" points="280.5,-221.12 280.5,-258.12 425.5,-258.12 425.5,-221.12 280.5,-221.12"/>
-<text text-anchor="start" x="291.5" y="-234.82" font-family="sans-serif" font-size="14.00">B</text>
-<text text-anchor="start" x="300.5" y="-234.82" font-family="sans-serif" baseline-shift="sub" font-size="14.00">actual</text>
-<text text-anchor="start" x="332" y="-234.82" font-family="sans-serif" font-size="14.00"> = </text>
-<text text-anchor="start" x="347.75" y="-234.82" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#65a30d">300,000</text>
-<text text-anchor="start" x="396.5" y="-234.82" font-family="sans-serif" font-size="14.00" fill="#65a30d"> bit</text>
-<polygon fill="none" stroke="#65a30d" points="280.5,-184.12 280.5,-221.12 425.5,-221.12 425.5,-184.12 280.5,-184.12"/>
-<text text-anchor="start" x="317.75" y="-197.82" font-family="sans-serif" font-size="14.00">QP</text>
-<text text-anchor="start" x="338" y="-197.82" font-family="sans-serif" baseline-shift="sub" font-size="14.00">avg</text>
-<text text-anchor="start" x="357.5" y="-197.82" font-family="sans-serif" font-size="14.00"> = </text>
-<text text-anchor="start" x="373.25" y="-197.82" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#65a30d">20</text>
+<path fill="#ecfccb" stroke="none" d="M292.38,-180.12C292.38,-180.12 425.62,-180.12 425.62,-180.12 431.62,-180.12 437.62,-186.12 437.62,-192.12 437.62,-192.12 437.62,-292.38 437.62,-292.38 437.62,-298.38 431.62,-304.38 425.62,-304.38 425.62,-304.38 292.38,-304.38 292.38,-304.38 286.38,-304.38 280.38,-298.38 280.38,-292.38 280.38,-292.38 280.38,-192.12 280.38,-192.12 280.38,-186.12 286.38,-180.12 292.38,-180.12"/>
+<polygon fill="none" stroke="#65a30d" points="280.38,-262.12 280.38,-304.38 437.62,-304.38 437.62,-262.12 280.38,-262.12"/>
+<text text-anchor="start" x="304.25" y="-281.07" font-family="sans-serif" font-weight="bold" font-size="14.00">CABAC 物理统计</text>
+<polygon fill="none" stroke="#65a30d" points="280.38,-217.12 280.38,-262.12 437.62,-262.12 437.62,-217.12 280.38,-217.12"/>
+<text text-anchor="start" x="295.38" y="-234.82" font-family="sans-serif" font-size="14.00">B</text>
+<text text-anchor="start" x="304.38" y="-234.82" font-family="sans-serif" baseline-shift="sub" font-size="14.00">actual</text>
+<text text-anchor="start" x="335.88" y="-234.82" font-family="sans-serif" font-size="14.00"> = </text>
+<text text-anchor="start" x="355.62" y="-234.82" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#65a30d">300,000</text>
+<text text-anchor="start" x="408.38" y="-233.82" font-family="sans-serif" font-size="14.00" fill="#65a30d">bit</text>
+<polygon fill="none" stroke="#65a30d" points="280.38,-180.12 280.38,-217.12 437.62,-217.12 437.62,-180.12 280.38,-180.12"/>
+<text text-anchor="start" x="323.75" y="-193.82" font-family="sans-serif" font-size="14.00">QP</text>
+<text text-anchor="start" x="344" y="-193.82" font-family="sans-serif" baseline-shift="sub" font-size="14.00">avg</text>
+<text text-anchor="start" x="363.5" y="-193.82" font-family="sans-serif" font-size="14.00"> = </text>
+<text text-anchor="start" x="379.25" y="-193.82" font-family="sans-serif" font-weight="bold" font-size="14.00" fill="#65a30d">20</text>
 </a>
 </g>
 </g>
@@ -873,29 +873,29 @@ graph TD
 <!-- S4&#45;&gt;OutCABAC -->
 <g id="edge9" class="edge">
 <title>S4&#45;&gt;OutCABAC</title>
-<path fill="none" stroke="#64748b" stroke-width="1.5" d="M179.75,-58C214.2,-58 250.5,-58 250.5,-58 250.5,-58 250.5,-242 250.5,-242 250.5,-242 268.43,-242 268.43,-242"/>
-<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="268.43,-245.5 278.43,-242 268.43,-238.5 268.43,-245.5"/>
+<path fill="none" stroke="#64748b" stroke-width="1.5" d="M179.65,-58C214.38,-58 251.12,-58 251.12,-58 251.12,-58 251.12,-242 251.12,-242 251.12,-242 268.33,-242 268.33,-242"/>
+<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="268.33,-245.5 278.33,-242 268.33,-238.5 268.33,-245.5"/>
 </g>
 <!-- S5 -->
 <g id="node7" class="node">
 <title>S5</title>
 <g id="a_node7"><a xlink:href="#section-9" xlink:title="&lt;TABLE&gt;" target="_parent">
-<path fill="#e0f2fe" stroke="none" d="M495.25,-202.62C495.25,-202.62 584.75,-202.62 584.75,-202.62 590.75,-202.62 596.75,-208.62 596.75,-214.62 596.75,-214.62 596.75,-269.88 596.75,-269.88 596.75,-275.88 590.75,-281.88 584.75,-281.88 584.75,-281.88 495.25,-281.88 495.25,-281.88 489.25,-281.88 483.25,-275.88 483.25,-269.88 483.25,-269.88 483.25,-214.62 483.25,-214.62 483.25,-208.62 489.25,-202.62 495.25,-202.62"/>
-<polygon fill="none" stroke="#0288d1" points="483.25,-239.62 483.25,-281.88 596.75,-281.88 596.75,-239.62 483.25,-239.62"/>
-<text text-anchor="start" x="504.38" y="-258.57" font-family="sans-serif" font-weight="bold" font-size="14.00">状态机校准</text>
-<polygon fill="none" stroke="#0288d1" points="483.25,-202.62 483.25,-239.62 596.75,-239.62 596.75,-202.62 483.25,-202.62"/>
-<text text-anchor="start" x="494.25" y="-216.32" font-family="sans-serif" font-size="14.00">ω</text>
-<text text-anchor="start" x="504.75" y="-216.32" font-family="sans-serif" baseline-shift="sub" font-size="14.00">cur</text>
-<text text-anchor="start" x="521.25" y="-216.32" font-family="sans-serif" font-size="14.00"> = </text>
-<text text-anchor="start" x="537" y="-216.32" font-family="sans-serif" font-weight="bold" font-size="14.00">756,000</text>
+<path fill="#e0f2fe" stroke="none" d="M507.25,-202.62C507.25,-202.62 596.75,-202.62 596.75,-202.62 602.75,-202.62 608.75,-208.62 608.75,-214.62 608.75,-214.62 608.75,-269.88 608.75,-269.88 608.75,-275.88 602.75,-281.88 596.75,-281.88 596.75,-281.88 507.25,-281.88 507.25,-281.88 501.25,-281.88 495.25,-275.88 495.25,-269.88 495.25,-269.88 495.25,-214.62 495.25,-214.62 495.25,-208.62 501.25,-202.62 507.25,-202.62"/>
+<polygon fill="none" stroke="#0288d1" points="495.25,-239.62 495.25,-281.88 608.75,-281.88 608.75,-239.62 495.25,-239.62"/>
+<text text-anchor="start" x="516.38" y="-258.57" font-family="sans-serif" font-weight="bold" font-size="14.00">状态机校准</text>
+<polygon fill="none" stroke="#0288d1" points="495.25,-202.62 495.25,-239.62 608.75,-239.62 608.75,-202.62 495.25,-202.62"/>
+<text text-anchor="start" x="506.25" y="-216.32" font-family="sans-serif" font-size="14.00">ω</text>
+<text text-anchor="start" x="516.75" y="-216.32" font-family="sans-serif" baseline-shift="sub" font-size="14.00">cur</text>
+<text text-anchor="start" x="533.25" y="-216.32" font-family="sans-serif" font-size="14.00"> = </text>
+<text text-anchor="start" x="549" y="-216.32" font-family="sans-serif" font-weight="bold" font-size="14.00">756,000</text>
 </a>
 </g>
 </g>
 <!-- OutCABAC&#45;&gt;S5 -->
 <g id="edge4" class="edge">
 <title>OutCABAC&#45;&gt;S5</title>
-<path fill="none" stroke="#64748b" stroke-width="1.5" d="M425.3,-255C425.3,-255 470.99,-255 470.99,-255"/>
-<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="470.99,-258.5 480.99,-255 470.99,-251.5 470.99,-258.5"/>
+<path fill="none" stroke="#64748b" stroke-width="1.5" d="M437.5,-255C437.5,-255 483.19,-255 483.19,-255"/>
+<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="483.19,-258.5 493.19,-255 483.19,-251.5 483.19,-258.5"/>
 </g>
 <!-- EMA -->
 <g id="node8" class="node">
@@ -912,8 +912,8 @@ graph TD
 <!-- S5&#45;&gt;EMA -->
 <g id="edge5" class="edge">
 <title>S5&#45;&gt;EMA</title>
-<path fill="none" stroke="#64748b" stroke-width="1.5" d="M483.48,-229C474.34,-229 467.81,-229 467.81,-229 467.81,-229 467.81,-71 467.81,-71 467.81,-71 434.25,-71 434.25,-71"/>
-<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="434.25,-67.5 424.25,-71 434.25,-74.5 434.25,-67.5"/>
+<path fill="none" stroke="#64748b" stroke-width="1.5" d="M495.51,-229C484.02,-229 475.38,-229 475.38,-229 475.38,-229 475.38,-71 475.38,-71 475.38,-71 434.18,-71 434.18,-71"/>
+<polygon fill="#64748b" stroke="#64748b" stroke-width="1.5" points="434.18,-67.5 424.18,-71 434.18,-74.5 434.18,-67.5"/>
 </g>
 <!-- State2 -->
 <g id="node9" class="node">
@@ -940,8 +940,8 @@ graph TD
 <!-- State2&#45;&gt;State1 -->
 <g id="edge10" class="edge">
 <title>State2&#45;&gt;State1</title>
-<path fill="none" stroke="#7e22ce" stroke-width="1.5" stroke-dasharray="5,2" d="M608.12,-97.51C608.12,-204.28 608.12,-492 608.12,-492 608.12,-492 241.33,-492 241.33,-492 241.33,-492 241.33,-509.34 241.33,-509.34"/>
-<polygon fill="#7e22ce" stroke="#7e22ce" stroke-width="1.5" points="237.83,-509.34 241.33,-519.34 244.83,-509.34 237.83,-509.34"/>
+<path fill="none" stroke="#7e22ce" stroke-width="1.5" stroke-dasharray="5,2" d="M487.88,-97.51C487.88,-204.28 487.88,-492 487.88,-492 487.88,-492 244.33,-492 244.33,-492 244.33,-492 244.33,-513.18 244.33,-513.18"/>
+<polygon fill="#7e22ce" stroke="#7e22ce" stroke-width="1.5" points="240.83,-513.18 244.33,-523.18 247.83,-513.18 240.83,-513.18"/>
 </g>
 </g>
 </svg>
