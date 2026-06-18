@@ -1,0 +1,104 @@
+digraph G {
+    fontname="sans-serif";
+    node [fontname="sans-serif", shape=none, margin=0];
+    edge [fontname="sans-serif", color="#64748b", penwidth=1.5];
+    rankdir=TB;
+    splines=ortho;
+    nodesep=0.8;
+    ranksep=0.8;
+
+    subgraph cluster_sw {
+        style=dashed; color="#0288d1"; bgcolor="#f0f9ff";
+
+        State1 [URL="#section-6", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#7e22ce" BGCOLOR="#f3e8ff" STYLE="ROUNDED">
+                <TR><TD><B>历史状态基准 (t-1)</B></TD></TR>
+                <TR><TD>ω<SUB>reg</SUB><SUP>(t-1)</SUP> = 170,620</TD></TR>
+            </TABLE>
+        >];
+        
+        S1 [URL="#section-2", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
+                <TR><TD><B>目标分配</B></TD></TR>
+                <TR><TD>T<SUB>pic</SUB> = <FONT COLOR="#0288d1"><B>38,000</B></FONT> bit</TD></TR>
+            </TABLE>
+        >];
+        
+        S2 [URL="#section-5", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
+                <TR><TD><B>初始 QP 推演</B></TD></TR>
+                <TR><TD>QP<SUB>hdr</SUB> = <FONT COLOR="#0288d1"><B>25</B></FONT></TD></TR>
+            </TABLE>
+        >];
+
+        { rank=same; State1; S1; }
+        S1 -> S2;
+        State1 -> S2 [style=dashed, color="#475569"];
+    }
+
+    subgraph cluster_hw {
+        style=dashed; color="#d97706"; bgcolor="#fffbeb";
+
+        S3 [URL="#section-7", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#d97706" BGCOLOR="#fef3c7" STYLE="ROUNDED">
+                <TR><TD><B>像素级 AQ 解算</B></TD></TR>
+                <TR><TD>示例1 (平滑区 CU): ΔQP = <B>-6</B></TD></TR>
+                <TR><TD>示例2 (爆炸区 CU): ΔQP = <B>+8</B></TD></TR>
+                <TR><TD><FONT COLOR="#b45309" POINT-SIZE="13">(注: 全图所有 CU 均独立推导)</FONT></TD></TR>
+            </TABLE>
+        >];
+        
+        S4 [URL="#section-hw-rdo", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#d97706" BGCOLOR="#fef3c7" STYLE="ROUNDED">
+                <TR><TD><B>硬件物理执行</B></TD></TR>
+                <TR><TD>QP<SUB>cu</SUB> ∈ <FONT COLOR="#d97706"><B>[19, 33]</B></FONT></TD></TR>
+            </TABLE>
+        >];
+
+        S3 -> S4;
+    }
+
+    subgraph cluster_fb {
+        style=dashed; color="#65a30d"; bgcolor="#f7fee7";
+
+        OutCABAC [URL="#section-hw-rdo", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#65a30d" BGCOLOR="#ecfccb" STYLE="ROUNDED">
+                <TR><TD><B>CABAC 物理统计</B></TD></TR>
+                <TR><TD>B<SUB>actual</SUB> = <FONT COLOR="#65a30d"><B>300,000</B></FONT> bit</TD></TR>
+                <TR><TD>QP<SUB>avg</SUB> = <FONT COLOR="#65a30d"><B>20</B></FONT></TD></TR>
+            </TABLE>
+        >];
+        
+        S5 [URL="#section-9", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
+                <TR><TD><B>状态机校准</B></TD></TR>
+                <TR><TD>ω<SUB>cur</SUB> = <B>756,000</B></TD></TR>
+            </TABLE>
+        >];
+        
+        EMA [URL="#param-alpha", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
+                <TR><TD><B>EMA 滤波平滑更新</B></TD></TR>
+                <TR><TD><FONT COLOR="#7c3aed"><U>α = 0.125</U></FONT></TD></TR>
+            </TABLE>
+        >];
+        
+        State2 [URL="#section-10", target="_parent", label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#7e22ce" BGCOLOR="#f3e8ff" STYLE="ROUNDED">
+                <TR><TD><B>新历史状态基准 (t)</B></TD></TR>
+                <TR><TD>ω<SUB>reg</SUB><SUP>(t)</SUP> = <FONT COLOR="#7e22ce"><B>243,793</B></FONT></TD></TR>
+            </TABLE>
+        >];
+
+        { rank=same; OutCABAC; S5; }
+        { rank=same; EMA; State2; }
+        OutCABAC -> S5;
+        S5 -> EMA;
+        EMA -> State2;
+    }
+
+    S2 -> S3;
+    S2 -> OutCABAC [style=invis];
+    S4 -> OutCABAC [constraint=false];
+    State2 -> State1 [style=dashed, color="#7e22ce", constraint=false];
+}
