@@ -260,12 +260,66 @@
 
     <style>
         /* Global Heading Styles */
-        h2 { margin-top: 50px; border-top: 2px solid #334155; padding-top: 30px; font-size: 28px; color: #0f172a; }
-        h3 { margin-top: 40px; margin-bottom: 20px; font-size: 24px; color: #0f172a; border-left: 5px solid #3b82f6; padding-left: 15px; background: linear-gradient(to right, #eff6ff, transparent); padding-top: 10px; padding-bottom: 10px; }
-        h4 { margin-top: 30px; margin-bottom: 15px; font-size: 20px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px; }
+        h2 { 
+            margin-top: 60px; 
+            margin-bottom: 25px; 
+            padding-bottom: 10px; 
+            border-bottom: 2px solid #e2e8f0; 
+            font-size: 26px; 
+            font-weight: 700; 
+            color: #0f172a; 
+            position: relative;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 80px;
+            height: 2px;
+            background-color: #3b82f6;
+        }
+        
+        h3 { 
+            margin-top: 45px; 
+            margin-bottom: 20px; 
+            font-size: 22px; 
+            font-weight: 600; 
+            color: #1e293b; 
+            display: flex; 
+            align-items: center; 
+        }
+        h3::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 22px;
+            background-color: #3b82f6;
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+        
+        h4 { 
+            margin-top: 35px; 
+            margin-bottom: 15px; 
+            font-size: 19px; 
+            font-weight: 600; 
+            color: #334155; 
+            padding-left: 14px; 
+            border-left: 3px solid #cbd5e1; 
+        }
         
         /* Overrides */
-        h2.toc-title { margin-top: 0; border-top: none; padding-top: 0; font-size: 20px; margin-bottom: 15px; }
+        h2.toc-title { 
+            margin-top: 0; 
+            border-bottom: none; 
+            padding-bottom: 0; 
+            font-size: 20px; 
+            margin-bottom: 15px; 
+        }
+        h2.toc-title::after {
+            display: none;
+        }
     </style>
 </head>
 
@@ -669,7 +723,7 @@ graph TD
     
 
     <div style="background: #f8fafc; padding: 25px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 40px 0;">
-        <h3>全流程沙盘数据流转总结</h3>
+        <div style="color: #0f172a; margin-top: 0; text-align: center; font-size: 24px; margin-bottom: 20px; font-weight: bold;">全流程沙盘数据流转总结</div>
         <p style="font-size: 18px; color: #475569; margin-bottom: 20px; line-height: 1.7;">
         至此，我们已经完整走通了 C-Model 码率控制在单一帧内的整个闭环。下面这张全局数据流转图，将前文沙盘中所有的数值严谨地映射到了物理管线的各个节点中，直观展示了从最初的宏观比特分配，到最终硬件物理落地，再到反演更新状态模型的全过程：
         </p>
