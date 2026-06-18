@@ -1001,11 +1001,11 @@ graph TD
         <div style="display: flex; gap: 15px; margin: 12px 0;">
             <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 15px; border-radius: 6px; color: #166534; flex: 1;">
                 <strong style="color: #15803d; display: block; margin-bottom: 4px;">📺 场景一：实时流媒体 / 直播限宽 (ABR/CBR)</strong>
-                核心诉求是<span style="text-decoration: underline; text-underline-offset: 2px;">严格遵循物理带宽约束</span>。QP 是为了避免信道拥塞而被动妥协的产物。
+                核心诉求是<strong style="background-color: rgba(21, 128, 61, 0.1); padding: 2px 4px; border-radius: 3px;">严格遵循物理带宽约束</strong>。QP 是为了避免信道拥塞而被动妥协的产物。
             </div>
             <div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; padding: 10px 15px; border-radius: 6px; color: #5b21b6; flex: 1;">
                 <strong style="color: #6d28d9; display: block; margin-bottom: 4px;">🎬 场景二：离线文件压制 / 点播 (CRF)</strong>
-                核心诉求是<span style="text-decoration: underline; text-underline-offset: 2px;">维持稳定主观画质</span>。QP 是基于画面物理复杂度主动推演的核心基准。
+                核心诉求是<strong style="background-color: rgba(109, 40, 217, 0.1); padding: 2px 4px; border-radius: 3px;">维持稳定主观画质</strong>。QP 是基于画面物理复杂度主动推演的核心基准。
             </div>
         </div>
         在底层控制流中，这两种模式是<strong>严格互斥、二选一开启</strong>的（或在部分混合框架中 CRF 仅作参考），因此绝对不会发生逻辑冲突。
