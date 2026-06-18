@@ -3,7 +3,7 @@ digraph G {
     node [fontname="sans-serif", shape=none, margin=0];
     edge [fontname="sans-serif", color="#64748b", penwidth=1.5];
     rankdir=TB;
-    splines=polyline;
+    splines=spline;
     nodesep=0.8;
     ranksep=0.8;
 
