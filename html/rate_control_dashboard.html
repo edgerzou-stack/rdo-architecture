@@ -1119,8 +1119,9 @@ graph TD
             
             a.addEventListener('click', (e) => {
                 e.preventDefault();
-                document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
-                mainContent.scrollTo({ top: document.getElementById(id).offsetTop - 40, behavior: 'smooth' });
+                const targetElement = document.getElementById(id);
+                const scrollPos = mainContent.scrollTop + (targetElement.getBoundingClientRect().top - mainContent.getBoundingClientRect().top) - 40;
+                mainContent.scrollTo({ top: scrollPos, behavior: 'smooth' });
             });
             
             li.appendChild(a);
@@ -1133,7 +1134,9 @@ graph TD
                 topA.textContent = header.textContent;
                 topA.addEventListener('click', (e) => {
                     e.preventDefault();
-                    mainContent.scrollTo({ top: document.getElementById(id).offsetTop - 40, behavior: 'smooth' });
+                    const targetElement = document.getElementById(id);
+                    const scrollPos = mainContent.scrollTop + (targetElement.getBoundingClientRect().top - mainContent.getBoundingClientRect().top) - 40;
+                    mainContent.scrollTo({ top: scrollPos, behavior: 'smooth' });
                 });
                 topNav.appendChild(topA);
             }
@@ -1191,7 +1194,8 @@ graph TD
                 const targetElement = document.getElementById(targetId);
                 if (targetElement) {
                     e.preventDefault();
-                    mainContent.scrollTo({ top: targetElement.offsetTop - 40, behavior: 'smooth' });
+                    const scrollPos = mainContent.scrollTop + (targetElement.getBoundingClientRect().top - mainContent.getBoundingClientRect().top) - 40;
+                    mainContent.scrollTo({ top: scrollPos, behavior: 'smooth' });
                     // Optional: Update the URL hash without jumping
                     history.pushState(null, null, '#' + targetId);
                 }
