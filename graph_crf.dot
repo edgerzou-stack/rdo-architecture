@@ -1,51 +1,19 @@
 digraph G {
     rankdir=LR;
-    node [shape=none, margin=0];
-    edge [color="#64748b", arrowsize=0.8, fontname="Helvetica", fontsize=12];
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=14, penwidth=1.5];
+    edge [color="#64748b", arrowsize=0.8, fontname="Helvetica", fontsize=12, penwidth=1.2];
 
-    History [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#64748b" BGCOLOR="#f8fafc" STYLE="ROUNDED">
-            <TR><TD><B>历史低复杂度积累</B></TD></TR>
-            <TR><TD>T-3: Cost = 100 (静止)</TD></TR>
-            <TR><TD>T-2: Cost = 100 (静止)</TD></TR>
-            <TR><TD>T-1: Cost = 100 (静止)</TD></TR>
-        </TABLE>
-    >];
+    History [label="历史低复杂度积累\n(T-3 ~ T-1 连续静止)", color="#64748b", fillcolor="#f8fafc", fontcolor="#334155"];
+    T0 [label="当前瞬间爆炸帧\n(T0: 复杂度暴涨 10 倍)", color="#ef4444", fillcolor="#fef2f2", fontcolor="#b91c1c"];
+    
+    EMA [label="Step 1: EMA 低通滤波\n(拖影平滑)", color="#0ea5e9", fillcolor="#f0f9ff", fontcolor="#0284c7"];
+    qCompress [label="Step 2: qCompress\n(非线性空间折叠)", color="#8b5cf6", fillcolor="#f5f3ff", fontcolor="#6d28d9"];
+    Result [label="最终 QP 分配\n(温和调整，避免崩溃)", color="#10b981", fillcolor="#ecfdf5", fontcolor="#047857"];
 
-    T0 [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#ef4444" BGCOLOR="#fef2f2" STYLE="ROUNDED">
-            <TR><TD><FONT COLOR="#b91c1c"><B>当前瞬间爆炸帧 (T0)</B></FONT></TD></TR>
-            <TR><TD>Cost = <B>1000</B> (暴涨 10 倍)</TD></TR>
-        </TABLE>
-    >];
-
-    EMA [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0ea5e9" BGCOLOR="#f0f9ff" STYLE="ROUNDED">
-            <TR><TD><FONT COLOR="#0284c7"><B>Step 1: EMA 低通滤波 (拖影平滑)</B></FONT></TD></TR>
-            <TR><TD>blurredCplx = (历史积淀 + 1000) / Count</TD></TR>
-            <TR><TD><FONT COLOR="#0288d1"><B>实际算出约 500</B> (被历史稀释)</FONT></TD></TR>
-        </TABLE>
-    >];
-
-    qCompress [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#8b5cf6" BGCOLOR="#f5f3ff" STYLE="ROUNDED">
-            <TR><TD><FONT COLOR="#6d28d9"><B>Step 2: qCompress 非线性空间折叠</B></FONT></TD></TR>
-            <TR><TD>qScale = pow(500, 1 - 0.6)</TD></TR>
-            <TR><TD><FONT COLOR="#7c3aed">即 <B>pow(500, 0.4)</B></FONT></TD></TR>
-            <TR><TD>暴涨复杂度被指数(0.4)无情压缩</TD></TR>
-        </TABLE>
-    >];
-
-    Result [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#10b981" BGCOLOR="#ecfdf5" STYLE="ROUNDED">
-            <TR><TD><FONT COLOR="#047857"><B>最终 QP 分配</B></FONT></TD></TR>
-            <TR><TD>QP 仅发生温和调整</TD></TR>
-            <TR><TD><B>完美避免码流瞬间崩塌！</B></TD></TR>
-        </TABLE>
-    >];
+    {rank=same; History; T0;}
 
     History -> EMA [label=" 长期记忆"];
     T0 -> EMA [label=" 突发噪声", color="#ef4444", fontcolor="#ef4444", style="bold"];
-    EMA -> qCompress [label=" 传入 500\n(未折叠)"];
-    qCompress -> Result [label=" 传入温和因子\n(已折叠)"];
+    EMA -> qCompress [label=" 滤后平滑复杂度"];
+    qCompress -> Result [label=" 折叠后目标系数"];
 }
