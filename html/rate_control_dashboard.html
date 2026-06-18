@@ -208,7 +208,7 @@
         .sidebar a:hover { color: var(--primary); }
         .sidebar a.active { background: #eff6ff; color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
         .sidebar li.level-2 a { padding-left: 12px; }
-        .sidebar li.level-3 a { padding-left: 30px; font-size: 16px; color: #64748b; }
+        .sidebar li.level-3 a { padding-left: 30px; font-size: 18px; color: #64748b; }
         .sidebar li.level-4 a { padding-left: 48px; font-size: 14px; color: #94a3b8; }
         
         .main-content { flex-grow: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
@@ -227,7 +227,7 @@
         .diagram-caption { text-align: center; color: #7f8c8d; font-size: 0.9em; margin-top: -15px; margin-bottom: 30px; font-style: italic; }
         
         .top-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; }
-        .top-nav-link { background: #f8fafc; color: var(--primary); padding: 8px 16px; border-radius: 20px; font-size: 16px; font-weight: 600; text-decoration: none; border: 1px solid #e2e8f0; transition: all 0.2s; }
+        .top-nav-link { background: #f8fafc; color: var(--primary); padding: 8px 16px; border-radius: 20px; font-size: 18px; font-weight: 600; text-decoration: none; border: 1px solid #e2e8f0; transition: all 0.2s; }
         .top-nav-link:hover { background: #e0f2fe; }
         .top-nav-link.active { background: var(--primary); color: white; border-color: var(--primary); }
 
@@ -242,7 +242,7 @@
         .hrd-buffer-container { width: 100%; height: 45px; background: #f1f5f9; border-radius: 25px; overflow: hidden; position: relative; border: 2px solid #cbd5e1; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); }
         .hrd-buffer-fill { height: 100%; background: #22c55e; width: 50%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s; }
         .hrd-status { display: flex; justify-content: space-between; margin-top: 15px; font-size: 20px; color: #475569; font-weight: 600; background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
-        .hrd-logs { height: 120px; background: #0f172a; color: #38bdf8; overflow-y: auto; padding: 15px; border-radius: 8px; font-size: 16px; margin-top: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .hrd-logs { height: 120px; background: #0f172a; color: #38bdf8; overflow-y: auto; padding: 15px; border-radius: 8px; font-size: 18px; margin-top: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .hrd-log-err { color: #f87171; font-weight: bold; }
         .hrd-log-warn { color: #facc15; }
     </style>
@@ -318,8 +318,8 @@
     <div class="interactive-demo" style="margin: 30px 0; background: #0f172a; border-radius: 8px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
         <div style=" padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6; padding: 6px 12px; font-size: 16px;">[▶ 自动推演]</button>
-                <button id="sm-step-btn" class="demo-btn" style="background: #0ea5e9; padding: 6px 12px; font-size: 16px;">[⏭ 单步推演 (PPT)]</button>
+                <button id="sm-btn" class="demo-btn" style="background: #8b5cf6; padding: 6px 12px; font-size: 18px;">[▶ 自动推演]</button>
+                <button id="sm-step-btn" class="demo-btn" style="background: #0ea5e9; padding: 6px 12px; font-size: 18px;">[⏭ 单步推演 (PPT)]</button>
                 <span style="color: #555; font-size: 18px; font-weight: bold; margin-left: 10px;">RC 闭环工作流</span>
             </div>
             <span id="sm-phase" style="font-weight: bold; color: #a78bfa; font-family: 'Roboto Mono', monospace;">[系统待机]</span>
@@ -376,7 +376,7 @@
             </div>
         </div>
         
-        <div id="sm-logs" style="background: #020617; padding: 15px; font-family: 'Roboto Mono', monospace; font-size: 16px; height: 140px; overflow-y: auto; border-top: 1px solid #334155; color: #94a3b8; line-height: 1.6;">
+        <div id="sm-logs" style="background: #020617; padding: 15px; font-family: 'Roboto Mono', monospace; font-size: 18px; height: 140px; overflow-y: auto; border-top: 1px solid #334155; color: #94a3b8; line-height: 1.6;">
             <span style="color: #64748b;">// 点击左上角 [启动状态机推演] 观察软硬件的数据交互与握手过程</span>
         </div>
     </div>
@@ -395,20 +395,20 @@
             <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #0288d1; border-radius: 4px; overflow-x: auto; color: #333; font-size: 18px; text-align: center; margin-bottom: 15px;">
                 $$ \mathcal{T}_{pic} = \max\left( \mathcal{C}_{min}, \mathcal{B}_{pic} - \mathcal{B}_{intra} + \frac{\Delta_{error}}{W_{rc}} \right) $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
+            <p style="font-size: 18px; color: #555; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
             • <strong>$\mathcal{B}_{pic}$ (单帧静态均值)</strong>：由 <code>目标码率(Bitrate) / 帧率(FPS)</code> 计算得出。<br>
             • <strong>$\mathcal{B}_{intra}$ (I帧超支补偿)</strong>：I 帧通常消耗数倍于均值的体积。此超额数据量必须由后续 P 帧在整个 GOP 周期内平摊补偿。<br>
             • <strong id="param-wrc">$\frac{\Delta_{error}}{W_{rc}}$ (历史误差平摊)</strong>：$\Delta_{error}$ 为当前 VBV 实际水位与目标安全水位的偏差项；$W_{rc}$ 为平滑窗口大小（通常为剩余 GOP 长度）。<br>
             • <strong>$\mathcal{C}_{min}$ (极小保底值)</strong>：为防止预算截断至非正数导致的硬件除零错误，系统设定的强制性下限约束（通常基于 Header Bits 与宏块总数计算）。</p>
             </div>
             <h4 id="section-3" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.1 动态安全水位 (Dynamic Target Buffer Level) 计算模型</h4>
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;">
+            <p style="font-size: 18px; color: #555; margin-bottom: 5px;">
             在 CBR 模式下，系统通常将基准安全线初始锚定在 VBV 容量的 <strong>50%~80%</strong>，以保留双向调节裕量。运行过程中的动态目标缓冲水位 $BL_{target}(t)$ 遵循以下等式：
             </p>
             <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #0288d1; border-radius: 4px; overflow-x: auto; color: #333; font-size: 18px; text-align: center; margin-bottom: 15px;">
                 $$ BL_{target}(t) = BL_{init} + \int_{0}^{t} R_{channel}(\tau) \, d\tau - \sum_{i=1}^{N_t} \mathcal{B}_{pic}(i) $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;"><strong>方程参数解析：</strong><br>
+            <p style="font-size: 18px; color: #555; margin-bottom: 5px;"><strong>方程参数解析：</strong><br>
             • <strong>$BL_{init}$</strong>：编码器初始化时的预设缓冲水位。<br>
             • <strong>$\int_{0}^{t} R_{channel}(\tau) \, d\tau$</strong>：从时刻 $0$ 至当前时刻 $t$ 期间，通过信道稳定流出 VBV 的总数据量（即运行时间与信道注入带宽的乘积积分）。<br>
             • <strong>$\sum_{i=1}^{N_t} \mathcal{B}_{pic}(i)$</strong>：前 $N_t$ 个已编码帧在理想状态下的目标消耗总量累加（即已编码帧数与理论均值的乘积）。<br>
@@ -417,7 +417,7 @@
             
             <h4 id="section-4" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.1.2 📉 严谨数据推演 (Numeric Example)</h4>
             <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-                <ul style="font-size: 16px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <ul style="font-size: 18px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
                     <li style="margin-bottom: 12px;"><strong>【初始条件】</strong><br>设备以 2Mbps 目标码率及 25fps 帧率运行。理论单帧分配均值 $\mathcal{B}_{pic} = \frac{\text{Bitrate}}{\text{FPS}} = \frac{2,000,000}{25} = \mathbf{80,000 \text{ bit}}$。</li>
                     <li style="margin-bottom: 12px;"><strong>【补偿项一：I帧平摊】</strong><br>前序 I 帧实际编码体积达 320,000 bit（超出静态均值 240,000 bit）。此超额部分基于剩余 20 帧 GOP 周期进行均摊补偿，本帧折减预算 $\mathcal{B}_{intra} = \frac{\text{超额比特}}{W_{rc}} = \frac{240,000}{20} = \mathbf{12,000 \text{ bit}}$。</li>
                     <li style="margin-bottom: 12px;"><strong>【补偿项二：水位反馈】</strong><br>设定 VBV 总物理容量 $S_{vbv} = 4,000,000 \text{ bit}$（即 2 秒缓冲裕量）。基准目标安全水位 $BL_{target} = 50\% \times S_{vbv} = 2,000,000 \text{ bit}$。状态机侦测到当前实际水位 $BL_{actual}$ 已攀升至总容量的 65.0%，即 $2,600,000 \text{ bit}$。计算绝对偏差项 $\Delta_{error} = BL_{target} - BL_{actual} = -600,000 \text{ bit}$。设定反馈平滑窗口 <a href="#param-wrc" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">$W_{rc} = 20$</a> 帧，则本帧需额外施加的水位校正负反馈量严格计算为 $\frac{\Delta_{error}}{W_{rc}} = \frac{-600,000}{20} = \mathbf{-30,000 \text{ bit}}$。</li>
@@ -435,13 +435,13 @@
                 $$ Q_{scale} = \frac{\omega_{reg}}{\mathcal{T}_{pic}} + b_{reg} $$
                 $$ QP_{hdr} = \mathrm{Clamp}(f_{scale \to qp}(Q_{scale}), \ QP_{min}, \ QP_{max}) $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
+            <p style="font-size: 18px; color: #555; margin-bottom: 5px;"><strong>公式参数详细推导：</strong><br>
             • <strong>$\omega_{reg}$ 与 $b_{reg}$</strong>：表征当前画面复杂度函数的斜率与截距。鉴于 $\mathcal{T}_{pic}$ 处于分母位置，可用预算越小，解算的 $Q_{scale}$ 标度值将呈现非线性放大趋势。</p>
             </div>
             
             <h4 id="section-6" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.2.1 📉 严谨数据推演 (Numeric Example)</h4>
             <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-                <ul style="font-size: 16px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <ul style="font-size: 18px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
                     <li style="margin-bottom: 12px;"><strong>【参数推导：模型系数 $\omega_{reg}$】</strong><br>在当前帧编码前，系统从物理层采集前一帧（索引 $n-1$）的实际编码总耗费 $B_{actual}^{(n-1)} = 40,000 \text{ bit}$ 与全局量化标度 $Q_{scale}^{(n-1)} \approx 4.2655$（对应物理 $QP \approx 24.5$）。由此计算得出前一帧的瞬时场景复杂度 $\omega_{cur} = B_{actual}^{(n-1)} \times Q_{scale}^{(n-1)} = 40,000 \times 4.2655 = 170,620$。随后状态机执行指数移动平均（EMA）滤波方程更新全局模型：$\omega_{reg}^{(n)} = \alpha \cdot \omega_{cur} + (1-\alpha) \cdot \omega_{reg}^{(n-1)}$。在快速动态响应模式下（设定追踪权重 $\alpha=1$），本帧预测斜率参数被严谨推算为 $\omega_{reg} = \mathbf{170,620}$。定义截距常数 $b_{reg} = 0$，且底层标度至物理 QP 的传递函数遵循：$QP_{hdr} = 12 + 6 \times \log_2(Q_{scale})$。</li>
                     <li style="margin-bottom: 12px;"><strong>【情景A：受限预算（沙盘原况）】</strong><br>承接<a href="#section-2" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">步骤 1</a> 计算输出的受限预算 $\mathcal{T}_{pic} = 38,000 \text{ bit}$。求解中间标度 $Q_{scale} = \frac{\omega_{reg}}{\mathcal{T}_{pic}} = \frac{170{,}620}{38{,}000} \approx 4.49$。带入映射函数：$QP_{hdr} = 12 + 6 \times \log_2(4.49) = 12 + 6 \times 2.1667 \approx \mathbf{25}$。此推导流程在数学层面上完全对齐<a href="#section-1" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">上方交互沙盘</a>中目标为 38,000 bit 且基准 $QP=25$ 的表现。</li>
                     <li style="margin-bottom: 12px;"><strong>【情景B：宽裕预算】</strong><br>若系统分配较高预算 $\mathcal{T}_{pic} = 80,000 \text{ bit}$，计算 $Q_{scale} = \frac{\omega_{reg}}{\mathcal{T}_{pic}} = \frac{170{,}620}{80{,}000} \approx 2.13$。目标参数映射为 $QP_{hdr} = 12 + 6 \times \log_2(2.13) \approx 12 + 6 \times 1.09 \approx \mathbf{19}$。</li>
@@ -460,55 +460,55 @@
                 $$ \Delta QP_{cu} = \mathrm{Round}\left( S_{aq} \times \log_2\left( \frac{V_{cu}}{\bar{V}_{frame}} \right) \right) $$
                 $$ QP_{cu} = \mathrm{Clamp}(QP_{hdr} + \Delta QP_{cu}, \ QP_{min}, \ QP_{max}) $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
+            <p style="font-size: 18px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
 
             <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
                 <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数一：$V_{cu}$（CU 局部空间方差）— 硬件实时计算</h4>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 $V_{cu}$ 是一个标准的<strong style="color: #93c5fd;">像素级样本方差</strong>，由硬件管线在逐 CU 处理时实时计算。其中 $p_i$ 为 CU 内第 $i$ 个<strong style="color: #93c5fd;">原始亮度像素值 (Luma)</strong>，$\mu_{cu} = \frac{1}{N}\sum_{i=1}^{N} p_i$ 为该 CU 内所有像素的算术均值，$N$ 为像素总数（如 16×16 CU 则 $N=256$）。
                 </p>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
                 在硬件实现中，为避免两遍扫描带来的延迟开销，通常采用<strong style="color: #93c5fd;">等价展开公式</strong>：$V_{cu} = E[X^2] - (E[X])^2 = \frac{1}{N}\sum p_i^2 - \left(\frac{1}{N}\sum p_i\right)^2$。硬件仅需一遍流水线扫描，同步累加 $\sum p_i$ 与 $\sum p_i^2$ 两个寄存器，即可在 CU 处理完毕时立即得出方差值，不引入额外时钟周期。
                 </p>
             </div>
 
             <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
                 <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数二：$\bar{V}_{frame}$（帧级参考方差）— 软件帧间 EMA 滤波更新</h4>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 $\bar{V}_{frame}$ 并非固定常数，而是由软件层维护的、基于<strong style="color: #93c5fd;">前序帧全局方差的指数移动平均 (EMA) 滤波平滑值</strong>。软件在每一帧编码完成后，收集该帧内所有 CU 的方差均值，然后通过以下方程进行帧间更新：
                 </p>
                 <div style="padding: 10px; overflow-x: auto; color: #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
                     $$ \bar{V}_{frame}^{(t)} = (1 - \beta) \cdot \bar{V}_{frame}^{(t-1)} + \beta \cdot \left(\frac{1}{M}\sum_{j=1}^{M} V_{cu,j}^{(t)}\right) $$
                 </div>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.7;">
                 其中 $M$ 为当前帧的 CU 总数，$V_{cu,j}^{(t)}$ 为第 $t$ 帧中第 $j$ 个 CU 的空间方差。该滤波机制确保参考方差能够<strong style="color: #93c5fd;">追踪场景复杂度的长期漂移趋势</strong>，同时抑制单帧瞬态噪声引起的跳变。在沙盘案例中 $\bar{V}_{frame} = 128$ 即为经过多帧滤波收敛后、中等复杂度画面下的典型稳态方差水平。
                 </p>
-                <p id="param-beta" style="font-size: 16px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
+                <p id="param-beta" style="font-size: 18px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
                 <strong style="color: #fbbf24;">平滑因子 $\beta$ 的确定方式：</strong>$\beta$ 是由软件预设的<strong style="color: #93c5fd;">工程经验常数</strong>，而非动态计算的结果。工业级编码器普遍采用 $2^{-n}$ 形式的分数（如 $\frac{1}{4}$、$\frac{1}{8}$、$\frac{1}{16}$），原因在于乘以 $2^{-n}$ 在硬件中可直接用<strong style="color: #93c5fd;">右移 $n$ 位</strong>实现，完全不需要乘法器，节省面积与时钟周期。其取值通常由编码器内部根据 Preset 模式查表确定：高速模式（如 ultrafast）倾向于较大的 $\beta$（如 $\frac{1}{4}$）以加速对场景切换的响应；高质量模式（如 veryslow）则采用较小的 $\beta$（如 $\frac{1}{16}$）以获得更稳定的参考基线。本例取 $\beta = \frac{1}{8} = 0.125$，与 <a href="#section-9" style="color: #60a5fa; text-decoration: underline; text-underline-offset: 3px;">2.4 节</a>中 $\omega_{reg}$ 的 EMA 平滑因子 $\alpha = \frac{1}{8}$ 保持一致，体现了系统级参数对称设计的工程惯例。
                 </p>
             </div>
 
             <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
                 <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 参数三：$S_{aq}$（AQ 强度系数）— 软件静态配置下发</h4>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 $S_{aq}$ <strong style="color: #93c5fd;">不是动态计算的</strong>，而是由上层软件（编码器应用层 / 驱动层）根据编码模式配置后<strong style="color: #93c5fd;">写入硬件控制寄存器的静态权值</strong>。其来源通常为以下两种路径之一：
                 </p>
-                <ul style="font-size: 16px; color: #cbd5e1; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <ul style="font-size: 18px; color: #cbd5e1; margin: 0; padding-left: 20px; line-height: 1.8;">
                     <li style="margin-bottom: 8px;"><strong style="color: #fbbf24;">路径A：用户显式指定</strong> — 编码器命令行参数（如 x265 的 <code style="color: #34d399;">--aq-strength 2.0</code>、FFmpeg 的 <code style="color: #34d399;">-aq-strength</code>）直接传入的数值。</li>
                     <li style="margin-bottom: 8px;"><strong style="color: #fbbf24;">路径B：Preset 自动选择</strong> — 编码器根据当前 Preset（如 medium / slow / veryslow）与 Tune 模式（如 psnr / ssim / film）自动查表选择的经验推荐值。工业级编码器中典型取值范围为 $0.5 \leq S_{aq} \leq 3.0$。</li>
                 </ul>
-                <p style="font-size: 16px; color: #cbd5e1; margin-top: 8px; margin-bottom: 0; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-top: 8px; margin-bottom: 0; line-height: 1.7;">
                 $S_{aq}$ 的物理含义是 $\Delta QP$ 偏移的<strong style="color: #93c5fd;">增益系数</strong>：值越大，平滑区域与复杂区域之间的 QP 差异越大，即更激进地从人眼不敏感的平滑区域抽取比特预算，补贴给人眼敏感的纹理密集区域。
                 </p>
             </div>
 
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px;">
+            <p style="font-size: 18px; color: #555; margin-bottom: 5px;">
             • <strong>映射逻辑</strong>：当 $V_{cu} < \bar{V}_{frame}$ 时（相对平滑区域），$\log_2$ 函数输出负值，产生负向 $\Delta QP$ 偏移（降低 QP，保留更多视觉细节）；当 $V_{cu} > \bar{V}_{frame}$ 时（相对高频区域），函数输出正值，产生正向 $\Delta QP$ 偏移（提高 QP，压缩高频冗余以节约码流）。</p>
             </div>
             
             <h4 id="section-8" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.3.1 📉 严谨数据推演 (Numeric Example)</h4>
             <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-                <ul style="font-size: 16px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <ul style="font-size: 18px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
                     <li style="margin-bottom: 16px;"><strong>【前提条件一：$QP_{hdr} = 25$ 的来源】</strong><br>承接 <a href="#section-6" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">2.2.1 数据推演 (情景A)</a> 的计算结果：在受限预算 $\mathcal{T}_{pic} = 38{,}000 \text{ bit}$ 下，经 R-Q 模型反向推算得出 $Q_{scale} = \frac{170{,}620}{38{,}000} \approx 4.49$，代入传递函数 $QP_{hdr} = 12 + 6 \times \log_2(4.49) \approx \mathbf{25}$。此值由软件写入硬件寄存器，作为当前帧所有 CU 的基准量化参数。</li>
 
                     <li style="margin-bottom: 16px;"><strong>【前提条件二：$S_{aq} = 2.0$ 的来源】</strong><br>如 <a href="#section-7" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">2.3 节参数三</a> 所述，$S_{aq}$ 是软件层通过控制寄存器下发的静态配置权值。本例中编码器应用层选用 Preset = medium 对应的默认 AQ 强度 $S_{aq} = \mathbf{2.0}$，该数值直接从编码器参数表查得并写入硬件 AQ 控制寄存器。</li>
@@ -534,48 +534,49 @@
                 $$ \omega_{cur} = Q_{actual} \times B_{actual} $$
                 $$ \omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha $$
             </div>
-            <p style="font-size: 16px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
+            <p style="font-size: 18px; color: #555; margin-bottom: 15px;"><strong>公式参数详细推导与计算来源：</strong></p>
 
-            <p style="font-size: 16px; color: #555; margin-bottom: 10px; line-height: 1.7;">
+            <p style="font-size: 18px; color: #555; margin-bottom: 10px; line-height: 1.7;">
             <strong>(1) 水位更新</strong>：采用前置帧水位累加本帧物理消耗字节 $B_{actual}$，并减损信道恒定流出量 $\frac{R_{bitrate}}{F_{rate}}$（即单帧时隙内信道注入的比特数）。</p>
 
-            <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h4 style="color: #f8fafc; margin-top: 0; font-size: 18px;">📐 (2) $Q_{actual}$ 的完整计算链路：$QP_{avg} \to Q_{scale}$</h4>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+            <p style="font-size: 18px; color: #555; margin-bottom: 10px; line-height: 1.7;">
+            <strong>(2) 反演中间标度 $Q_{actual}$</strong>：利用硬件产生的帧平均量化参数 $QP_{avg}$ 逆向映射出等效物理标度，完整链路如下：</p>
+            <div style="background: #0f172a; padding: 15px; border-radius: 6px; margin-bottom: 15px; margin-left: 20px;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 <strong style="color: #93c5fd;">第一步：硬件汇报帧级平均 $QP_{avg}$</strong><br>
                 硬件编码器在完成当前帧所有 CU 的编码后，将每个 CU 实际使用的量化参数 $QP_{cu,j}$ 按<strong style="color: #93c5fd;">比特量加权平均</strong>汇总为帧级统计值：
                 </p>
                 <div style="padding: 10px; overflow-x: auto; color: #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
                     $$ QP_{avg} = \frac{\sum_{j=1}^{M} B_{cu,j} \times QP_{cu,j}}{\sum_{j=1}^{M} B_{cu,j}} $$
                 </div>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 12px; line-height: 1.7;">
                 其中 $M$ 为当前帧的 CU 总数，$B_{cu,j}$ 为第 $j$ 个 CU 实际编码产生的比特数，$QP_{cu,j}$ 为该 CU 经过 AQ Delta 调整后实际使用的物理 QP 值。采用比特量加权（而非简单算术平均）的原因是：消耗比特多的 CU 对整体 R-Q 模型的贡献权重更大，简单算术平均会低估高复杂度区域的影响。
                 </p>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.7;">
                 <strong style="color: #93c5fd;">第二步：通过逆向传递函数映射为物理标度 $Q_{actual}$</strong><br>
                 软件接收到 $QP_{avg}$ 后，通过 HEVC 标准定义的 QP-to-Scale 传递函数进行逆向映射：
                 </p>
                 <div style="padding: 10px; overflow-x: auto; color: #e2e8f0; font-size: 20px; text-align: center; margin-bottom: 10px;">
                     $$ Q_{actual} = f_{qp \to scale}(QP_{avg}) = 2^{\frac{QP_{avg} - 12}{6}} $$
                 </div>
-                <p style="font-size: 16px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
+                <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 0; line-height: 1.7;">
                 该传递函数与 <a href="#section-5" style="color: #60a5fa; text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 中使用的 $QP_{hdr} = 12 + 6 \times \log_2(Q_{scale})$ 互为严格逆运算。$Q_{actual}$ 的物理含义是量化步长的无量纲标度因子：QP 每增大 6，标度值翻倍（量化精度减半）。
                 </p>
             </div>
 
-            <p style="font-size: 16px; color: #555; margin-bottom: 10px; line-height: 1.7;">
+            <p style="font-size: 18px; color: #555; margin-bottom: 10px; line-height: 1.7;">
             <strong>(3) 瞬态斜率解算</strong>：$\omega_{cur} = Q_{actual} \times B_{actual}$。该乘积的物理含义是：在当前帧的量化精度水平下，产生 $B_{actual}$ 比特所对应的场景复杂度度量。复杂度越高的画面，在相同 QP 下会消耗更多比特，因此 $\omega_{cur}$ 值越大。</p>
 
-            <p style="font-size: 16px; color: #555; margin-bottom: 5px; line-height: 1.7;">
+            <p style="font-size: 18px; color: #555; margin-bottom: 5px; line-height: 1.7;">
             <strong id="param-alpha">(4) EMA 滤波校正</strong>：基于平滑因子 $\alpha$（如规范参数设为 $\frac{1}{8}$ 或 $0.125$），对历史常数 $\omega_{reg}^{(t-1)}$ 与瞬态观测值 $\omega_{cur}$ 进行低通融合，更新模型权值。该滤波后的 $\omega_{reg}$ 将被回传至 <a href="#section-5" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 的 R-Q 模型中，作为下一帧的复杂度预测基准，完成闭环。</p>
             </div>
             
             <h4 id="section-10" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.4.1 📉 沙盘案例 (Numeric Example)</h4>
             <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-                <p style="font-size: 16px; color: #333; margin: 0; line-height: 1.8;"><strong>【参数推导：状态模型闭环更新】</strong><br>在第 $t-1$ 帧时，系统维持的全局复杂度基准记录为 $\omega_{reg}^{(t-1)} = 1.0$。当系统对突发剧烈运动的第 $t$ 帧执行硬件编码完毕后，反馈回显真实物理字节消耗 $B_{actual} = 300,000 \text{ bit}$。硬件底层依据该帧内所有 CU 的实际使用配置推算出平均标度 $Q_{actual} = 3.0 \times 10^{-5}$（等效于全局平均 $QP \approx 20$）。由此，硬件管线反算出的该突变场景的瞬态斜率严谨计算为 $\omega_{cur} = Q_{actual} \times B_{actual} = (3.0 \times 10^{-5}) \times 300{,}000 = 9.0$。在平滑因子 <a href="#param-alpha" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">$\alpha=0.125$</a> 的 EMA 滤波抑制下，本轮更新后的新模型状态变量被计算为 $\omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha = 1.0 \times \frac{7}{8} + 9.0 \times \frac{1}{8} = \mathbf{2.0}$。此低通滤波机制既能减弱高频孤立噪声引发的跳变干扰，又确保了参数对长期场景特征漂移的自适应收敛性能。</p>
+                <p style="font-size: 18px; color: #333; margin: 0; line-height: 1.8;"><strong>【参数推导：状态模型闭环更新】</strong><br>在第 $t-1$ 帧时，系统维持的全局复杂度基准记录为 $\omega_{reg}^{(t-1)} = 1.0$。当系统对突发剧烈运动的第 $t$ 帧执行硬件编码完毕后，反馈回显真实物理字节消耗 $B_{actual} = 300,000 \text{ bit}$。硬件底层依据该帧内所有 CU 的实际使用配置推算出平均标度 $Q_{actual} = 3.0 \times 10^{-5}$（等效于全局平均 $QP \approx 20$）。由此，硬件管线反算出的该突变场景的瞬态斜率严谨计算为 $\omega_{cur} = Q_{actual} \times B_{actual} = (3.0 \times 10^{-5}) \times 300{,}000 = 9.0$。在平滑因子 <a href="#param-alpha" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">$\alpha=0.125$</a> 的 EMA 滤波抑制下，本轮更新后的新模型状态变量被计算为 $\omega_{reg}^{(t)} = \omega_{reg}^{(t-1)} \times (1 - \alpha) + \omega_{cur} \times \alpha = 1.0 \times \frac{7}{8} + 9.0 \times \frac{1}{8} = \mathbf{2.0}$。此低通滤波机制既能减弱高频孤立噪声引发的跳变干扰，又确保了参数对长期场景特征漂移的自适应收敛性能。</p>
             </div>
         </div>
-        <p style="font-size: 16px; color: #64748b; margin-bottom: 0;"><strong>系统协同总结：</strong><a href="#section-1" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">上述双层架构</a>清晰界定了多级控制域的任务分工：宏观控制域（软件层）主导目标核算与全局边界约束配置（如 <code>qpHdr</code> 靶点及区间极值）；微观执行域（硬件层）主导局部空间自适应推导，通过像素级方差扫描实时生成差异化量化偏移，从而在复杂性时变信道内实现精准的码流与画质调配。</p>
+        <p style="font-size: 18px; color: #64748b; margin-bottom: 0;"><strong>系统协同总结：</strong><a href="#section-1" style="color: var(--primary); text-decoration: underline; text-underline-offset: 3px;">上述双层架构</a>清晰界定了多级控制域的任务分工：宏观控制域（软件层）主导目标核算与全局边界约束配置（如 <code>qpHdr</code> 靶点及区间极值）；微观执行域（硬件层）主导局部空间自适应推导，通过像素级方差扫描实时生成差异化量化偏移，从而在复杂性时变信道内实现精准的码流与画质调配。</p>
     </div>
 
     
@@ -608,7 +609,7 @@
 
     <h4 id="section-14" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">3.1.1 📉 极客沙盘定量推演：GOP Size 4 (I-B-B-P) 的降维打击</h4>
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-        <p style="color: #333; font-size: 16px; margin-bottom: 10px;">我们以经典的 GOP 4 结构为例，来看看分配 Budget 是如何具体化作对底层 <strong>QP Tree 基准线</strong>的物理推移的：</p>
+        <p style="color: #333; font-size: 18px; margin-bottom: 10px;">我们以经典的 GOP 4 结构为例，来看看分配 Budget 是如何具体化作对底层 <strong>QP Tree 基准线</strong>的物理推移的：</p>
         <ul style="color: #555; font-size: 18px; line-height: 1.6;">
             <li><strong>I 帧与核心参考帧 (权重 12，独占 60% Budget)</strong>：作为整个 GOP 的绝对基石，算法赋予其海量预算。<strong>物理影响</strong>：R-Q 模型发现预算极其充沛，将其 QP Tree 的基准线大幅拉低至 <strong>QP=18</strong>。画面纹理极其细腻，死保基准画质不崩溃（防止误差传递）。</li>
             <li><strong>中层参考 B 帧 (权重 5，切走 25% Budget)</strong>：只被部分后继帧参考。<strong>物理影响</strong>：预算遭“腰斩”，QP Tree 基准线被上移至 <strong>QP=30</strong>，画质开始出现妥协。</li>
@@ -629,7 +630,7 @@
 
     <h4 id="section-16" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">3.2.1 📉 极客案例推演：从绝对静止到瞬间爆炸的平滑过渡</h4>
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-        <p style="color: #333; font-size: 16px; margin-bottom: 10px;"><strong>【参数推导：预分析复杂度反馈】</strong><br>设定初始测试序列输入为连续的静态帧序列，系统预分析器 (Pass 1) 输出的像素级运动补偿代价为 $\mathcal{C}_{cur} = 100$。突然在 <strong>T0</strong> 时刻发生满屏爆炸场景，<code>pass1CurCost</code> 实际测量反馈值暴涨 10 倍（达到 <strong>1000</strong>）。若无平滑，QP 会瞬间暴跌引起流量雪崩。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
+        <p style="color: #333; font-size: 18px; margin-bottom: 10px;"><strong>【参数推导：预分析复杂度反馈】</strong><br>设定初始测试序列输入为连续的静态帧序列，系统预分析器 (Pass 1) 输出的像素级运动补偿代价为 $\mathcal{C}_{cur} = 100$。突然在 <strong>T0</strong> 时刻发生满屏爆炸场景，<code>pass1CurCost</code> 实际测量反馈值暴涨 10 倍（达到 <strong>1000</strong>）。若无平滑，QP 会瞬间暴跌引起流量雪崩。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
         
         <div style="display: flex; align-items: flex-end; gap: 15px; margin: 25px 0; height: 140px; border-bottom: 2px solid #334155; padding-bottom: 5px; overflow-x: auto;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
@@ -649,7 +650,7 @@
                 <span style="font-size: 14px;  margin-top: 5px; font-weight: bold; text-align: center;">T0<br>爆炸(1000)</span>
             </div>
             
-            <div style="margin-left: 30px; font-family: 'Roboto Mono', monospace; font-size: 16px; color: #94a3b8; align-self: center;  padding: 12px; border-radius: 6px; border: 1px solid #334155; white-space: nowrap;">
+            <div style="margin-left: 30px; font-family: 'Roboto Mono', monospace; font-size: 18px; color: #94a3b8; align-self: center;  padding: 12px; border-radius: 6px; border: 1px solid #334155; white-space: nowrap;">
                 <span style="color: #38bdf8;">// Step 1: EMA 低通滤波 (拖影平滑)</span><br>
                 <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + 1000) / 综合Count <br>
                 <span style="color: #a3a3a3;">-> 被 T-1~T-3 的低复杂度(100)严重稀释</span><br>
