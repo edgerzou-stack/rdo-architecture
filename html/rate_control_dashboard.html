@@ -966,27 +966,27 @@ graph TD
         <h4 id="section-13">📐 公式全变量硬核释义</h4>
         <ul style="color: #333; font-size: 18px; line-height: 1.6;">
             <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{pic}\) (Target Picture Size)</strong>：系统最终下达给当前帧的绝对比特预算（单位：bit）。</li>
-            <li id="param-tbase" style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：信道基础预算。它的底层物理来源极其简单粗暴，即<strong>目标码率除以帧率</strong>（\(\mathcal{T}_{base} = \frac{\text{Target Bitrate}}{\text{FPS}}\)）。例如，用户设定目标码率为 1.2 Mbps，帧率为 24 fps，则 \(\mathcal{T}_{base} = \frac{1{,}200{,}000}{24} = 50{,}000 \text{ bit}\)。可以理解为假设所有帧平分带宽时，单帧能领到的“平均零花钱”。</li>
-            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(N_{GOP}\) (GOP Size)</strong>：当前 GOP 内包含的总帧数（例如 4 帧）。它将单帧平均零花钱乘大，化为“整个 GOP 的资金池”。</li>
+            <li id="param-tbase" style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{T}_{base}\) (Base Average Target)</strong>：信道基础预算。其物理定义明确，即<strong>目标码率除以帧率</strong>（\(\mathcal{T}_{base} = \frac{\text{Target Bitrate}}{\text{FPS}}\)）。例如，用户设定目标码率为 1.2 Mbps，帧率为 24 fps，则 \(\mathcal{T}_{base} = \frac{1{,}200{,}000}{24} = 50{,}000 \text{ bit}\)。这代表了在均匀分配假设下，系统向每帧分配的基础比特配额。</li>
+            <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(N_{GOP}\) (GOP Size)</strong>：当前 GOP 内包含的总帧数（例如 4 帧）。此参数将单帧基础配额扩展为整个 GOP 的总可用带宽池。</li>
             <li style="margin-bottom: 8px;"><strong style="color: #0288d1;">\(\mathcal{W}_{total}\) (Total Weight)</strong>：该 GOP 内所有帧的分配权重之和（分母）。</li>
-            <li><strong style="color: #0288d1;">\(\mathcal{W}_{GOP}[N-1][poc]\) (Current Frame Weight)</strong>：硬编码矩阵中，赋予当前帧的专属权重（分子）。通过 \(\frac{\text{分子}}{\text{分母}}\) 算出当前帧切走资金池的百分比。</li>
+            <li><strong style="color: #0288d1;">\(\mathcal{W}_{GOP}[N-1][poc]\) (Current Frame Weight)</strong>：硬编码矩阵中，赋予当前帧的专属权重（分子）。通过 \(\frac{\text{分子}}{\text{分母}}\) 算出当前帧在总带宽池中所占的比重。</li>
         </ul>
     </div>
 
-    <h4 id="section-14">3.1.1 📉 极客沙盘定量推演：GOP Size 4 (I-B-B-P) 的降维打击</h4>
+    <h4 id="section-14">3.1.1 📉 基于 GOP Size 4 (I-B-B-P) 的帧级码率推演</h4>
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
         <p style="color: #333; font-size: 18px; margin-bottom: 15px;">为了将上述公式具象化，我们设定以下<strong>沙盘初始条件</strong>：</p>
         <ul style="color: #475569; font-size: 17px; line-height: 1.6; margin-bottom: 20px; background: #fff; padding: 15px 15px 15px 35px; border: 1px solid #e2e8f0; border-radius: 4px;">
             <li>信道基础预算：$\mathcal{T}_{base} = \mathbf{50{,}000 \text{ bit}}$ （基于设定目标码率 1.2 Mbps 与帧率 24 fps 推导得出，即 $\frac{1{,}200{,}000}{24} = 50{,}000$）</li>
             <li>GOP 结构：$N_{GOP} = \mathbf{4}$ （包含 1 个核心 P 帧，1 个中层参考 $B_1$ 帧，2 个非参考 $B_2$ 帧）</li>
             <li>硬编码权重表：$P$ 帧 $\mathcal{W}=12$，$B_1$ 帧 $\mathcal{W}=5$，$B_2$ 帧 $\mathcal{W}=3$。因此 $\mathcal{W}_{total} = 12 + 5 + 3 \times 2 = \mathbf{23}$</li>
-            <li>GOP 资金池总量：$\mathcal{T}_{base} \times N_{GOP} = 50{,}000 \times 4 = \mathbf{200{,}000 \text{ bit}}$</li>
+            <li>GOP 总可用带宽：$\mathcal{T}_{base} \times N_{GOP} = 50{,}000 \times 4 = \mathbf{200{,}000 \text{ bit}}$</li>
         </ul>
         <p style="color: #333; font-size: 18px; margin-bottom: 10px;">现在，我们将各类帧的参数代入公式，看看分配 Budget 是如何具体化作对底层 <strong>QP Tree 基准线</strong>的物理推移的：</p>
         <ul style="color: #555; font-size: 18px; line-height: 1.6;">
-            <li style="margin-bottom: 12px;"><strong>核心 P 帧 (权重 12)</strong>：代入公式 $\mathcal{T}_{pic} = 200{,}000 \times \left( \frac{12}{23} \right) \approx \mathbf{104{,}347 \text{ bit}}$。<br><strong>物理影响</strong>：作为整个 GOP 的基石，算法赋予其海量预算（独占整个 GOP 资金池的 52%）。R-Q 模型发现预算极其充沛，将其 QP Tree 的基准线大幅拉低至 <strong>QP=18</strong>。画面纹理极其细腻，死保基准画质不崩溃（防止误差传递）。</li>
-            <li style="margin-bottom: 12px;"><strong>中层参考 $B_1$ 帧 (权重 5)</strong>：代入公式 $\mathcal{T}_{pic} = 200{,}000 \times \left( \frac{5}{23} \right) \approx \mathbf{43{,}478 \text{ bit}}$。<br><strong>物理影响</strong>：由于只被部分后继帧参考，预算相较 P 帧遭到“腰斩”。QP Tree 基准线被上移至 <strong>QP=30</strong>，画质开始出现妥协。</li>
-            <li><strong>非参考 $B_2$ 帧 (权重 3)</strong>：代入公式 $\mathcal{T}_{pic} = 200{,}000 \times \left( \frac{3}{23} \right) \approx \mathbf{26{,}086 \text{ bit}}$。<br><strong>物理影响</strong>：处于预测链最末端，不被任何人参考，即使烂成马赛克也不会连累别人。其预算被无情榨干，QP Tree 基准线被暴力推高至 <strong>QP=42</strong>。画面细节被严重抹除，换来的是极致的带宽节约，达成整体 R-D (Rate-Distortion) 最优解。</li>
+            <li style="margin-bottom: 12px;"><strong>核心 P 帧 (权重 12)</strong>：代入公式 $\mathcal{T}_{pic} = 200{,}000 \times \left( \frac{12}{23} \right) \approx \mathbf{104{,}347 \text{ bit}}$。<br><strong>物理影响</strong>：作为整个 GOP 的基石，系统为其分配大量比特预算（占整个 GOP 总带宽的 52%）。R-Q 模型在预算充沛的条件下，将其 QP Tree 的基准线大幅拉低至 <strong>QP=18</strong>。画面纹理极其细腻，以保障基准参考画质不受损，从而切断时域误差传播。</li>
+            <li style="margin-bottom: 12px;"><strong>中层参考 $B_1$ 帧 (权重 5)</strong>：代入公式 $\mathcal{T}_{pic} = 200{,}000 \times \left( \frac{5}{23} \right) \approx \mathbf{43{,}478 \text{ bit}}$。<br><strong>物理影响</strong>：由于仅作为部分后续帧的参考对象，其预算相较 P 帧被显著削减。QP Tree 基准线相应上移至 <strong>QP=30</strong>，画质产生预期内的妥协。</li>
+            <li><strong>非参考 $B_2$ 帧 (权重 3)</strong>：代入公式 $\mathcal{T}_{pic} = 200{,}000 \times \left( \frac{3}{23} \right) \approx \mathbf{26{,}086 \text{ bit}}$。<br><strong>物理影响</strong>：处于预测链的最末端，不作为任何帧的参考源，即使发生质量降级也不会影响其他帧的预测质量。因此，其比特预算被大幅压缩，QP Tree 基准线被强制拉高至 <strong>QP=42</strong>。画面细节在可容忍范围内受损，旨在实现最大化的带宽节约，达成整体 R-D (Rate-Distortion) 最优解。</li>
         </ul>
     </div>
 
@@ -995,8 +995,8 @@ graph TD
     <div style="background-color: #e0f2fe; border-left: 4px solid #0ea5e9; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
         <strong style="color: #0369a1;">💡 架构解惑：CRF 模式与前文 ABR 模式的互斥性（解决 QP 冲突疑问）</strong>
         <p style="margin-top: 8px; margin-bottom: 0; font-size: 15px; color: #0c4a6e; line-height: 1.6;">
-        前文 <a href="#section-5" style="color: #0284c7; text-decoration: underline; text-underline-offset: 3px;">2.2 节</a> 和 <a href="#section-7" style="color: #0284c7; text-decoration: underline; text-underline-offset: 3px;">2.3 节</a> 中推导的 QP，是基于 <strong>ABR/CBR（目标码率）</strong> 模式。该模式的终极目标是“死守物理带宽”，QP 是由剩余带宽预算（零花钱）<strong>被动反推</strong>出来的。<br>
-        而本节介绍的 <strong>CRF（恒定质量）</strong> 模式，是工业级编码器（如 x264/x265）里的另一套<strong>互斥的</strong>主控逻辑！在纯 CRF 模式下，系统根本没有物理带宽上限（不设预算），终极目标是“死守画面视觉质量”。因此，这里的 QP 是直接基于画面物理复杂度（Lookahead SATD）<strong>主动推演</strong>出来的。<br>
+        前文 <a href="#section-5" style="color: #0284c7; text-decoration: underline; text-underline-offset: 3px;">2.2 节</a> 和 <a href="#section-7" style="color: #0284c7; text-decoration: underline; text-underline-offset: 3px;">2.3 节</a> 中推导的 QP，是基于 <strong>ABR/CBR（目标码率）</strong> 模式。该模式的终极目标是“严格遵循物理带宽约束”，QP 是由剩余可用带宽<strong>被动推演</strong>出来的。<br>
+        而本节介绍的 <strong>CRF（恒定质量）</strong> 模式，是工业级编码器（如 x264/x265）里的另一套<strong>互斥的</strong>主控逻辑！在纯 CRF 模式下，系统不设硬性带宽上限，终极目标是“维持稳定的主观画面质量”。因此，这里的 QP 是直接基于画面物理复杂度（Lookahead SATD）<strong>主动推演</strong>出来的。<br>
         <strong>结论：</strong> 这两套算 QP 的方法分别对应不同的业务场景（直播限宽 vs 离线压制），在底层控制流中是<strong>二选一开启</strong>的（或在 ABR 下仅作为预估参考），因此绝对不会发生逻辑冲突。
         </p>
     </div>
@@ -1005,7 +1005,7 @@ graph TD
         <p style="font-size: 18px; margin-bottom: 10px;">当系统开启 CRF (Constant Rate Factor) 模式时，为了避免局部画面突变（如突然爆炸）导致 QP 剧烈震荡，算法结合了 <strong>Pass 1 (预分析)</strong> 数据并执行了严格的量化衰减：</p>
     </div>
     <ul>
-        <li><strong>时域指数衰减 (EMA)</strong>：每经过一帧，历史积累的复杂度权重无情减半。通过 \(\mathcal{W}_{cplx}^{(t)} = \mathcal{W}_{cplx}^{(t-1)} \times 0.5\) 抛弃远古历史。</li>
+        <li><strong>时域指数衰减 (EMA)</strong>：每经过一帧，历史积累的复杂度权重呈指数级衰减。通过 \(\mathcal{W}_{cplx}^{(t)} = \mathcal{W}_{cplx}^{(t-1)} \times 0.5\) 逐步降低远期历史数据的影响权重。</li>
         <li><strong>平滑复杂度计算 (Blurred Complexity)</strong>：将当前帧代价 \(\mathcal{C}_{cur}\) 融入历史池，得到带时域衰减的低通滤波结果：\(\mathcal{C}_{blur} = \frac{\sum (C_i \times 0.5^i)}{\sum 0.5^i}\)。</li>
         <li><strong>非线性 \(Q_{scale}\) 映射</strong>：核心折叠公式为 \(Q_{scale} = (\mathcal{C}_{blur})^{1 - q_{compress}}\)。其中 \(q_{compress}\) 是非线性折叠常数（通常为 \(0.6\)）。这种分数次幂运算保证了当画面复杂度指数级上升时，分配的码率增幅会被非线性“压制”，从而保护整体带宽。</li>
         <li><strong>最终归一化</strong>：算出的 \(Q_{scale}\) 会除以基准常数 \(\mathcal{K}_{rate}\)，并映射为底层物理 QP。</li>
@@ -1013,7 +1013,7 @@ graph TD
 
     <h4 id="section-16">3.2.1 📉 极客案例推演：从绝对静止到瞬间爆炸的平滑过渡</h4>
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
-        <p style="color: #333; font-size: 18px; margin-bottom: 10px;"><strong>【参数推导：预分析复杂度反馈】</strong><br>设定初始测试序列输入为连续的静态帧序列，系统预分析器 (Pass 1) 输出的像素级运动补偿代价为 $\mathcal{C}_{cur} = 100$。突然在 <strong>T0</strong> 时刻发生满屏爆炸场景，<code>pass1CurCost</code> 实际测量反馈值暴涨 10 倍（达到 <strong>1000</strong>）。若无平滑，QP 会瞬间暴跌引起流量雪崩。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
+        <p style="color: #333; font-size: 18px; margin-bottom: 10px;"><strong>【参数推导：预分析复杂度反馈】</strong><br>设定初始测试序列输入为连续的静态帧序列，系统预分析器 (Pass 1) 输出的像素级运动补偿代价为 $\mathcal{C}_{cur} = 100$。突然在 <strong>T0</strong> 时刻发生满屏爆炸场景，<code>pass1CurCost</code> 实际测量反馈值骤增 10 倍（达到 <strong>1000</strong>）。若无平滑机制，QP 将出现急剧下降，从而引发码率超调过载。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
 
 <svg style="max-width: 100%; height: auto; display: block; margin: 20px auto;" width="938pt" height="124pt"
  viewBox="0.00 0.00 938.25 123.50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -1089,19 +1089,19 @@ graph TD
         <li style="margin-bottom: 12px;"><strong>Step 1: EMA 低通滤波</strong><br>
         当前突发爆炸帧的原始测量复杂度飙升至 $\mathcal{C}_{cur} = \mathbf{1000}$（其物理来源为预分析器 Lookahead 阶段，逐个宏块累加的绝对变换误差和：$\mathcal{C}_{cur} = \sum_{i=0}^{N_{MB}} \text{SATD}_i = 1000$）。而由于之前连续数帧处于绝对静止状态，历史帧积累了极低的运动补偿代价（$\mathcal{C}_{t-1} = 100, \mathcal{C}_{t-2} = 100 \dots$）。代入上文 $\mathcal{C}_{blur}$ 滤波公式：<br>
         $\mathcal{C}_{blur} = \frac{\sum(\mathcal{C}_i \times 0.5^i)}{\sum 0.5^i} = \frac{1000 \times 1 + 100 \times 0.5 + 100 \times 0.25 + \dots}{1 + 0.5 + 0.25 + \dots} \approx \frac{1000 + 100}{2} = \mathbf{550}$。<br>
-        <strong>物理意义</strong>：高达 1000 的瞬时突变噪声，被深厚的静态历史底蕴强制拖拽稀释到了 550，完成了时域级别的“拖影平滑”抗锯齿。</li>
+        <strong>物理意义</strong>：高达 1000 的瞬时突变噪声，在长期累积的静态历史因子平滑过渡下被稀释至 550，实现了时域级别的低通滤波抗锯齿。</li>
 
         <li><strong>Step 2: qCompress 非线性空间折叠</strong><br>
         将滤波后的平滑复杂度 $\mathcal{C}_{blur} = 550$ 与非线性折叠常数 $q_{compress} = 0.6$ 代入核心映射公式：<br>
         $\mathcal{Q}_{scale} = (\mathcal{C}_{blur})^{1 - q_{compress}} = 550^{1 - 0.6} = 550^{0.4} \approx \mathbf{12.44}$。<br>
-        <strong>物理意义</strong>：对比若不进行压缩的线性爆发（$550^1 = 550$），指数 $0.4$ 的降维打击把暴涨的分配需求再次无情压平。最终输出的 QP 目标值仅发生温和上调，完美避免了码流分配瞬间雪崩崩溃！</li>
+        <strong>物理意义</strong>：对比若不进行压缩的线性爆发（$550^1 = 550$），指数衰减机制有效抑制了突增的码流需求。最终输出的 QP 目标值仅发生温和上调，完美避免了码率分配瞬间发生缓冲区溢出！</li>
     </ul>
 
     </div>
 
     <h3 id="section-17">3.3 🛡️ 策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
     <div class="highlight" style="background-color: #fce4ec; border-left-color: #c2185b;">
-        <p>当信道带宽实在太差，或者历史欠债太多时，即便把 QP 拉到最大（画面打满马赛克），算出来的预测体积依然会导致 VBV 欠载（Underflow）怎么办？</p>
+        <p>当信道带宽受到严重受限，或者历史缓冲区欠载累积过多时，即使将 QP 提升至最大物理极值（画面产生严重的主观失真如块效应），计算得出的预测体积依然可能导致 VBV 欠载（Underflow）。此时系统将触发兜底机制。</p>
     
     <p>在 C-Model 的 <code>PicSkip</code> 模块中，有一道硬核的底线防护：</p>
     <div style="padding: 10px; overflow-x: auto; color: #333; font-size: 22px; text-align: center; margin-bottom: 15px;">
