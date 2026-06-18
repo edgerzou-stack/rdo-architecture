@@ -1007,69 +1007,104 @@ graph TD
     <h4 id="section-16">3.2.1 📉 极客案例推演：从绝对静止到瞬间爆炸的平滑过渡</h4>
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
         <p style="color: #333; font-size: 18px; margin-bottom: 10px;"><strong>【参数推导：预分析复杂度反馈】</strong><br>设定初始测试序列输入为连续的静态帧序列，系统预分析器 (Pass 1) 输出的像素级运动补偿代价为 $\mathcal{C}_{cur} = 100$。突然在 <strong>T0</strong> 时刻发生满屏爆炸场景，<code>pass1CurCost</code> 实际测量反馈值暴涨 10 倍（达到 <strong>1000</strong>）。若无平滑，QP 会瞬间暴跌引起流量雪崩。但在 <code>crfQpMapBasedCplx</code> 算法下：</p>
-        <style>
-            @keyframes growBar {
-                0% { height: 0%; opacity: 0; }
-                100% { opacity: 1; }
-            }
-            @keyframes flashRed {
-                0% { height: 50%; background: #94a3b8; box-shadow: none; }
-                50% { height: 100%; background: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
-                100% { height: 100%; background: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
-            }
-            @keyframes fadeInText {
-                0% { opacity: 0; transform: translateX(-10px); }
-                100% { opacity: 1; transform: translateX(0); }
-            }
-            
-            .bar-t3 { animation: growBar 0.5s ease-out forwards; animation-delay: 0.5s; height: 12%; opacity: 0; }
-            .bar-t2 { animation: growBar 0.5s ease-out forwards; animation-delay: 1.0s; height: 25%; opacity: 0; }
-            .bar-t1 { animation: growBar 0.5s ease-out forwards; animation-delay: 1.5s; height: 50%; opacity: 0; }
-            .bar-t0 { animation: flashRed 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 2.5s; height: 50%; background: #94a3b8; }
-            
-            .step1-code { animation: fadeInText 0.8s ease-out forwards; animation-delay: 3.5s; opacity: 0; }
-            .step2-code { animation: fadeInText 0.8s ease-out forwards; animation-delay: 4.5s; opacity: 0; }
-            
-            .play-btn {
-                margin-top: 10px; padding: 6px 12px; background: #0ea5e9; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
-            }
-            .play-btn:hover { background: #0284c7; }
-        </style>
-        
-        <div id="animation-container" style="display: flex; align-items: flex-end; gap: 15px; margin: 25px 0; height: 140px; border-bottom: 2px solid #334155; padding-bottom: 5px; overflow-x: auto;">
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div class="bar-t3" style="width: 45px; background: #475569; border-radius: 4px 4px 0 0;"></div>
-                <span style="font-size: 14px; color: #94a3b8; margin-top: 5px; text-align: center;">T-3<br>静止</span>
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div class="bar-t2" style="width: 45px; background: #64748b; border-radius: 4px 4px 0 0;"></div>
-                <span style="font-size: 14px; color: #94a3b8; margin-top: 5px; text-align: center;">T-2<br>静止</span>
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div class="bar-t1" style="width: 45px; background: #94a3b8; border-radius: 4px 4px 0 0;"></div>
-                <span style="font-size: 14px; color: #94a3b8; margin-top: 5px; text-align: center;">T-1<br>静止</span>
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                <div class="bar-t0" style="width: 45px; border-radius: 4px 4px 0 0;"></div>
-                <span style="font-size: 14px; margin-top: 5px; font-weight: bold; text-align: center;">T0<br>爆炸(1000)</span>
-            </div>
-            
-            <div style="margin-left: 30px; font-family: 'Roboto Mono', monospace; font-size: 18px; color: #94a3b8; align-self: center; padding: 12px; border-radius: 6px; border: 1px solid #334155; white-space: nowrap;">
-                <div class="step1-code">
-                    <span style="color: #38bdf8;">// Step 1: EMA 低通滤波 (拖影平滑)</span><br>
-                    <span style="color: #f8fafc;">blurredCplx</span> = (历史积淀 + 1000) / 综合Count <br>
-                    <span style="color: #a3a3a3;">-> 被 T-1~T-3 的低复杂度(100)严重稀释</span><br>
-                    <span style="color: #4ade80;">-> 实际算出仅为约 500 (而非1000)</span><br><br>
-                </div>
-                <div class="step2-code">
-                    <span style="color: #38bdf8;">// Step 2: qCompress 非线性空间折叠</span><br>
-                    <span style="color: #f8fafc;">qScale</span> = pow(<span style="color: #4ade80;">500</span>, 1 - <span style="color: #f472b6;">0.6</span>) <br>
-                    <span style="color: #a3a3a3;">-> 增幅指数(0.4)把暴涨的复杂度无情压缩</span><br>
-                    <span style="color: #4ade80;">-> QP 仅温和调整，完美避免码流瞬间崩塌！</span>
-                </div>
-            </div>
-        </div>
-        <button class="play-btn" onclick="let c = document.getElementById('animation-container'); let clone = c.cloneNode(true); c.parentNode.replaceChild(clone, c);">🔄 重播动画 (Replay Animation)</button>
+<svg style="max-width: 100%; height: auto; display: block; margin: 20px auto;" width="1131pt" height="280pt"
+ viewBox="0.00 0.00 1131.00 279.75" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 275.75)">
+<title>G</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-275.75 1127,-275.75 1127,4 -4,4"/>
+<!-- History -->
+<g id="node1" class="node">
+<title>History</title>
+<path fill="#f8fafc" stroke="none" d="M19.88,-102.75C19.88,-102.75 146.12,-102.75 146.12,-102.75 152.12,-102.75 158.12,-108.75 158.12,-114.75 158.12,-114.75 158.12,-259.75 158.12,-259.75 158.12,-265.75 152.12,-271.75 146.12,-271.75 146.12,-271.75 19.88,-271.75 19.88,-271.75 13.87,-271.75 7.88,-265.75 7.88,-259.75 7.88,-259.75 7.88,-114.75 7.88,-114.75 7.88,-108.75 13.88,-102.75 19.88,-102.75"/>
+<polygon fill="none" stroke="#64748b" points="7.88,-229.5 7.88,-271.75 158.12,-271.75 158.12,-229.5 7.88,-229.5"/>
+<text text-anchor="start" x="26" y="-248.45" font-family="Times,serif" font-weight="bold" font-size="14.00">历史低复杂度积累</text>
+<polygon fill="none" stroke="#64748b" points="7.88,-187.25 7.88,-229.5 158.12,-229.5 158.12,-187.25 7.88,-187.25"/>
+<text text-anchor="start" x="18.88" y="-205.2" font-family="Times,serif" font-size="14.00">T&#45;3: Cost = 100 (静止)</text>
+<polygon fill="none" stroke="#64748b" points="7.88,-145 7.88,-187.25 158.12,-187.25 158.12,-145 7.88,-145"/>
+<text text-anchor="start" x="18.88" y="-162.95" font-family="Times,serif" font-size="14.00">T&#45;2: Cost = 100 (静止)</text>
+<polygon fill="none" stroke="#64748b" points="7.88,-102.75 7.88,-145 158.12,-145 158.12,-102.75 7.88,-102.75"/>
+<text text-anchor="start" x="18.88" y="-120.7" font-family="Times,serif" font-size="14.00">T&#45;1: Cost = 100 (静止)</text>
+</g>
+<!-- EMA -->
+<g id="node3" class="node">
+<title>EMA</title>
+<path fill="#f0f9ff" stroke="none" d="M265.75,-50.88C265.75,-50.88 497.75,-50.88 497.75,-50.88 503.75,-50.88 509.75,-56.88 509.75,-62.88 509.75,-62.88 509.75,-165.62 509.75,-165.62 509.75,-171.62 503.75,-177.62 497.75,-177.62 497.75,-177.62 265.75,-177.62 265.75,-177.62 259.75,-177.62 253.75,-171.62 253.75,-165.62 253.75,-165.62 253.75,-62.88 253.75,-62.88 253.75,-56.88 259.75,-50.88 265.75,-50.88"/>
+<polygon fill="none" stroke="#0ea5e9" points="253.75,-135.38 253.75,-177.62 509.75,-177.62 509.75,-135.38 253.75,-135.38"/>
+<text text-anchor="start" x="278.62" y="-154.32" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#0284c7">Step 1: EMA 低通滤波 (拖影平滑)</text>
+<polygon fill="none" stroke="#0ea5e9" points="253.75,-93.12 253.75,-135.38 509.75,-135.38 509.75,-93.12 253.75,-93.12"/>
+<text text-anchor="start" x="264.75" y="-111.08" font-family="Times,serif" font-size="14.00">blurredCplx = (历史积淀 + 1000) / Count</text>
+<polygon fill="none" stroke="#0ea5e9" points="253.75,-50.88 253.75,-93.12 509.75,-93.12 509.75,-50.88 253.75,-50.88"/>
+<text text-anchor="start" x="292.12" y="-69.83" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#0288d1">实际算出约 500</text>
+<text text-anchor="start" x="387.38" y="-69.83" font-family="Times,serif" font-size="14.00" fill="#0288d1"> (被历史稀释)</text>
+</g>
+<!-- History&#45;&gt;EMA -->
+<g id="edge1" class="edge">
+<title>History&#45;&gt;EMA</title>
+<path fill="none" stroke="#64748b" d="M158.12,-169.02C184.41,-162.55 214.89,-155.05 244.71,-147.72"/>
+<polygon fill="#64748b" stroke="#64748b" points="245.37,-150.44 252.46,-145.81 244.03,-145 245.37,-150.44"/>
+<text text-anchor="middle" x="209.88" y="-167.4" font-family="Helvetica,sans-Serif" font-size="12.00"> 长期记忆</text>
+</g>
+<!-- T0 -->
+<g id="node2" class="node">
+<title>T0</title>
+<path fill="#fef2f2" stroke="none" d="M12,0C12,0 154,0 154,0 160,0 166,-6 166,-12 166,-12 166,-72.5 166,-72.5 166,-78.5 160,-84.5 154,-84.5 154,-84.5 12,-84.5 12,-84.5 6,-84.5 0,-78.5 0,-72.5 0,-72.5 0,-12 0,-12 0,-6 6,0 12,0"/>
+<polygon fill="none" stroke="#ef4444" points="0,-42.25 0,-84.5 166,-84.5 166,-42.25 0,-42.25"/>
+<text text-anchor="start" x="18.88" y="-61.2" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#b91c1c">当前瞬间爆炸帧 (T0)</text>
+<polygon fill="none" stroke="#ef4444" points="0,0 0,-42.25 166,-42.25 166,0 0,0"/>
+<text text-anchor="start" x="11" y="-18.95" font-family="Times,serif" font-size="14.00">Cost = </text>
+<text text-anchor="start" x="51.5" y="-18.95" font-family="Times,serif" font-weight="bold" font-size="14.00">1000</text>
+<text text-anchor="start" x="78.5" y="-18.95" font-family="Times,serif" font-size="14.00"> (暴涨 10 倍)</text>
+</g>
+<!-- T0&#45;&gt;EMA -->
+<g id="edge2" class="edge">
+<title>T0&#45;&gt;EMA</title>
+<path fill="none" stroke="#ef4444" stroke-width="2" d="M165.87,-62.11C190.3,-68.04 217.77,-74.71 244.68,-81.24"/>
+<polygon fill="#ef4444" stroke="#ef4444" stroke-width="2" points="242.41,-83.57 250.85,-82.73 243.73,-78.12 242.41,-83.57"/>
+<text text-anchor="middle" x="209.88" y="-84.1" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#ef4444"> 突发噪声</text>
+</g>
+<!-- qCompress -->
+<g id="node4" class="node">
+<title>qCompress</title>
+<path fill="#f5f3ff" stroke="none" d="M608.75,-31.62C608.75,-31.62 820.5,-31.62 820.5,-31.62 826.5,-31.62 832.5,-37.62 832.5,-43.62 832.5,-43.62 832.5,-184.88 832.5,-184.88 832.5,-190.88 826.5,-196.88 820.5,-196.88 820.5,-196.88 608.75,-196.88 608.75,-196.88 602.75,-196.88 596.75,-190.88 596.75,-184.88 596.75,-184.88 596.75,-43.63 596.75,-43.63 596.75,-37.63 602.75,-31.62 608.75,-31.62"/>
+<polygon fill="none" stroke="#8b5cf6" points="596.75,-154.62 596.75,-196.88 832.5,-196.88 832.5,-154.62 596.75,-154.62"/>
+<text text-anchor="start" x="607.75" y="-173.57" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#6d28d9">Step 2: qCompress 非线性空间折叠</text>
+<polygon fill="none" stroke="#8b5cf6" points="596.75,-116.12 596.75,-154.62 832.5,-154.62 832.5,-116.12 596.75,-116.12"/>
+<text text-anchor="start" x="640.75" y="-130.32" font-family="Times,serif" font-size="14.00">qScale = pow(500, 1 &#45; 0.6)</text>
+<polygon fill="none" stroke="#8b5cf6" points="596.75,-73.88 596.75,-116.12 832.5,-116.12 832.5,-73.88 596.75,-73.88"/>
+<text text-anchor="start" x="666.25" y="-92.83" font-family="Times,serif" font-size="14.00" fill="#7c3aed">即 </text>
+<text text-anchor="start" x="685" y="-92.83" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#7c3aed">pow(500, 0.4)</text>
+<polygon fill="none" stroke="#8b5cf6" points="596.75,-31.62 596.75,-73.88 832.5,-73.88 832.5,-31.62 596.75,-31.62"/>
+<text text-anchor="start" x="616" y="-49.58" font-family="Times,serif" font-size="14.00">暴涨复杂度被指数(0.4)无情压缩</text>
+</g>
+<!-- EMA&#45;&gt;qCompress -->
+<g id="edge3" class="edge">
+<title>EMA&#45;&gt;qCompress</title>
+<path fill="none" stroke="#64748b" d="M509.73,-114.25C535.21,-114.25 561.98,-114.25 587.44,-114.25"/>
+<polygon fill="#64748b" stroke="#64748b" points="587.24,-117.05 595.24,-114.25 587.24,-111.45 587.24,-117.05"/>
+<text text-anchor="middle" x="553.25" y="-137.35" font-family="Helvetica,sans-Serif" font-size="12.00"> 传入 500</text>
+<text text-anchor="middle" x="553.25" y="-120.1" font-family="Helvetica,sans-Serif" font-size="12.00">(未折叠)</text>
+</g>
+<!-- Result -->
+<g id="node5" class="node">
+<title>Result</title>
+<path fill="#ecfdf5" stroke="none" d="M956.25,-50.88C956.25,-50.88 1111,-50.88 1111,-50.88 1117,-50.88 1123,-56.88 1123,-62.88 1123,-62.88 1123,-165.62 1123,-165.62 1123,-171.62 1117,-177.62 1111,-177.62 1111,-177.62 956.25,-177.62 956.25,-177.62 950.25,-177.62 944.25,-171.62 944.25,-165.62 944.25,-165.62 944.25,-62.88 944.25,-62.88 944.25,-56.88 950.25,-50.88 956.25,-50.88"/>
+<polygon fill="none" stroke="#10b981" points="944.25,-135.38 944.25,-177.62 1123,-177.62 1123,-135.38 944.25,-135.38"/>
+<text text-anchor="start" x="991.62" y="-154.32" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#047857">最终 QP 分配</text>
+<polygon fill="none" stroke="#10b981" points="944.25,-93.12 944.25,-135.38 1123,-135.38 1123,-93.12 944.25,-93.12"/>
+<text text-anchor="start" x="973.62" y="-111.08" font-family="Times,serif" font-size="14.00">QP 仅发生温和调整</text>
+<polygon fill="none" stroke="#10b981" points="944.25,-50.88 944.25,-93.12 1123,-93.12 1123,-50.88 944.25,-50.88"/>
+<text text-anchor="start" x="955.25" y="-69.83" font-family="Times,serif" font-weight="bold" font-size="14.00">完美避免码流瞬间崩塌！</text>
+</g>
+<!-- qCompress&#45;&gt;Result -->
+<g id="edge4" class="edge">
+<title>qCompress&#45;&gt;Result</title>
+<path fill="none" stroke="#64748b" d="M832.31,-114.25C866.06,-114.25 902.52,-114.25 934.97,-114.25"/>
+<polygon fill="#64748b" stroke="#64748b" points="934.95,-117.05 942.95,-114.25 934.95,-111.45 934.95,-117.05"/>
+<text text-anchor="middle" x="888.38" y="-137.35" font-family="Helvetica,sans-Serif" font-size="12.00"> 传入温和因子</text>
+<text text-anchor="middle" x="888.38" y="-120.1" font-family="Helvetica,sans-Serif" font-size="12.00">(已折叠)</text>
+</g>
+</g>
+</svg>
     </div>
 
     <h3 id="section-17">3.3 🛡️ 策略三：两害相权取其轻的强制熔断机制 (Frame Skip)</h3>
