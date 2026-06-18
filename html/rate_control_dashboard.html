@@ -309,49 +309,8 @@
     <h2 id="section-1">2. 核心状态机与软硬件协同 (Core State Machine & Soft/Hard Co-design)</h2>
     <p>在底层的 C-Model 中，码率控制绝非一个简单的 $D+\lambda R$ 公式，而是一个极其庞大的<strong>前馈分配与反馈修正闭环系统</strong>。</p>
 
-    <div class="mermaid" style="text-align: center; margin: 30px 0; background: white; padding: 25px; border-radius: 8px; border: 1px dashed #94a3b8; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-graph TD
-    classDef sw fill:#e0f2fe,stroke:#0288d1,stroke-width:2px,color:#0f172a
-    classDef hw fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
-    classDef state fill:#f3e8ff,stroke:#7e22ce,stroke-width:2px,color:#4c1d95,stroke-dasharray: 5 5
-    classDef feedback fill:#ecfccb,stroke:#65a30d,stroke-width:2px,color:#3f6212
-
-    subgraph SW["宏观控制域 (Software Layer)"]
-        direction TB
-        S1["2.1 帧级目标分配 (BeforePicRc)<br/>输入: 当前 VBV 水位、平滑窗口 W_rc<br/>输出: 本帧受限预算 T_pic"]:::sw
-        
-        State1(("全局复杂度基准<br/>ω_reg^(t-1)")):::state
-        
-        S2["2.2 初始 QP 推演 (PicQuant)<br/>公式: Q_scale = ω_reg / T_pic<br/>输出: 帧级基准 QP_hdr"]:::sw
-        
-        S1 --> S2
-        State1 -.->|"提供历史状态模型"| S2
-    end
-
-    subgraph HW["微观执行域 (Hardware Layer)"]
-        direction TB
-        S3["2.3 像素级自适应量化 (Spatial AQ)<br/>输入: 静态配置 S_aq, 稳态平滑方差 V_frame_bar<br/>操作: 计算局部 V_cu, 导出偏移 ΔQP_cu"]:::hw
-        
-        S4["2.4 硬件 RDO 与量化执行 (HW RDO)<br/>机制: Clamp(QP_hdr + ΔQP_cu) -> 最终物理 QP_cu<br/>执行: 最优模式决策 λ + 残差抹零 Q-Step"]:::hw
-        
-        S3 --> S4
-    end
-
-    subgraph FB["反馈闭环域 (Feedback Calibration)"]
-        direction TB
-        OutCABAC["底层 CABAC 引擎产物<br/>物理真实消耗 B_actual<br/>比特加权平均 QP_avg"]:::feedback
-        
-        S5["2.5 状态机校准 (AfterPicRc)<br/>反演: Q_actual = f(QP_avg)<br/>瞬态: ω_cur = Q_actual × B_actual"]:::sw
-        
-        EMA["EMA 低通滤波校正<br/>(平滑因子 α=0.125)<br/>更新: 融合出新状态 ω_reg^(t)"]:::sw
-        
-        OutCABAC -->|"寄存器中断上报"| S5
-        S5 --> EMA
-    end
-
-    SW -->|"控制寄存器下发 QP_hdr"| HW
-    HW -->|"一整帧流式编码流水线结束"| OutCABAC
-    EMA -.->|"跨帧闭环反哺<br/>成为下一帧的输入起点"| State1
+        <div style="text-align: center; margin: 30px 0; background: white; padding: 20px; border-radius: 8px; border: 1px dashed #94a3b8; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <object type="image/svg+xml" data="rc_arch_numeric_flow.svg" style="max-width: 100%; height: auto; display: block; margin: 0 auto;"></object>
     </div>
     <div class="diagram-caption">图 1：C-Model 帧级码率控制核心双向闭环状态机</div>
 
