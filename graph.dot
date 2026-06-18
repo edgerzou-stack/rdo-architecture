@@ -3,7 +3,7 @@ digraph G {
     node [fontname="sans-serif", shape=none, margin=0];
     edge [fontname="sans-serif", color="#64748b", penwidth=1.5];
     rankdir=TB;
-    splines=ortho;
+    splines=polyline;
     nodesep=0.8;
     ranksep=0.8;
 
@@ -20,15 +20,14 @@ digraph G {
         S1 [URL="#section-2", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
                 <TR><TD><B>目标分配</B></TD></TR>
-                <TR><TD>T<SUB>pic</SUB> = <FONT COLOR="#0288d1"><B>38,000</B></FONT></TD></TR>
-                <TR><TD><FONT COLOR="#0288d1" POINT-SIZE="12">(bit)</FONT></TD></TR>
+                <TR><TD>T<SUB>pic</SUB> = <FONT COLOR="#0288d1">38,000 bit</FONT></TD></TR>
             </TABLE>
         >];
         
         S2 [URL="#section-5", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
                 <TR><TD><B>初始 QP 推演</B></TD></TR>
-                <TR><TD>QP<SUB>hdr</SUB> = <FONT COLOR="#0288d1"><B>25</B></FONT></TD></TR>
+                <TR><TD>QP<SUB>hdr</SUB> = <FONT COLOR="#0288d1">25</FONT></TD></TR>
             </TABLE>
         >];
 
@@ -65,16 +64,15 @@ digraph G {
         OutCABAC [URL="#section-hw-rdo", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#65a30d" BGCOLOR="#ecfccb" STYLE="ROUNDED">
                 <TR><TD><B>CABAC 物理统计</B></TD></TR>
-                <TR><TD>B<SUB>actual</SUB> = <FONT COLOR="#65a30d"><B>300,000</B></FONT></TD></TR>
-                <TR><TD><FONT COLOR="#65a30d" POINT-SIZE="12">(bit)</FONT></TD></TR>
-                <TR><TD>QP<SUB>avg</SUB> = <FONT COLOR="#65a30d"><B>20</B></FONT></TD></TR>
+                <TR><TD>B<SUB>actual</SUB> = <FONT COLOR="#65a30d">300,000 bit</FONT></TD></TR>
+                <TR><TD>QP<SUB>avg</SUB> = <FONT COLOR="#65a30d">20</FONT></TD></TR>
             </TABLE>
         >];
         
         S5 [URL="#section-9", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
                 <TR><TD><B>状态机校准</B></TD></TR>
-                <TR><TD>ω<SUB>cur</SUB> = <B>756,000</B></TD></TR>
+                <TR><TD>ω<SUB>cur</SUB> = 756,000</TD></TR>
             </TABLE>
         >];
         
@@ -88,7 +86,7 @@ digraph G {
         State2 [URL="#section-10", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#7e22ce" BGCOLOR="#f3e8ff" STYLE="ROUNDED">
                 <TR><TD><B>新历史状态基准 (t)</B></TD></TR>
-                <TR><TD>ω<SUB>reg</SUB><SUP>(t)</SUP> = <FONT COLOR="#7e22ce"><B>243,793</B></FONT></TD></TR>
+                <TR><TD>ω<SUB>reg</SUB><SUP>(t)</SUP> = <FONT COLOR="#7e22ce">243,793</FONT></TD></TR>
             </TABLE>
         >];
 
