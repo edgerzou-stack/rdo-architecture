@@ -20,7 +20,7 @@ digraph G {
         S1 [URL="#section-2", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#0288d1" BGCOLOR="#e0f2fe" STYLE="ROUNDED">
                 <TR><TD><B>目标分配</B></TD></TR>
-                <TR><TD>T<SUB>pic</SUB> = <FONT COLOR="#0288d1"><B>38,000</B></FONT>&nbsp;bit</TD></TR>
+                <TR><TD>T<SUB>pic</SUB> = <FONT COLOR="#0288d1"><B>38,000</B> bit</FONT></TD></TR>
             </TABLE>
         >];
         
@@ -64,7 +64,7 @@ digraph G {
         OutCABAC [URL="#section-hw-rdo", target="_parent", label=<
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#65a30d" BGCOLOR="#ecfccb" STYLE="ROUNDED">
                 <TR><TD><B>CABAC 物理统计</B></TD></TR>
-                <TR><TD>B<SUB>actual</SUB> = <FONT COLOR="#65a30d"><B>300,000</B></FONT>&nbsp;bit</TD></TR>
+                <TR><TD>B<SUB>actual</SUB> = <FONT COLOR="#65a30d"><B>300,000</B> bit</FONT></TD></TR>
                 <TR><TD>QP<SUB>avg</SUB> = <FONT COLOR="#65a30d"><B>20</B></FONT></TD></TR>
             </TABLE>
         >];
