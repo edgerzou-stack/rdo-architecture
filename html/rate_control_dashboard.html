@@ -629,13 +629,14 @@ graph TD
             <p style="font-size: 18px; color: #555; margin-bottom: 5px; line-height: 1.7;">
             <strong>(4) EMA 滤波校正</strong>：基于平滑因子 $\alpha$，对历史常数 $\omega_{reg}^{(t-1)}$ 与瞬态观测值 $\omega_{cur}$ 进行低通融合，更新模型权值。该滤波后的 $\omega_{reg}$ 将被回传至 <a href="#section-5" style="color: #7c3aed; text-decoration: underline; text-underline-offset: 3px;">步骤 2 (PicQuant)</a> 的 R-Q 模型中，作为下一帧的复杂度预测基准，完成闭环。</p>
             
-            <div id="param-alpha" style="font-size: 18px; color: #555; margin-bottom: 0; line-height: 1.7; padding: 15px; background: #eff6ff; border: 1px solid #bfdbfe; border-left: 5px solid #3b82f6; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <strong style="color: #1e40af; font-size: 19px;">📐 静态参数说明：平滑因子 $\alpha$（直接配置，无需计算）</strong><br>
-                与 2.3 节的 $\beta$ 类似，$\alpha$ 是控制 R-Q 模型更新速率的<strong style="color: #2563eb;">系统级工程经验常数，不参与动态解算</strong>。若 $\alpha$ 太大，模型会随单帧瞬态剧烈波动导致码流失控；若 $\alpha$ 太小，模型对场景切换响应迟钝，造成切镜后画质长时间崩塌。工业界通常将其静态设定为硬件友好的 2 的负整数次幂（如 $\frac{1}{4}, \frac{1}{8}, \frac{1}{16}$），允许底层直接用极低开销的“移位运算”替代乘法。本例中直接查表取定值为 $\mathbf{0.125}$，这与 <a href="#param-beta" style="color: #7c3aed; text-decoration: underline; text-underline-offset: 3px;">2.3.1 节的 $\beta$</a> 采用了完全对称的设计。
-            </div>
             </div>
             
-            <h4 id="section-10" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.5.1 📉 沙盘案例 (Numeric Example)</h4>
+            <h4 id="param-alpha" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.5.1 📐 静态参数：平滑因子 $\alpha$（直接配置，无需计算）</h4>
+            <div style="font-size: 18px; color: #555; margin-bottom: 20px; line-height: 1.7; padding: 15px; background: #eff6ff; border: 1px solid #bfdbfe; border-left: 5px solid #3b82f6; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                与 2.3 节的 $\beta$ 类似，$\alpha$ 是控制 R-Q 模型更新速率的<strong style="color: #2563eb;">系统级工程经验常数，不参与动态解算</strong>。若 $\alpha$ 太大，模型会随单帧瞬态剧烈波动导致码流失控；若 $\alpha$ 太小，模型对场景切换响应迟钝，造成切镜后画质长时间崩塌。工业界通常将其静态设定为硬件友好的 2 的负整数次幂（如 $\frac{1}{4}, \frac{1}{8}, \frac{1}{16}$），允许底层直接用极低开销的“移位运算”替代乘法。本例中直接查表取定值为 $\mathbf{0.125}$，这与 <a href="#param-beta" style="color: #7c3aed; text-decoration: underline; text-underline-offset: 3px;">2.3.1 节的 $\beta$</a> 采用了完全对称的设计。
+            </div>
+            
+            <h4 id="section-10" style="margin-top: 30px; margin-bottom: 15px; font-size: 23px; color: #1e293b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px;">2.5.2 📉 沙盘案例 (Numeric Example)</h4>
             <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0288d1; border-radius: 4px; margin-bottom: 30px;">
                 <ul style="font-size: 18px; color: #333; margin: 0; padding-left: 20px; line-height: 1.8;">
                     <li style="margin-bottom: 16px;"><strong>【前提条件一：历史状态 $\omega_{reg}^{(t-1)}$】</strong><br>在第 $t-1$ 帧时，系统维持的全局复杂度基准记录为 $\omega_{reg}^{(t-1)} = 170{,}620$（承接 <a href="#section-6" style="color: #7c3aed; text-decoration: underline; text-underline-offset: 3px;">2.2.1 节</a>）。</li>
